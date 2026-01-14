@@ -2,6 +2,7 @@
 
 import { Link } from '@/i18n/routing';
 import { UserMenu } from './UserMenu';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import { useLocale } from 'next-intl';
 
 export function Navbar() {
@@ -19,6 +20,7 @@ export function Navbar() {
                 </div>
 
                 <div className="flex items-center gap-4">
+                    <LanguageSwitcher />
                     <UserMenu />
                 </div>
             </div>

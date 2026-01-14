@@ -1,4 +1,4 @@
-import { getPostBySlug } from '@/services/blogService';
+import { getPostBySlug, getPostTranslations } from '@/services/blogService';
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
 import { CATEGORY_LABELS } from '@/types/blog';
@@ -6,8 +6,10 @@ import { Metadata } from 'next';
 import Image from 'next/image';
 import { cache } from 'react';
 
-const getPost = cache(async (slug: string) => {
-    return await getPostBySlug(slug);
+import { TranslationManager } from '@/components/blog/TranslationManager';
+
+const getPost = cache(async (slug: string, locale: string) => {
+    return await getPostBySlug(slug, locale);
 });
 
 interface BlogPostPageProps {
@@ -22,8 +24,8 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
-    const { slug } = await params;
-    const post = await getPost(slug);
+    const { slug, locale } = await params;
+    const post = await getPost(slug, locale);
 
     if (!post) {
         return {
@@ -33,10 +35,22 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 
     const title = post.seo.metaTitle || post.title;
     const description = post.seo.metaDesc || post.excerpt || post.content.replace(/[#*`]/g, '').substring(0, 160);
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mars.it.kr';
+
+    // Fetch all translations to build hreflang
+    const translations = await getPostTranslations(post.groupId);
+    const languages: Record<string, string> = {};
+    translations.forEach(t => {
+        languages[t.locale] = `${baseUrl}/${t.locale}/blog/${t.slug}`;
+    });
 
     return {
         title: title,
         description: description,
+        alternates: {
+            canonical: `${baseUrl}/${locale}/blog/${post.slug}`,
+            languages: languages,
+        },
         openGraph: {
             title: title,
             description: description,
@@ -57,7 +71,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
     const { slug, locale } = await params;
-    const post = await getPost(slug);
+    const post = await getPost(slug, locale);
 
     if (!post) {
         return notFound();
@@ -92,8 +106,16 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         },
     };
 
+    // Fetch all translations for language switcher
+    const allTranslations = await getPostTranslations(post.groupId);
+    const translationMap: Record<string, string> = {};
+    allTranslations.forEach(t => {
+        translationMap[t.locale] = t.slug;
+    });
+
     return (
         <article className="container mx-auto px-4 py-8 max-w-3xl">
+            <TranslationManager translations={translationMap} />
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

@@ -41,11 +41,12 @@ const extractImageUrls = (content: string): string[] => {
     return Array.from(new Set(urls)); // Remove duplicates
 };
 
-export const getPosts = async (category: Category = 'ALL'): Promise<Post[]> => {
+export const getPosts = async (category: Category = 'ALL', locale: string = 'ko'): Promise<Post[]> => {
     try {
         let q = query(
             collection(db, COLLECTION_NAME),
             where('status', '==', 'published'),
+            where('locale', '==', locale),
             where('publishedAt', '<=', Timestamp.now()),
             orderBy('publishedAt', 'desc'),
             limit(20)
@@ -56,6 +57,7 @@ export const getPosts = async (category: Category = 'ALL'): Promise<Post[]> => {
                 collection(db, COLLECTION_NAME),
                 where('status', '==', 'published'),
                 where('category', '==', category),
+                where('locale', '==', locale),
                 where('publishedAt', '<=', Timestamp.now()),
                 orderBy('publishedAt', 'desc'),
                 limit(20)
@@ -75,10 +77,11 @@ export const getPosts = async (category: Category = 'ALL'): Promise<Post[]> => {
 };
 
 // Real-time subscription for public posts
-export const subscribeToPosts = (category: Category, callback: (posts: Post[]) => void) => {
+export const subscribeToPosts = (category: Category, locale: string = 'ko', callback: (posts: Post[]) => void) => {
     let q = query(
         collection(db, COLLECTION_NAME),
         where('status', '==', 'published'),
+        where('locale', '==', locale),
         orderBy('publishedAt', 'desc'),
         limit(20)
     );
@@ -88,6 +91,7 @@ export const subscribeToPosts = (category: Category, callback: (posts: Post[]) =
             collection(db, COLLECTION_NAME),
             where('status', '==', 'published'),
             where('category', '==', category),
+            where('locale', '==', locale),
             orderBy('publishedAt', 'desc'),
             limit(20)
         );
@@ -156,11 +160,12 @@ export const getPost = async (id: string): Promise<Post | null> => {
     }
 }
 
-export const getPostBySlug = async (slug: string): Promise<Post | null> => {
+export const getPostBySlug = async (slug: string, locale: string = 'ko'): Promise<Post | null> => {
     try {
         const q = query(
             collection(db, COLLECTION_NAME),
             where('slug', '==', slug),
+            where('locale', '==', locale),
             limit(1)
         );
         const snapshot = await getDocs(q);
@@ -176,6 +181,20 @@ export const getPostBySlug = async (slug: string): Promise<Post | null> => {
         return null;
     }
 }
+export const getPostTranslations = async (groupId: string): Promise<Post[]> => {
+    try {
+        const q = query(
+            collection(db, COLLECTION_NAME),
+            where('groupId', '==', groupId)
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+    } catch (error) {
+        console.error("Error fetching post translations:", error);
+        return [];
+    }
+}
+
 export const getPostByShortCode = async (shortCode: string): Promise<Post | null> => {
     try {
         const q = query(

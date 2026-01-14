@@ -6,24 +6,26 @@ import { getPosts, subscribeToPosts } from '@/services/blogService';
 import { Category } from '@/types/blog';
 import { CategoryFilter } from './CategoryFilter';
 import { PostCard } from './PostCard';
+import { useLocale } from 'next-intl';
 
 export function PostList() {
     const [category, setCategory] = useState<Category>('ALL');
+    const locale = useLocale();
     const queryClient = useQueryClient();
 
     const { data: posts, isLoading, isError } = useQuery({
-        queryKey: ['posts', category],
-        queryFn: () => getPosts(category),
+        queryKey: ['posts', category, locale],
+        queryFn: () => getPosts(category, locale),
     });
 
     useEffect(() => {
         // Subscribe to real-time updates
-        const unsubscribe = subscribeToPosts(category, (newPosts) => {
-            queryClient.setQueryData(['posts', category], newPosts);
+        const unsubscribe = subscribeToPosts(category, locale, (newPosts) => {
+            queryClient.setQueryData(['posts', category, locale], newPosts);
         });
 
         return () => unsubscribe();
-    }, [category, queryClient]);
+    }, [category, locale, queryClient]);
 
     return (
         <div className="w-full max-w-7xl mx-auto px-4 py-8">

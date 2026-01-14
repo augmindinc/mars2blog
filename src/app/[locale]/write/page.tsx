@@ -16,9 +16,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLocale } from 'next-intl';
-import { UploadCloud, Loader2, Sparkles } from 'lucide-react';
+import { UploadCloud, Loader2, Sparkles, Languages } from 'lucide-react';
 import slugify from 'slugify';
 import { SocialPreview } from '@/components/admin/SocialPreview';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+
+interface translationData {
+    enabled: boolean;
+    title: string;
+    content: string;
+    slug: string;
+    seoTitle: string;
+    seoDescription: string;
+    excerpt: string;
+    isGenerating?: boolean;
+}
 
 export default function WritePage() {
     const router = useRouter();
@@ -42,7 +55,53 @@ export default function WritePage() {
 
     const [shortCode, setShortCode] = useState('');
     const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
+    const [isTranslating, setIsTranslating] = useState(false);
     const thumbnailInputRef = useRef<HTMLInputElement>(null);
+
+    const [translations, setTranslations] = useState<Record<string, translationData>>({
+        en: { enabled: false, title: '', content: '', slug: '', seoTitle: '', seoDescription: '', excerpt: '' },
+        ja: { enabled: false, title: '', content: '', slug: '', seoTitle: '', seoDescription: '', excerpt: '' },
+        zh: { enabled: false, title: '', content: '', slug: '', seoTitle: '', seoDescription: '', excerpt: '' },
+    });
+
+    const handleGenerateAI = async () => {
+        if (!content && !title) return;
+        setIsGeneratingAI(true);
+        try {
+            // Generate TL;DR and SEO meta
+            const response = await fetch('/api/ai/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'seo-metadata', content: `Title: ${title}\n\n${content}` }),
+            });
+            const data = await response.json();
+            if (data.seoTitle) setSeoTitle(data.seoTitle);
+            if (data.seoDescription) setSeoDescription(data.seoDescription);
+
+            const tldrResponse = await fetch('/api/ai/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'tldr', content }),
+            });
+            const tldrData = await tldrResponse.json();
+            if (tldrData.result) setTldr(tldrData.result);
+
+            // Generate Alt text if we have a title
+            if (thumbnailUrl && !thumbnailAlt) {
+                const altResponse = await fetch('/api/ai/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'alt-text', content: title, imageUrl: thumbnailUrl }),
+                });
+                const altData = await altResponse.json();
+                if (altData.result) setThumbnailAlt(altData.result);
+            }
+        } catch (error) {
+            console.error("AI Generation failed", error);
+        } finally {
+            setIsGeneratingAI(false);
+        }
+    };
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
         alert('Copied to clipboard!');
@@ -91,42 +150,44 @@ export default function WritePage() {
         };
     }, [title]);
 
-    const handleGenerateAI = async () => {
-        if (!content && !title) return;
-        setIsGeneratingAI(true);
+    const handleTranslateAll = async () => {
+        if (!title || !content) return;
+        setIsTranslating(true);
+        const targetLocales = Object.keys(translations);
+
         try {
-            // Generate TL;DR and SEO meta
-            const response = await fetch('/api/ai/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: 'seo-metadata', content: `Title: ${title}\n\n${content}` }),
-            });
-            const data = await response.json();
-            if (data.seoTitle) setSeoTitle(data.seoTitle);
-            if (data.seoDescription) setSeoDescription(data.seoDescription);
-
-            const tldrResponse = await fetch('/api/ai/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: 'tldr', content }),
-            });
-            const tldrData = await tldrResponse.json();
-            if (tldrData.result) setTldr(tldrData.result);
-
-            // Generate Alt text if we have a title
-            if (thumbnailUrl && !thumbnailAlt) {
-                const altResponse = await fetch('/api/ai/generate', {
+            await Promise.all(targetLocales.map(async (lang) => {
+                const response = await fetch('/api/ai/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: 'alt-text', content: title, imageUrl: thumbnailUrl }),
+                    body: JSON.stringify({
+                        type: 'translate',
+                        targetLocale: lang === 'en' ? 'English' : lang === 'ja' ? 'Japanese' : 'Chinese',
+                        title,
+                        content
+                    }),
                 });
-                const altData = await altResponse.json();
-                if (altData.result) setThumbnailAlt(altData.result);
-            }
+                const data = await response.json();
+                if (!data.error) {
+                    setTranslations(prev => ({
+                        ...prev,
+                        [lang]: {
+                            ...prev[lang],
+                            enabled: true,
+                            title: data.title,
+                            slug: data.slug,
+                            content: data.content,
+                            seoTitle: data.seoTitle,
+                            seoDescription: data.seoDescription,
+                            excerpt: data.seoDescription.substring(0, 160)
+                        }
+                    }));
+                }
+            }));
         } catch (error) {
-            console.error("AI Generation failed", error);
+            console.error("Translation failed", error);
         } finally {
-            setIsGeneratingAI(false);
+            setIsTranslating(false);
         }
     };
 
@@ -165,19 +226,21 @@ export default function WritePage() {
 
         setIsSubmitting(true);
         try {
-            const finalSlug = slug || `post-${Date.now()}`;
+            const groupId = `group-${Date.now()}`;
             const publishTimestamp = publishedAt ? Timestamp.fromDate(new Date(publishedAt)) : Timestamp.now();
-
             let initialStatus: 'published' | 'scheduled' = 'published';
             if (publishedAt && new Date(publishedAt) > new Date()) {
                 initialStatus = 'scheduled';
             }
 
-            const newPost: Omit<Post, 'id'> = {
+            // 1. Prepare Original Post
+            const originalPost: Omit<Post, 'id'> = {
+                groupId,
+                locale,
                 title,
                 content,
                 excerpt: tldr || summary || seoDescription.substring(0, 160),
-                slug: finalSlug,
+                slug: slug || `post-${Date.now()}`,
                 category,
                 tags: [],
                 author: {
@@ -211,7 +274,33 @@ export default function WritePage() {
                 shortCode: shortCode || null
             };
 
-            await addDoc(collection(db, 'posts'), newPost);
+            const postsToSave = [originalPost];
+
+            // 2. Prepare Translations
+            Object.entries(translations).forEach(([lang, data]) => {
+                if (data.enabled && data.title && data.content) {
+                    postsToSave.push({
+                        ...originalPost,
+                        locale: lang,
+                        title: data.title,
+                        content: data.content,
+                        slug: data.slug || `post-${Date.now()}-${lang}`,
+                        excerpt: data.excerpt,
+                        seo: {
+                            ...originalPost.seo,
+                            metaTitle: data.seoTitle,
+                            metaDesc: data.seoDescription,
+                            structuredData: {
+                                ...originalPost.seo.structuredData,
+                                headline: data.seoTitle,
+                            }
+                        }
+                    });
+                }
+            });
+
+            // 3. Save all to Firestore
+            await Promise.all(postsToSave.map(p => addDoc(collection(db, 'posts'), p)));
             router.push(`/${locale}`);
         } catch (error) {
             console.error('Error adding document: ', error);
@@ -313,6 +402,107 @@ export default function WritePage() {
                                 rows={3}
                             />
                         </div>
+
+                        <Card className="border-primary/20 bg-primary/5">
+                            <CardHeader className="pb-3 px-4 sm:px-6">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div>
+                                        <CardTitle className="flex items-center gap-2 text-lg">
+                                            <Languages className="w-5 h-5 text-primary" />
+                                            Multi-Language Translations
+                                        </CardTitle>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            AI will generate SEO-friendly slugs and content for other languages.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="default"
+                                        size="sm"
+                                        onClick={handleTranslateAll}
+                                        disabled={isTranslating || !content || !title}
+                                        className="shadow-sm"
+                                    >
+                                        {isTranslating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                                        Translate to All Languages
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="px-4 sm:px-6">
+                                <Tabs defaultValue="en" className="w-full">
+                                    <TabsList className="grid grid-cols-3 w-full max-w-md">
+                                        {Object.keys(translations).map(lang => (
+                                            <TabsTrigger key={lang} value={lang} className="flex items-center gap-2">
+                                                <span className="uppercase text-xs font-bold">{lang}</span>
+                                                <Switch
+                                                    checked={translations[lang].enabled}
+                                                    onCheckedChange={(val) => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], enabled: val } }))}
+                                                    className="data-[state=checked]:bg-primary scale-75"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
+                                            </TabsTrigger>
+                                        ))}
+                                    </TabsList>
+                                    {Object.entries(translations).map(([lang, data]) => (
+                                        <TabsContent key={lang} value={lang} className="space-y-4 pt-4 border-t mt-4">
+                                            {!data.enabled && (
+                                                <div className="bg-muted/50 rounded-md p-4 text-center text-sm text-muted-foreground">
+                                                    Enable {lang.toUpperCase()} to edit and publish this translation.
+                                                </div>
+                                            )}
+                                            <div className={data.enabled ? "space-y-4" : "opacity-50 pointer-events-none space-y-4"}>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <Label className="text-xs">Title ({lang.toUpperCase()})</Label>
+                                                        <Input
+                                                            value={data.title}
+                                                            onChange={(e) => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], title: e.target.value } }))}
+                                                            placeholder="Translated Title"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="text-xs">Slug ({lang.toUpperCase()})</Label>
+                                                        <Input
+                                                            value={data.slug}
+                                                            onChange={(e) => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], slug: e.target.value } }))}
+                                                            placeholder="translated-slug"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Content ({lang.toUpperCase()})</Label>
+                                                    <Textarea
+                                                        value={data.content}
+                                                        onChange={(e) => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], content: e.target.value } }))}
+                                                        placeholder="Translated content in Markdown..."
+                                                        rows={12}
+                                                        className="font-mono text-sm leading-relaxed"
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <Label className="text-xs">SEO Title ({lang.toUpperCase()})</Label>
+                                                        <Input
+                                                            value={data.seoTitle}
+                                                            onChange={(e) => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], seoTitle: e.target.value } }))}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="text-xs">SEO Description ({lang.toUpperCase()})</Label>
+                                                        <Textarea
+                                                            value={data.seoDescription}
+                                                            onChange={(e) => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], seoDescription: e.target.value, excerpt: e.target.value.substring(0, 160) } }))}
+                                                            rows={2}
+                                                            className="text-xs"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </TabsContent>
+                                    ))}
+                                </Tabs>
+                            </CardContent>
+                        </Card>
                     </div>
 
                     <div className="space-y-6">

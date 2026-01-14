@@ -72,6 +72,33 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Failed to parse JSON" }, { status: 500 });
         }
 
+        if (type === 'translate') {
+            const { targetLocale, title: postTitle, content: postContent } = await req.json();
+            const prompt = `Translate the following blog post into ${targetLocale}. 
+            Return the result in JSON format:
+            {
+                "title": "...",
+                "slug": "...",
+                "content": "...",
+                "seoTitle": "...",
+                "seoDescription": "..."
+            }
+            - slug should be in English always or common for the language, lowercase, hyphenated, SEO friendly.
+            - content should be in ${targetLocale} but keep the markdown structure.
+            - title, seoTitle, seoDescription should be in ${targetLocale}.
+
+            Title: ${postTitle}
+            Content: ${postContent}`;
+
+            const result = await model.generateContent(prompt);
+            const text = result.response.text();
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                return NextResponse.json(JSON.parse(jsonMatch[0]));
+            }
+            return NextResponse.json({ error: "Failed to parse JSON", text }, { status: 500 });
+        }
+
         return NextResponse.json({ error: "Invalid type" }, { status: 400 });
     } catch (error: any) {
         console.error("AI Generation Error:", error);
