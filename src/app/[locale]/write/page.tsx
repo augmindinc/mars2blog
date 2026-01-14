@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { db, storage } from '@/lib/firebase';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { compressImage } from '@/lib/imageCompression';
 import { MarkdownEditor } from '@/components/editor/MarkdownEditor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -135,8 +136,9 @@ export default function WritePage() {
 
         setIsUploadingThumbnail(true);
         try {
+            const compressedFile = await compressImage(file);
             const storageRef = ref(storage, `thumbnails/${Date.now()}-${file.name}`);
-            await uploadBytes(storageRef, file);
+            await uploadBytes(storageRef, compressedFile);
             const url = await getDownloadURL(storageRef);
             setThumbnailUrl(url);
 
@@ -206,7 +208,7 @@ export default function WritePage() {
                 publishedAt: publishTimestamp,
                 status: initialStatus,
                 viewCount: 0,
-                shortCode: shortCode || undefined
+                shortCode: shortCode || null
             };
 
             await addDoc(collection(db, 'posts'), newPost);

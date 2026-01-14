@@ -38,5 +38,5 @@ export interface Post {
     updatedAt: Timestamp;
     publishedAt: Timestamp;
     viewCount: number;
-    shortCode?: string;
+    shortCode: string | null;
 }

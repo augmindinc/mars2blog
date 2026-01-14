@@ -10,6 +10,9 @@ import { format } from 'date-fns';
 import { Pencil, ArrowLeft } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import Image from 'next/image';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
 
 export default function AdminPostDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
@@ -87,7 +90,7 @@ export default function AdminPostDetailPage({ params }: { params: Promise<{ id: 
                 </div>
 
                 {post.thumbnail.url && (
-                    <div className="relative w-full aspect-video mb-8 rounded-xl overflow-hidden bg-muted">
+                    <div className="relative w-full aspect-video mb-8 rounded-xl overflow-hidden bg-muted border">
                         <Image
                             src={post.thumbnail.url}
                             alt={post.thumbnail.alt || post.title}
@@ -95,6 +98,7 @@ export default function AdminPostDetailPage({ params }: { params: Promise<{ id: 
                             className="object-cover"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 75vw, 60vw"
                             priority
+                            unoptimized
                         />
                     </div>
                 )}
@@ -105,10 +109,11 @@ export default function AdminPostDetailPage({ params }: { params: Promise<{ id: 
                     </div>
                 )}
 
-                <div
-                    className="prose prose-lg dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: post.content }}
-                />
+                <div className="prose prose-lg dark:prose-invert max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                        {post.content}
+                    </ReactMarkdown>
+                </div>
             </article>
         </div>
     );

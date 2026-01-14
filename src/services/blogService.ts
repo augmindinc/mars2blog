@@ -7,7 +7,7 @@ const COLLECTION_NAME = 'posts';
 
 // Helper to delete an image from storage using its URL
 const deleteStorageImage = async (url: string | undefined) => {
-    if (!url || !url.includes('firebasestorage.googleapis.com')) return;
+    if (!url || (!url.includes('firebasestorage.googleapis.com') && !url.includes('firebasestorage.app'))) return;
     try {
         const imageRef = ref(storage, url);
         await deleteObject(imageRef);
@@ -16,17 +16,29 @@ const deleteStorageImage = async (url: string | undefined) => {
     }
 };
 
-// Helper to extract image URLs from HTML content
-const extractImageUrls = (html: string): string[] => {
+// Helper to extract image URLs from content (supports both Markdown and HTML)
+const extractImageUrls = (content: string): string[] => {
     const urls: string[] = [];
-    const imgRegex = /<img[^>]+src="([^">]+)"/g;
-    let match;
-    while ((match = imgRegex.exec(html)) !== null) {
-        if (match[1].includes('firebasestorage.googleapis.com')) {
-            urls.push(match[1]);
+
+    // 1. Markdown images: ![alt](url)
+    const mdImgRegex = /!\[.*?\]\((.*?)\)/g;
+    let mdMatch;
+    while ((mdMatch = mdImgRegex.exec(content)) !== null) {
+        if (mdMatch[1].includes('firebasestorage.googleapis.com') || mdMatch[1].includes('firebasestorage.app')) {
+            urls.push(mdMatch[1]);
         }
     }
-    return urls;
+
+    // 2. HTML images: <img src="url" ...>
+    const imgRegex = /<img[^>]+src="([^">]+)"/g;
+    let htmlMatch;
+    while ((htmlMatch = imgRegex.exec(content)) !== null) {
+        if (htmlMatch[1].includes('firebasestorage.googleapis.com') || htmlMatch[1].includes('firebasestorage.app')) {
+            urls.push(htmlMatch[1]);
+        }
+    }
+
+    return Array.from(new Set(urls)); // Remove duplicates
 };
 
 export const getPosts = async (category: Category = 'ALL'): Promise<Post[]> => {

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { compressImage } from '@/lib/imageCompression';
 import { cn } from '@/lib/utils';
 
 interface MarkdownEditorProps {
@@ -50,8 +51,9 @@ export function MarkdownEditor({ content, onChange }: MarkdownEditorProps) {
         try {
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
+                const compressedFile = await compressImage(file);
                 const storageRef = ref(storage, `posts/images/${Date.now()}-${file.name}`);
-                await uploadBytes(storageRef, file);
+                await uploadBytes(storageRef, compressedFile);
                 const url = await getDownloadURL(storageRef);
                 insertText(`![${file.name}](${url})`, '');
             }

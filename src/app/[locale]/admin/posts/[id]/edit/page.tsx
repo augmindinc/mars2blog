@@ -13,6 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLocale } from 'next-intl';
+import { useRef } from 'react';
+import { storage } from '@/lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { compressImage } from '@/lib/imageCompression';
 import { Sparkles, Loader2, UploadCloud } from 'lucide-react';
 import { SocialPreview } from '@/components/admin/SocialPreview';
 
@@ -41,6 +45,9 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         navigator.clipboard.writeText(text);
         alert('Copied to clipboard!');
     };
+
+    const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
+    const thumbnailInputRef = useRef<HTMLInputElement>(null);
 
     const generateShortUrl = () => {
         const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -76,6 +83,35 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         };
         fetchPost();
     }, [id, router, locale]);
+
+    const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploadingThumbnail(true);
+        try {
+            const compressedFile = await compressImage(file);
+            const storageRef = ref(storage, `thumbnails/${Date.now()}-${file.name}`);
+            await uploadBytes(storageRef, compressedFile);
+            const url = await getDownloadURL(storageRef);
+            setThumbnailUrl(url);
+
+            // Automatically generate alt text when thumbnail is uploaded
+            const altResponse = await fetch('/api/ai/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'alt-text', content: title, imageUrl: url }),
+            });
+            const altData = await altResponse.json();
+            if (altData.result) setThumbnailAlt(altData.result);
+
+        } catch (error) {
+            console.error("Thumbnail upload failed", error);
+            alert("Thumbnail upload failed");
+        } finally {
+            setIsUploadingThumbnail(false);
+        }
+    };
 
     const handleGenerateAI = async () => {
         if (!content && !title) return;
@@ -130,7 +166,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                         "datePublished": publishedAt ? new Date(publishedAt).toISOString() : new Date().toISOString()
                     }
                 },
-                shortCode: shortCode || undefined
+                shortCode: shortCode || null
             };
 
             if (status === 'scheduled' && publishedAt) {
@@ -311,6 +347,25 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                                 <CardTitle className="text-sm font-medium">Thumbnail</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
+                                <div className="flex gap-2">
+                                    <input
+                                        type="file"
+                                        ref={thumbnailInputRef}
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleThumbnailUpload}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full"
+                                        onClick={() => thumbnailInputRef.current?.click()}
+                                        disabled={isUploadingThumbnail}
+                                    >
+                                        {isUploadingThumbnail ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UploadCloud className="w-4 h-4 mr-2" />}
+                                        Upload Image
+                                    </Button>
+                                </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="thumbnailUrl">Thumbnail URL</Label>
                                     <Input
