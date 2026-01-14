@@ -434,20 +434,27 @@ export default function WritePage() {
                                         {Object.keys(translations).map(lang => (
                                             <TabsTrigger key={lang} value={lang} className="flex items-center gap-2">
                                                 <span className="uppercase text-xs font-bold">{lang}</span>
-                                                <Switch
-                                                    checked={translations[lang].enabled}
-                                                    onCheckedChange={(val) => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], enabled: val } }))}
-                                                    className="data-[state=checked]:bg-primary scale-75"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                />
+                                                {translations[lang].enabled && (
+                                                    <span className="w-2 h-2 rounded-full bg-primary" />
+                                                )}
                                             </TabsTrigger>
                                         ))}
                                     </TabsList>
                                     {Object.entries(translations).map(([lang, data]) => (
                                         <TabsContent key={lang} value={lang} className="space-y-4 pt-4 border-t mt-4">
+                                            <div className="flex items-center justify-between bg-muted/30 p-3 rounded-lg border border-dashed">
+                                                <div className="flex items-center gap-2">
+                                                    <Languages className="w-4 h-4 text-muted-foreground" />
+                                                    <span className="text-sm font-medium">Enable {lang.toUpperCase()} Translation</span>
+                                                </div>
+                                                <Switch
+                                                    checked={data.enabled}
+                                                    onCheckedChange={(val) => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], enabled: val } }))}
+                                                />
+                                            </div>
                                             {!data.enabled && (
                                                 <div className="bg-muted/50 rounded-md p-4 text-center text-sm text-muted-foreground">
-                                                    Enable {lang.toUpperCase()} to edit and publish this translation.
+                                                    Enable this language to edit and publish the translation.
                                                 </div>
                                             )}
                                             <div className={data.enabled ? "space-y-4" : "opacity-50 pointer-events-none space-y-4"}>
