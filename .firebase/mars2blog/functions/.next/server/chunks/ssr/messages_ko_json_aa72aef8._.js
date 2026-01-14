@@ -1,0 +1,3 @@
+module.exports=[48170,a=>{a.v({HomePage:{title:"Mars2Blog",welcome:"Mars2Blog에 오신 것을 환영합니다"},Navigation:{home:"홈",blog:"블로그",login:"로그인",logout:"로그아웃",write:"글쓰기"},Common:{loading:"로딩 중...",error:"오류가 발생했습니다"}})}];
+
+//# sourceMappingURL=messages_ko_json_aa72aef8._.js.map

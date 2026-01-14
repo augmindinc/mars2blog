@@ -1,0 +1,17 @@
+{
+  "HomePage": {
+    "title": "Mars2Blog",
+    "welcome": "Welcome to Mars2Blog"
+  },
+  "Navigation": {
+    "home": "Home",
+    "blog": "Blog",
+    "login": "Login",
+    "logout": "Logout",
+    "write": "Write"
+  },
+  "Common": {
+    "loading": "Loading...",
+    "error": "Error occurred"
+  }
+}

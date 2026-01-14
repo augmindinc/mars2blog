@@ -1,0 +1,19 @@
+{
+  "/[locale]/admin/login/page": "app/[locale]/admin/login/page.js",
+  "/[locale]/admin/members/page": "app/[locale]/admin/members/page.js",
+  "/[locale]/admin/page": "app/[locale]/admin/page.js",
+  "/[locale]/admin/posts/[id]/edit/page": "app/[locale]/admin/posts/[id]/edit/page.js",
+  "/[locale]/admin/posts/[id]/page": "app/[locale]/admin/posts/[id]/page.js",
+  "/[locale]/admin/sitemap/page": "app/[locale]/admin/sitemap/page.js",
+  "/[locale]/blog/[slug]/page": "app/[locale]/blog/[slug]/page.js",
+  "/[locale]/login/page": "app/[locale]/login/page.js",
+  "/[locale]/page": "app/[locale]/page.js",
+  "/[locale]/write/page": "app/[locale]/write/page.js",
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/ai/generate/route": "app/api/ai/generate/route.js",
+  "/api/generate-slug/route": "app/api/generate-slug/route.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/s/[shortCode]/page": "app/s/[shortCode]/page.js",
+  "/sitemap.xml/route": "app/sitemap.xml/route.js"
+}

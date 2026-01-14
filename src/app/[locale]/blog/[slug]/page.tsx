@@ -1,0 +1,153 @@
+import { getPostBySlug } from '@/services/blogService';
+import { notFound } from 'next/navigation';
+import { format } from 'date-fns';
+import { CATEGORY_LABELS } from '@/types/blog';
+import { Metadata } from 'next';
+import Image from 'next/image';
+import { cache } from 'react';
+
+const getPost = cache(async (slug: string) => {
+    return await getPostBySlug(slug);
+});
+
+interface BlogPostPageProps {
+    params: Promise<{
+        slug: string;
+        locale: string;
+    }>;
+}
+
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+
+export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
+    const { slug } = await params;
+    const post = await getPost(slug);
+
+    if (!post) {
+        return {
+            title: 'Post Not Found',
+        };
+    }
+
+    const title = post.seo.metaTitle || post.title;
+    const description = post.seo.metaDesc || post.excerpt || post.content.replace(/[#*`]/g, '').substring(0, 160);
+
+    return {
+        title: title,
+        description: description,
+        openGraph: {
+            title: title,
+            description: description,
+            images: post.thumbnail.url ? [post.thumbnail.url] : [],
+            type: 'article',
+            publishedTime: post.publishedAt?.toDate().toISOString(),
+            modifiedTime: post.updatedAt?.toDate().toISOString(),
+            authors: [post.author.name],
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: title,
+            description: description,
+            images: post.thumbnail.url ? [post.thumbnail.url] : [],
+        },
+    };
+}
+
+export default async function BlogPostPage({ params }: BlogPostPageProps) {
+    const { slug, locale } = await params;
+    const post = await getPost(slug);
+
+    if (!post) {
+        return notFound();
+    }
+
+    const categoryLabel = CATEGORY_LABELS[post.category][locale as 'en' | 'ko'] || post.category;
+
+    const jsonLd = post.seo.structuredData || {
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        headline: post.title,
+        description: post.seo.metaDesc || post.excerpt || post.content.replace(/[#*`]/g, '').substring(0, 160),
+        image: post.thumbnail.url ? [post.thumbnail.url] : [],
+        datePublished: post.publishedAt?.toDate().toISOString(),
+        dateModified: post.updatedAt?.toDate().toISOString(),
+        author: {
+            '@type': 'Person',
+            name: post.author.name,
+            image: post.author.photoUrl,
+        },
+        publisher: {
+            '@type': 'Organization',
+            name: 'Mars2Blog',
+            logo: {
+                '@type': 'ImageObject',
+                url: `${process.env.NEXT_PUBLIC_APP_URL || ''}/logo.png`,
+            },
+        },
+        mainEntityOfPage: {
+            '@type': 'WebPage',
+            '@id': `${process.env.NEXT_PUBLIC_APP_URL || ''}/${locale}/blog/${post.slug}`,
+        },
+    };
+
+    return (
+        <article className="container mx-auto px-4 py-8 max-w-3xl">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+            <div className="mb-8 text-center">
+                <div className="flex justify-center gap-2 mb-4">
+                    <span className="text-sm font-semibold text-primary px-3 py-1 bg-primary/10 rounded-full">
+                        {categoryLabel}
+                    </span>
+                </div>
+                <h1 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">{post.title}</h1>
+                <div className="text-muted-foreground text-sm flex justify-center items-center gap-4">
+                    {post.author.photoUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={post.author.photoUrl} alt={post.author.name} className="w-6 h-6 rounded-full" />
+                    )}
+                    <span>{post.author.name}</span>
+                    <span>•</span>
+                    <span>
+                        {post.createdAt?.seconds
+                            ? format(new Date(post.createdAt.seconds * 1000), 'yyyy.MM.dd')
+                            : format(new Date(), 'yyyy.MM.dd')}
+                    </span>
+                </div>
+            </div>
+
+            {post.thumbnail.url && (
+                <div className="relative w-full aspect-video mb-12 rounded-xl overflow-hidden shadow-lg border">
+                    <Image
+                        src={post.thumbnail.url}
+                        alt={post.thumbnail.alt || post.title}
+                        fill
+                        className="object-cover"
+                        priority
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 75vw, 60vw"
+                        unoptimized
+                    />
+                </div>
+            )}
+
+            {post.excerpt && (
+                <div className="mb-12 p-6 bg-muted/30 border-l-4 border-primary rounded-r-lg">
+                    <h2 className="text-sm font-bold uppercase tracking-wider mb-2 text-primary">Key Highlights (TL;DR)</h2>
+                    <p className="text-muted-foreground leading-relaxed italic">
+                        {post.excerpt}
+                    </p>
+                </div>
+            )}
+
+            <div className="prose prose-lg dark:prose-invert max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                    {post.content}
+                </ReactMarkdown>
+            </div>
+        </article>
+    );
+}

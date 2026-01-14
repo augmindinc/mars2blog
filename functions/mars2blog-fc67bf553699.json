@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "mars2blog",
+  "private_key_id": "fc67bf553699cfdf1786a4476de9447f3feacc6a",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDg4LoaxVzh03O5\nGY4jIum06O9RugMPhgaKYjXeCHEaQ0yScpaAyKQPk3EPAVQgwsH3ilFtMivuPRT8\n829YNbRBKzuliliS2NyzMROBREMddCPZQjXCKlgm8iO09z8QwvrLN+DNy8UPUiNW\nbHDsiz6Fpg8+otP8mKKFWZQt0F2oWn18JXi+VBqBjebLQ9OH98y82xg8UqP7l9NH\nZ3+8IiANw0B+8z8tNj1b/GJQ4uSR/qDMQBrXmxYOtksgoFQmrZks4VSh40hPONFv\nmfhFeLDW5UiB741T0p3WqonFDKwC+MbnQsbSS1JmFUiKMnDb4s1DkhZ4gzlrxMCF\nUWtv91i7AgMBAAECggEAM4ldLWB44mpO9adVK1lHfUX6/txl8itRmWpblQiTPyUY\nSeHH+zjAXK96NCmmSaHIyT3iXmemqMFH65awuGMKbfsF/vC/TtwzbD+9jB0EUp44\nzwQ9BMQmkrpgk4ssYV+GEYe7Vf6yqUm2Poq4sIVS7Vc63Cx978BdUrlOW9eKd1fj\njkW7O4GdYvAfH89f5CiiwiY4B2qfn8mfiujA4rnARHRmMSJcbhGtSPkgEn9fKPc9\nQ1k/7FaSNOoH646l0Fes1Qk1CeKvB++zkk0O2N1zAALIUh0AbHYjSzoqUYxfKHQu\nQLsFUycjXn1pdTwVBHQoyhuOwlZbcMUYkyMcggb4aQKBgQD96GJ+Ch/HYXo7ghuy\nGk8bfBOrj+GtFgbqMDwYNqsq4GIvVGnCVmqZKaqgCqGJeq1tJYmI0xBgB/RQ31Jr\nvzk+SynZWETeZAPqq2StfF3b88A0fwc/EHr+NLsbTatGKsVrI/KdccepXr+cHgvN\nosPZlO2c7xaCK42sd85/CCQEcwKBgQDiuxqfQY6erJd0x1H63VWInTQHcabzxUVh\ncyL85lfk6/wtmIhr2MvfvS65HpOeU29VIjerXIaTtSClRQkx8VygRlr4o8wpoiQy\nmx7D6ebkCDHdSq9VdNsD7LxdiZkJPqQPzjvnPcln8Ser2VZdzwqYumfiQGU+3zBM\nGYQfZFCQmQKBgCNxGK53Q1BVbvZ3ht4phflULHq6Lso2VOjDqt/GYcYuZAYvRkP2\nRBL1GfgVA89o7GRb5QLQU2zUL2pKgfrASoFDhKfuBk70rwdGvVrqDT/ymlW5lY1c\nA48QVT3ObaXxunTmI6uOgkxGCYEFQKiHm8b3XuOVDBNHeRMl9hENVdm5AoGAB2rX\nlB4w7D/5NHjQ1cQn6DA8Y4H0VEU/39BEdMGUXojZ1yQGUoDlKoyl2qiFa8iO+9oC\nuDhurqZeSwnXIysiPJwQndG9/B6x0HYCq6YbR5p9ByBKXCFWiOpVvzmhKAxEkb/N\ndeMvk5bwFU8m5CrBzf1LKLuylDv4+IRdLim5+QECgYBZJqjpzkzNMqyxMWB/0gcC\nfLDjvxi3ae+yevO1y9ry89kjM2HjO2X1fxQWBv/LFQoOk555WSljAKnFpXJwAJYu\nPqwvwtfqeE5RwqizK5VcsQF6I5+4z3VqjzxM/aJoMQyBARmaQ0Xr5cCtlNuduhG/\nmq+Fbit/4C147qUD4gKzwQ==\n-----END PRIVATE KEY-----\n",
+  "client_email": "google-indexing-api@mars2blog.iam.gserviceaccount.com",
+  "client_id": "111184701344998554309",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/google-indexing-api%40mars2blog.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
