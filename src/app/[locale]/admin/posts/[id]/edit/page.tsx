@@ -17,8 +17,24 @@ import { useRef } from 'react';
 import { storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { compressImage } from '@/lib/imageCompression';
-import { Sparkles, Loader2, UploadCloud } from 'lucide-react';
+import { Sparkles, Loader2, UploadCloud, Languages } from 'lucide-react';
 import { SocialPreview } from '@/components/admin/SocialPreview';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { getPostTranslations } from '@/services/blogService';
+import { addDoc, collection } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
+interface translationData {
+    id?: string;
+    enabled: boolean;
+    title: string;
+    content: string;
+    slug: string;
+    seoTitle: string;
+    seoDescription: string;
+    excerpt: string;
+}
 
 export default function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
@@ -40,6 +56,13 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     const [isLoading, setIsLoading] = useState(true);
     const [isGeneratingAI, setIsGeneratingAI] = useState(false);
     const [shortCode, setShortCode] = useState('');
+    const [groupId, setGroupId] = useState('');
+    const [translations, setTranslations] = useState<Record<string, translationData>>({
+        en: { enabled: false, title: '', content: '', slug: '', seoTitle: '', seoDescription: '', excerpt: '' },
+        ja: { enabled: false, title: '', content: '', slug: '', seoTitle: '', seoDescription: '', excerpt: '' },
+        zh: { enabled: false, title: '', content: '', slug: '', seoTitle: '', seoDescription: '', excerpt: '' },
+    });
+    const [isTranslating, setIsTranslating] = useState(false);
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
@@ -58,22 +81,44 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         const fetchPost = async () => {
             const post = await getPost(id);
             if (post) {
-                setTitle(post.title);
-                setContent(post.content);
+                setTitle(post.title || '');
+                setContent(post.content || '');
                 setCategory(post.category);
                 setSummary(post.excerpt || '');
-                setThumbnailUrl(post.thumbnail.url || '');
-                setThumbnailAlt(post.thumbnail.alt || '');
-                setSeoTitle(post.seo.metaTitle || '');
-                setSeoDescription(post.seo.metaDesc || '');
+                setThumbnailUrl(post.thumbnail?.url || '');
+                setThumbnailAlt(post.thumbnail?.alt || '');
+                setSeoTitle(post.seo?.metaTitle || '');
+                setSeoDescription(post.seo?.metaDesc || '');
                 setTldr(post.excerpt || '');
                 setStatus(post.status);
                 setShortCode(post.shortCode || '');
+                setGroupId(post.groupId || '');
 
                 if (post.publishedAt) {
                     const date = new Date(post.publishedAt.seconds * 1000);
                     const formattedDate = date.toISOString().slice(0, 16);
                     setPublishedAt(formattedDate);
+                }
+
+                // Fetch extra translations
+                if (post.groupId) {
+                    const allTrans = await getPostTranslations(post.groupId);
+                    const transObj = { ...translations };
+                    allTrans.forEach(t => {
+                        if (t.locale !== locale) {
+                            transObj[t.locale] = {
+                                id: t.id,
+                                enabled: true,
+                                title: t.title,
+                                content: t.content,
+                                slug: t.slug,
+                                seoTitle: t.seo.metaTitle,
+                                seoDescription: t.seo.metaDesc,
+                                excerpt: t.excerpt
+                            };
+                        }
+                    });
+                    setTranslations(transObj);
                 }
             } else {
                 alert('Post not found');
@@ -112,7 +157,6 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
             setIsUploadingThumbnail(false);
         }
     };
-
     const handleGenerateAI = async () => {
         if (!content && !title) return;
         setIsGeneratingAI(true);
@@ -140,13 +184,59 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         }
     };
 
+    const handleTranslateAll = async () => {
+        if (!title || !content) return;
+        setIsTranslating(true);
+        const targetLocales = Object.keys(translations);
+
+        try {
+            await Promise.all(targetLocales.map(async (lang) => {
+                // If already enabled and has content, maybe skip? (user can still re-run)
+                const response = await fetch('/api/ai/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'translate',
+                        targetLocale: lang === 'en' ? 'English' : lang === 'ja' ? 'Japanese' : 'Chinese',
+                        title,
+                        content
+                    }),
+                });
+                const data = await response.json();
+                if (!data.error) {
+                    setTranslations(prev => ({
+                        ...prev,
+                        [lang]: {
+                            ...prev[lang],
+                            enabled: true,
+                            title: data.title,
+                            slug: data.slug,
+                            content: data.content,
+                            seoTitle: data.seoTitle,
+                            seoDescription: data.seoDescription,
+                            excerpt: data.seoDescription.substring(0, 160)
+                        }
+                    }));
+                }
+            }));
+        } catch (error) {
+            console.error("Translation failed", error);
+        } finally {
+            setIsTranslating(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!title || !content) return;
 
         setIsSubmitting(true);
         try {
+            const currentGroupId = groupId || `group-${Date.now()}`;
+            const publishTimestamp = publishedAt ? Timestamp.fromDate(new Date(publishedAt)) : Timestamp.now();
+
             const updateData: Partial<Post> = {
+                groupId: currentGroupId,
                 title,
                 content,
                 excerpt: tldr || summary,
@@ -163,20 +253,63 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                         "@context": "https://schema.org",
                         "@type": "BlogPosting",
                         "headline": seoTitle || title,
-                        "datePublished": publishedAt ? new Date(publishedAt).toISOString() : new Date().toISOString()
+                        "datePublished": publishTimestamp.toDate().toISOString()
                     }
                 },
-                shortCode: shortCode || null
+                shortCode: shortCode || null,
+                publishedAt: publishTimestamp
             };
 
-            if (status === 'scheduled' && publishedAt) {
-                updateData.publishedAt = Timestamp.fromDate(new Date(publishedAt));
-            } else if (status === 'published' && !publishedAt) {
-                updateData.publishedAt = Timestamp.now();
-            }
-
             await updatePost(id, updateData);
-            alert('Post updated successfully');
+
+            // Handle translations
+            await Promise.all(Object.entries(translations).map(async ([lang, data]) => {
+                if (data.enabled && data.title && data.content) {
+                    const transDoc: Omit<Post, 'id'> = {
+                        groupId: currentGroupId,
+                        locale: lang,
+                        title: data.title,
+                        content: data.content,
+                        slug: data.slug || `post-${Date.now()}-${lang}`,
+                        excerpt: data.excerpt,
+                        category,
+                        tags: [],
+                        author: {
+                            id: 'anonymous', // Should ideally fetch from original post if needed, but let's keep it simple
+                            name: 'Admin',
+                            photoUrl: null
+                        },
+                        thumbnail: {
+                            url: thumbnailUrl,
+                            alt: data.title
+                        },
+                        seo: {
+                            metaTitle: data.seoTitle,
+                            metaDesc: data.seoDescription,
+                            structuredData: {
+                                "@context": "https://schema.org",
+                                "@type": "BlogPosting",
+                                "headline": data.seoTitle,
+                                "datePublished": publishTimestamp.toDate().toISOString()
+                            }
+                        },
+                        createdAt: Timestamp.now(),
+                        updatedAt: Timestamp.now(),
+                        publishedAt: publishTimestamp,
+                        status,
+                        viewCount: 0,
+                        shortCode: null
+                    };
+
+                    if (data.id) {
+                        await updatePost(data.id, transDoc as any);
+                    } else {
+                        await addDoc(collection(db, 'posts'), transDoc);
+                    }
+                }
+            }));
+
+            alert('Post and translations updated successfully');
             router.push(`/${locale}/admin`);
         } catch (error) {
             console.error('Error updating document: ', error);
@@ -262,6 +395,93 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                                 rows={3}
                             />
                         </div>
+
+                        <Card className="border-primary/20 bg-primary/5">
+                            <CardHeader className="pb-3 px-4 sm:px-6">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div>
+                                        <CardTitle className="flex items-center gap-2 text-lg">
+                                            <Languages className="w-5 h-5 text-primary" />
+                                            Multi-Language Translations
+                                        </CardTitle>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            Manage translations for this post. Enable to edit.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="default"
+                                        size="sm"
+                                        onClick={handleTranslateAll}
+                                        disabled={isTranslating || !content || !title}
+                                        className="shadow-sm"
+                                    >
+                                        {isTranslating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                                        {Object.values(translations).some(t => t.id) ? 'Update All Translations' : 'Translate to All Languages'}
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="px-4 sm:px-6">
+                                <Tabs defaultValue="en" className="w-full">
+                                    <TabsList className="grid grid-cols-3 w-full max-w-md">
+                                        {Object.keys(translations).map(lang => (
+                                            <TabsTrigger key={lang} value={lang} className="flex items-center gap-2">
+                                                <span className="uppercase text-xs font-bold">{lang}</span>
+                                                {translations[lang].enabled && (
+                                                    <span className="w-2 h-2 rounded-full bg-primary" />
+                                                )}
+                                            </TabsTrigger>
+                                        ))}
+                                    </TabsList>
+                                    {Object.entries(translations).map(([lang, data]) => (
+                                        <TabsContent key={lang} value={lang} className="space-y-4 pt-4 border-t mt-4">
+                                            <div className="flex items-center justify-between bg-muted/30 p-3 rounded-lg border border-dashed">
+                                                <div className="flex items-center gap-2">
+                                                    <Languages className="w-4 h-4 text-muted-foreground" />
+                                                    <span className="text-sm font-medium">Enable {lang.toUpperCase()} Translation</span>
+                                                </div>
+                                                <Switch
+                                                    checked={data.enabled}
+                                                    onCheckedChange={(val) => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], enabled: val } }))}
+                                                />
+                                            </div>
+                                            {!data.enabled && (
+                                                <div className="bg-muted/50 rounded-md p-4 text-center text-sm text-muted-foreground">
+                                                    Enable this language to edit and publish the translation.
+                                                </div>
+                                            )}
+                                            <div className={data.enabled ? "space-y-4" : "opacity-50 pointer-events-none space-y-4"}>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <Label className="text-xs">Title ({lang.toUpperCase()})</Label>
+                                                        <Input
+                                                            value={data.title}
+                                                            onChange={(e) => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], title: e.target.value } }))}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="text-xs">Slug ({lang.toUpperCase()})</Label>
+                                                        <Input
+                                                            value={data.slug}
+                                                            onChange={(e) => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], slug: e.target.value } }))}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Content ({lang.toUpperCase()})</Label>
+                                                    <Textarea
+                                                        value={data.content}
+                                                        onChange={(e) => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], content: e.target.value } }))}
+                                                        rows={12}
+                                                        className="font-mono text-sm leading-relaxed"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </TabsContent>
+                                    ))}
+                                </Tabs>
+                            </CardContent>
+                        </Card>
                     </div>
 
                     <div className="space-y-6">
