@@ -101,6 +101,38 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Failed to parse JSON", text }, { status: 500 });
         }
 
+        if (type === 'plan') {
+            const { existingTitles } = body;
+            const prompt = `Based on the following existing blog post titles, suggest 5 NEW and unique blog post ideas that would be interesting to the same audience.
+            
+            Existing Titles:
+            ${existingTitles.join('\n')}
+            
+            For each suggestion, provide:
+            1. Title (captivating and SEO-friendly)
+            2. Description (what the post should be about, what points to cover)
+            3. Rationale (why this is a good topic based on existing content)
+            
+            IMPORTANT: Output only a JSON array of objects like this:
+            [
+                {
+                    "title": "...",
+                    "description": "...",
+                    "reason": "..."
+                }
+            ]
+            
+            Return ONLY the valid JSON array.`;
+
+            const result = await model.generateContent(prompt);
+            const text = result.response.text();
+            const jsonMatch = text.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+                return NextResponse.json(JSON.parse(jsonMatch[0]));
+            }
+            return NextResponse.json({ error: "Failed to parse JSON", text }, { status: 500 });
+        }
+
         return NextResponse.json({ error: "Invalid type" }, { status: 400 });
     } catch (error: any) {
         console.error("AI Generation Error:", error);

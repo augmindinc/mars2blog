@@ -42,3 +42,13 @@ export interface Post {
     viewCount: number;
     shortCode: string | null;
 }
+
+export interface ContentPlan {
+    id: string;
+    title: string;
+    description: string;
+    reason: string;
+    completed: boolean;
+    createdAt: Timestamp;
+    authorId: string;
+}
