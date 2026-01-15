@@ -78,7 +78,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         return notFound();
     }
 
-    const categoryLabel = CATEGORY_LABELS[post.category][locale as 'en' | 'ko'] || post.category;
+    const categoryLabel = CATEGORY_LABELS[post.category]?.[locale as 'en' | 'ko'] || post.category;
 
     const jsonLd = post.seo.structuredData || {
         '@context': 'https://schema.org',

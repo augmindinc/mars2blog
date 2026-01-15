@@ -37,7 +37,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
             <CardHeader className="p-4 pb-2">
                 <div className="flex justify-between items-center mb-2">
                     <span className="text-xs font-semibold text-primary px-2 py-1 bg-primary/10 rounded-full">
-                        {CATEGORY_LABELS[post.category][locale]}
+                        {CATEGORY_LABELS[post.category]?.[locale] || post.category}
                     </span>
                     <span className="text-xs text-muted-foreground">
                         {/* Handle Timestamp or Date object robustly */}

@@ -229,7 +229,7 @@ export default function PlanningPage() {
                 content: data.content,
                 excerpt: data.seoDescription?.substring(0, 160) || '',
                 slug: data.slug || `essay-${Date.now()}`,
-                category: 'Essay',
+                category: 'ESSAY',
                 tags: ['AI-Partner', experienceData.contentType],
                 author: {
                     id: user?.uid || 'anonymous',

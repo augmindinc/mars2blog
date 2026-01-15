@@ -57,7 +57,7 @@ export default function AdminDashboardPage() {
     const filteredPosts = posts?.filter(post =>
         post.title.toLowerCase().includes(search.toLowerCase()) ||
         post.author.name.toLowerCase().includes(search.toLowerCase()) ||
-        CATEGORY_LABELS[post.category][locale].toLowerCase().includes(search.toLowerCase())
+        (CATEGORY_LABELS[post.category]?.[locale] || post.category).toLowerCase().includes(search.toLowerCase())
     );
 
     if (isLoading) return <div className="p-8 text-center text-muted-foreground font-medium animate-pulse">Loading posts...</div>;
@@ -110,7 +110,7 @@ export default function AdminDashboardPage() {
                                         {post.title}
                                     </Link>
                                 </TableCell>
-                                <TableCell>{CATEGORY_LABELS[post.category][locale]}</TableCell>
+                                <TableCell>{CATEGORY_LABELS[post.category]?.[locale] || post.category}</TableCell>
                                 <TableCell>{post.author.name}</TableCell>
                                 <TableCell>
                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${post.status === 'published'
