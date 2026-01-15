@@ -29,6 +29,10 @@ import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { ContentPlan } from '@/types/blog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { Post } from '@/types/blog';
@@ -40,6 +44,15 @@ export default function PlanningPage() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatingPosts, setGeneratingPosts] = useState<Record<string, boolean>>({});
     const [searchQuery, setSearchQuery] = useState('');
+
+    // Experience Modal State
+    const [isExperienceModalOpen, setIsExperienceModalOpen] = useState(false);
+    const [experienceData, setExperienceData] = useState({
+        experience: '',
+        context: '',
+        contentType: '정보형'
+    });
+    const [isExperienceGenerating, setIsExperienceGenerating] = useState(false);
 
     // 1. Fetch original Korean posts
     const { data: sourcePosts, isLoading: isLoadingPosts } = useQuery({
@@ -185,6 +198,81 @@ export default function PlanningPage() {
             setGeneratingPosts(prev => ({ ...prev, [plan.id]: false }));
         }
     };
+    const handleExperienceSubmit = async () => {
+        if (!experienceData.experience.trim()) {
+            alert("최근 겪은 경험이나 생각을 입력해주세요.");
+            return;
+        }
+
+        setIsExperienceGenerating(true);
+        try {
+            const response = await fetch('/api/ai/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'experience-to-post',
+                    ...experienceData
+                }),
+            });
+
+            if (!response.ok) throw new Error("AI generation failed");
+            const data = await response.json();
+
+            // Create new post document
+            const shortCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            const groupId = `group-${Date.now()}`;
+
+            const newPost: any = {
+                groupId,
+                locale: 'ko',
+                title: data.title,
+                content: data.content,
+                excerpt: data.seoDescription?.substring(0, 160) || '',
+                slug: data.slug || `essay-${Date.now()}`,
+                category: 'Essay',
+                tags: ['AI-Partner', experienceData.contentType],
+                author: {
+                    id: user?.uid || 'anonymous',
+                    name: user?.displayName || 'Anonymous',
+                    photoUrl: user?.photoURL ?? null
+                },
+                thumbnail: { url: '', alt: data.title },
+                seo: {
+                    metaTitle: data.seoTitle || data.title,
+                    metaDesc: data.seoDescription || '',
+                    structuredData: {
+                        "@context": "https://schema.org",
+                        "@type": "BlogPosting",
+                        "headline": data.seoTitle || data.title,
+                        "datePublished": new Date().toISOString(),
+                        "author": {
+                            "@type": "Person",
+                            "name": user?.displayName || 'Anonymous'
+                        }
+                    }
+                },
+                createdAt: Timestamp.now(),
+                updatedAt: Timestamp.now(),
+                publishedAt: Timestamp.now(),
+                status: 'draft',
+                viewCount: 0,
+                shortCode: shortCode
+            };
+
+            await addDoc(collection(db, 'posts'), newPost);
+
+            alert("에세이 초안이 성공적으로 생성되었습니다. 'Posts' 메뉴에서 확인하실 수 있습니다.");
+            setIsExperienceModalOpen(false);
+            setExperienceData({ experience: '', context: '', contentType: '정보형' });
+            queryClient.invalidateQueries({ queryKey: ['admin-source-posts'] });
+
+        } catch (error) {
+            console.error("Error generating experience post:", error);
+            alert("글 생성 중 오류가 발생했습니다.");
+        } finally {
+            setIsExperienceGenerating(false);
+        }
+    };
 
     const filteredPosts = sourcePosts?.filter(post =>
         post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -193,14 +281,89 @@ export default function PlanningPage() {
 
     return (
         <div className="space-y-8 pb-20">
-            {/* Header */}
-            <div className="space-y-2">
-                <h2 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">
-                    AI 콘텐츠 기획 센터 (Ideation)
-                </h2>
-                <p className="text-muted-foreground font-medium">
-                    발행된 기존 게시글의 맥락을 분석하여 새로운 글감을 제안받으세요.
-                </p>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="space-y-2">
+                    <h2 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">
+                        AI 콘텐츠 기획 센터 (Ideation)
+                    </h2>
+                    <p className="text-muted-foreground font-medium">
+                        발행된 기존 게시글의 맥락을 분석하거나, 당신의 경험을 에세이로 만들어보세요.
+                    </p>
+                </div>
+
+                <Dialog open={isExperienceModalOpen} onOpenChange={setIsExperienceModalOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="bg-gradient-to-r from-orange-500 to-red-500 hover:shadow-orange-500/20 text-white font-bold h-12 px-6">
+                            <Sparkles className="w-5 h-5 mr-2" />
+                            경험 기반 초안 만들기
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px]">
+                        <DialogHeader>
+                            <DialogTitle className="text-2xl font-black">경험을 에세이로 바꾸기</DialogTitle>
+                            <DialogDescription>
+                                한 줄의 경험이라도 괜찮습니다. 당신의 생각을 정리해주는 파트너가 되어드릴게요.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-6 py-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="experience" className="text-sm font-bold">최근 겪은 경험 / 관찰 / 생각 (한 줄 이상)</Label>
+                                <Textarea
+                                    id="experience"
+                                    placeholder="예: 오늘 아침 카페에서 본 노부부의 뒷모습이 마음에 남았어요."
+                                    className="min-h-[100px] bg-muted/30 border-none resize-none focus-visible:ring-1 focus-visible:ring-primary"
+                                    value={experienceData.experience}
+                                    onChange={(e) => setExperienceData(prev => ({ ...prev, experience: e.target.value }))}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="context" className="text-sm font-bold">관련된 제품·서비스·이슈 (선택)</Label>
+                                <Input
+                                    id="context"
+                                    placeholder="예: 아이폰 15 보조배터리, 기후 위기 기사 등"
+                                    className="bg-muted/30 border-none focus-visible:ring-1 focus-visible:ring-primary"
+                                    value={experienceData.context}
+                                    onChange={(e) => setExperienceData(prev => ({ ...prev, context: e.target.value }))}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-sm font-bold">글의 목적</Label>
+                                <Select
+                                    value={experienceData.contentType}
+                                    onValueChange={(val) => setExperienceData(prev => ({ ...prev, contentType: val }))}
+                                >
+                                    <SelectTrigger className="bg-muted/30 border-none">
+                                        <SelectValue placeholder="유형 선택" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="정보형">정보형 (인사이트 중심)</SelectItem>
+                                        <SelectItem value="커머스형">커머스형 (선택의 이유)</SelectItem>
+                                        <SelectItem value="이슈형">이슈형 (사회적 맥락 연결)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                className="w-full h-12 text-lg font-black bg-primary"
+                                onClick={handleExperienceSubmit}
+                                disabled={isExperienceGenerating}
+                            >
+                                {isExperienceGenerating ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                                        에세이 파트너가 분석 중...
+                                    </>
+                                ) : (
+                                    <>
+                                        <PenLine className="w-5 h-5 mr-2" />
+                                        에세이 초안 생성하기
+                                    </>
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             {/* Search and List Section */}

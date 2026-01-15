@@ -137,6 +137,42 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Failed to parse JSON", text }, { status: 500 });
         }
 
+        if (type === 'experience-to-post') {
+            const { experience, context, contentType } = body;
+            const prompt = `
+                너는 사용자의 ‘경험과 생각을 정리해주는 에세이 파트너’다.
+                사용자의 짧은 입력을 바탕으로 6단계 에세이 작법을 적용하여 블로그 초안을 작성하라.
+
+                [사용자 입력]
+                1. 경험/관찰/생각: ${experience}
+                2. 관련된 제품/서비스/이슈: ${context || '없음'}
+                3. 콘텐츠 유형: ${contentType} (정보형 / 커머스형 / 이슈형)
+
+                [작성 로직 - 내부적으로 수행]
+                STEP 1. 사례 구조화: 상황-행동-불편-전환점-여운 구조로 정리.
+                STEP 2. 사례 진짜성 검증: 인위적인 느낌 제거. (질문이 필요하다면 문장 내에 반영하거나 자연스럽게 녹일 것)
+                STEP 3. 유형별 리프레이밍: ${contentType}에 맞는 관점 설정.
+                STEP 4. 톤 앵커 고정: 1인칭, 단정 지양, 조언 지양, 질문 마무리.
+                STEP 5. 초안 작성: 개인적인 장면으로 시작, 중반 확장, 질문으로 마무리.
+                STEP 6. AI 티 제거: 매끄러운 결론 지양, 여운 강조.
+
+                [출력 형식]
+                반드시 아래 JSON 형식을 지켜라:
+                {
+                    "title": "에세이 느낌의 제목 (SEO 느낌 지양)",
+                    "content": "마크다운 형식의 본문 전체",
+                    "slug": "url-friendly-slug",
+                    "seoTitle": "SEO 제목",
+                    "seoDescription": "메타 설명"
+                }
+            `;
+
+            const result = await model.generateContent(prompt);
+            const responseText = result.response.text();
+            const cleanedJson = responseText.replace(/```json|```/g, "").trim();
+            return NextResponse.json(JSON.parse(cleanedJson));
+        }
+
         if (type === 'full-post-generation') {
             const { sourcePost, plan } = body;
             const prompt = `Based on the following reference blog post, generate a NEW full blog post for the suggested topic.
