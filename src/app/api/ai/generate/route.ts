@@ -10,8 +10,8 @@ export async function POST(req: Request) {
 
         console.log(`[AI API] Type: ${type}`);
 
-        // Use a stable model first, change to 'gemini-2.0-flash-exp' if 2.0 is specifically needed
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        // Using the requested Gemini 2.5 Flash model (stable in 2026)
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         if (type === 'alt-text') {
             if (!imageUrl) return NextResponse.json({ error: "Image URL required" }, { status: 400 });
