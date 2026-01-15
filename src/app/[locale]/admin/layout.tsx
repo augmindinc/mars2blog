@@ -57,8 +57,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const navItems = [
         { href: '/admin', label: 'Posts', icon: FileText, roles: ['admin', 'author'] },
         { href: '/admin/planning', label: 'Planning', icon: Lightbulb, roles: ['admin', 'author'] },
-        { href: '/admin/inflow', label: 'Inflow', icon: BarChart3, roles: ['admin'] },
-        { href: '/admin/keywords', label: 'Keywords', icon: Key, roles: ['admin'] },
+        { href: '/admin/inflow', label: 'Inflow', icon: BarChart3, roles: ['admin', 'author'] },
+        { href: '/admin/keywords', label: 'Keywords', icon: Key, roles: ['admin', 'author'] },
         { href: '/admin/members', label: 'Members', icon: Users, roles: ['admin'] },
         { href: '/admin/sitemap', label: 'Sitemap', icon: Globe, roles: ['admin'] },
     ].filter(item => item.roles.includes(profile.role));
