@@ -5,10 +5,11 @@ const genAI = new GoogleGenerativeAI("AIzaSyA2XT6tAEmI5hmiyH9lsk9NI8paYfLDrNM");
 
 export async function POST(req: Request) {
     try {
-        const { type, content, imageUrl } = await req.json();
+        const body = await req.json();
+        const { type, content, imageUrl } = body;
 
         // Use the requested model
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         if (type === 'alt-text') {
             if (!imageUrl) return NextResponse.json({ error: "Image URL required" }, { status: 400 });
@@ -73,7 +74,7 @@ export async function POST(req: Request) {
         }
 
         if (type === 'translate') {
-            const { targetLocale, title: postTitle, content: postContent } = await req.json();
+            const { targetLocale, title: postTitle, content: postContent } = body;
             const prompt = `Translate the following blog post into ${targetLocale}. 
             Return the result in JSON format:
             {
