@@ -17,7 +17,7 @@ import { useRef } from 'react';
 import { storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { compressImage } from '@/lib/imageCompression';
-import { Sparkles, Loader2, UploadCloud, Languages } from 'lucide-react';
+import { Sparkles, Loader2, UploadCloud, Languages, Lock } from 'lucide-react';
 import { SocialPreview } from '@/components/admin/SocialPreview';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
@@ -63,6 +63,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         zh: { enabled: false, title: '', content: '', slug: '', seoTitle: '', seoDescription: '', excerpt: '' },
     });
     const [isTranslating, setIsTranslating] = useState(false);
+    const [isShortCodePermanent, setIsShortCodePermanent] = useState(false);
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
@@ -92,6 +93,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                 setTldr(post.excerpt || '');
                 setStatus(post.status);
                 setShortCode(post.shortCode || '');
+                if (post.shortCode) setIsShortCodePermanent(true);
                 setGroupId(post.groupId || '');
 
                 if (post.publishedAt) {
@@ -373,12 +375,19 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                                     </div>
                                     <Button
                                         type="button"
-                                        variant="outline"
+                                        variant={isShortCodePermanent ? "ghost" : "outline"}
                                         size="sm"
                                         onClick={generateShortUrl}
                                         className="whitespace-nowrap"
+                                        disabled={isShortCodePermanent}
                                     >
-                                        {shortCode ? 'Regenerate' : 'Generate'}
+                                        {isShortCodePermanent ? (
+                                            <span className="flex items-center gap-1 opacity-60">
+                                                <Lock className="w-3 h-3" /> Fixed
+                                            </span>
+                                        ) : (
+                                            shortCode ? 'Regenerate' : 'Generate'
+                                        )}
                                     </Button>
                                 </div>
                             </div>
