@@ -14,9 +14,8 @@ export default async function ShortUrlPage({ params }: ShortUrlPageProps) {
     const post = await getPostByShortCode(shortCode);
 
     if (post) {
-        // Redirection logic: default to 'ko' or detect from post if needed
-        // For now, redirect to the Korean version of the blog
-        redirect(`/ko/blog/${post.slug}`);
+        // Redirect to the specific language version of the post
+        redirect(`/${post.locale}/blog/${post.slug}`);
     } else {
         // Post not found
         notFound();
