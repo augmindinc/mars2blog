@@ -306,17 +306,17 @@ export default function KeywordAnalysisPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-1 text-sm">
-                            <p className="font-bold flex items-center gap-2">
+                            <div className="font-bold flex items-center gap-2">
                                 <Badge className="h-5 px-1.5">1</Badge>
                                 내부 링크(Internal Link) 전략
-                            </p>
+                            </div>
                             <p className="text-muted-foreground pl-7">유입이 활발한 글에서 다른 글들을 링크하여 체류시간을 높이세요.</p>
                         </div>
                         <div className="space-y-1 text-sm">
-                            <p className="font-bold flex items-center gap-2">
+                            <div className="font-bold flex items-center gap-2">
                                 <Badge className="h-5 px-1.5">2</Badge>
                                 시리즈화(Series) 전략
-                            </p>
+                            </div>
                             <p className="text-muted-foreground pl-7">검색 의도가 다양한 키워드는 'A-Z 시리즈'로 묶어 권위를 강화하세요.</p>
                         </div>
                     </CardContent>
