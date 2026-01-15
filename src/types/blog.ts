@@ -54,3 +54,14 @@ export interface ContentPlan {
     createdAt: Timestamp;
     authorId: string;
 }
+
+export interface InflowLog {
+    id: string;
+    postId: string;
+    postTitle: string;
+    referrer: string;
+    referrerDomain: string;
+    searchKeyword: string | null;
+    userAgent: string;
+    createdAt: Timestamp;
+}

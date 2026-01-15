@@ -117,7 +117,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     return (
         <article className="container mx-auto px-4 py-8 max-w-3xl">
             <TranslationManager translations={translationMap} />
-            <ViewCounter postId={post.id} />
+            <ViewCounter postId={post.id} postTitle={post.title} />
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
