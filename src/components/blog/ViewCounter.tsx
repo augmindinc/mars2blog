@@ -10,9 +10,16 @@ interface ViewCounterProps {
 export function ViewCounter({ postId }: ViewCounterProps) {
     useEffect(() => {
         if (postId) {
-            incrementViewCount(postId);
+            const viewedPosts = sessionStorage.getItem('viewed_posts');
+            const viewedArray = viewedPosts ? JSON.parse(viewedPosts) : [];
+
+            if (!viewedArray.includes(postId)) {
+                incrementViewCount(postId);
+                viewedArray.push(postId);
+                sessionStorage.setItem('viewed_posts', JSON.stringify(viewedArray));
+            }
         }
     }, [postId]);
 
-    return null; // This component doesn't render anything
+    return null;
 }
