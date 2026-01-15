@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 3, "column": 0}, "map": {"version":3,"sources":["turbopack:///[project]/messages/en.json"],"sourcesContent":["{\"HomePage\":{\"title\":\"Mars2Blog\",\"welcome\":\"Welcome to Mars2Blog\"},\"Navigation\":{\"home\":\"Home\",\"blog\":\"Blog\",\"login\":\"Login\",\"logout\":\"Logout\",\"write\":\"Write\"},\"Common\":{\"loading\":\"Loading...\",\"error\":\"Error occurred\"}}"],"names":[],"mappings":"AAAA"}},
-    {"offset": {"line": 3, "column": 245}, "map": {"version":3,"sources":[],"names":[],"mappings":"A"}}]
-}

@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///Users/resmile/project/mars2blog/src/providers/Providers.tsx"],"sourcesContent":["'use client';\n\nimport { ThemeProvider } from 'next-themes';\nimport { QueryClient, QueryClientProvider } from '@tanstack/react-query';\nimport { ReactNode, useState } from 'react';\n\nexport function Providers({ children }: { children: ReactNode }) {\n    const [queryClient] = useState(() => new QueryClient({\n        defaultOptions: {\n            queries: {\n                staleTime: 60 * 1000,\n            },\n        },\n    }));\n\n    return (\n        <QueryClientProvider client={queryClient}>\n            <ThemeProvider\n                attribute=\"class\"\n                defaultTheme=\"system\"\n                enableSystem\n                disableTransitionOnChange\n            >\n                {children}\n            </ThemeProvider>\n        </QueryClientProvider>\n    );\n}\n"],"names":[],"mappings":";;;;;AAEA;AACA;AAAA;AACA;;;AAJA;;;;AAMO,SAAS,UAAU,EAAE,QAAQ,EAA2B;;IAC3D,MAAM,CAAC,YAAY,GAAG,IAAA,yKAAQ;8BAAC,IAAM,IAAI,+LAAW,CAAC;gBACjD,gBAAgB;oBACZ,SAAS;wBACL,WAAW,KAAK;oBACpB;gBACJ;YACJ;;IAEA,qBACI,6LAAC,gNAAmB;QAAC,QAAQ;kBACzB,cAAA,6LAAC,oKAAa;YACV,WAAU;YACV,cAAa;YACb,YAAY;YACZ,yBAAyB;sBAExB;;;;;;;;;;;AAIjB;GArBgB;KAAA"}}]
-}
