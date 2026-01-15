@@ -156,7 +156,7 @@ export default function WritePage() {
         const targetLocales = Object.keys(translations);
 
         try {
-            await Promise.all(targetLocales.map(async (lang) => {
+            for (const lang of targetLocales) {
                 const response = await fetch('/api/ai/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -167,23 +167,28 @@ export default function WritePage() {
                         content
                     }),
                 });
-                const data = await response.json();
-                if (!data.error) {
-                    setTranslations(prev => ({
-                        ...prev,
-                        [lang]: {
-                            ...prev[lang],
-                            enabled: true,
-                            title: data.title,
-                            slug: data.slug,
-                            content: data.content,
-                            seoTitle: data.seoTitle,
-                            seoDescription: data.seoDescription,
-                            excerpt: data.seoDescription.substring(0, 160)
-                        }
-                    }));
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    console.error(`Translation failed for ${lang}:`, errData);
+                    continue;
                 }
-            }));
+
+                const data = await response.json();
+                setTranslations(prev => ({
+                    ...prev,
+                    [lang]: {
+                        ...prev[lang],
+                        enabled: true,
+                        title: data.title,
+                        slug: data.slug,
+                        content: data.content,
+                        seoTitle: data.seoTitle,
+                        seoDescription: data.seoDescription,
+                        excerpt: data.seoDescription.substring(0, 160)
+                    }
+                }));
+            }
         } catch (error) {
             console.error("Translation failed", error);
         } finally {
