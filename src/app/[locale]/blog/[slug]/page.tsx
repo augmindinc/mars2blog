@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { cache } from 'react';
 
 import { TranslationManager } from '@/components/blog/TranslationManager';
+import { ViewCounter } from '@/components/blog/ViewCounter';
 
 const getPost = cache(async (slug: string, locale: string) => {
     return await getPostBySlug(slug, locale);
@@ -116,6 +117,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     return (
         <article className="container mx-auto px-4 py-8 max-w-3xl">
             <TranslationManager translations={translationMap} />
+            <ViewCounter postId={post.id} />
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

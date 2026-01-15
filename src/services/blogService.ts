@@ -1,6 +1,6 @@
 import { db, storage } from '@/lib/firebase';
 import { Post, Category } from '@/types/blog';
-import { collection, getDocs, query, where, orderBy, limit, Timestamp, doc, deleteDoc, updateDoc, getDoc, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, limit, Timestamp, doc, deleteDoc, updateDoc, getDoc, onSnapshot, increment } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { deleteContentPlansBySourceId } from './planService';
 
@@ -293,5 +293,16 @@ export const updatePost = async (id: string, data: Partial<Post>) => {
     } catch (error) {
         console.error("Error updating post:", error);
         throw error;
+    }
+}
+
+export const incrementViewCount = async (id: string) => {
+    try {
+        const docRef = doc(db, COLLECTION_NAME, id);
+        await updateDoc(docRef, {
+            viewCount: increment(1)
+        });
+    } catch (error) {
+        console.error("Error incrementing view count:", error);
     }
 }

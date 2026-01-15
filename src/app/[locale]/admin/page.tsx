@@ -98,6 +98,7 @@ export default function AdminDashboardPage() {
                             <TableHead>Status</TableHead>
                             <TableHead>Scheduled At</TableHead>
                             <TableHead>Created At</TableHead>
+                            <TableHead className="text-right">Views</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -130,6 +131,9 @@ export default function AdminDashboardPage() {
                                     {post.createdAt?.seconds
                                         ? format(new Date(post.createdAt.seconds * 1000), 'yyyy.MM.dd HH:mm')
                                         : '-'}
+                                </TableCell>
+                                <TableCell className="text-right font-bold text-primary">
+                                    {post.viewCount.toLocaleString()}
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-2">
