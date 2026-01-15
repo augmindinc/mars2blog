@@ -71,3 +71,19 @@ export const deleteContentPlan = async (id: string) => {
         throw error;
     }
 };
+
+export const deleteContentPlansBySourceId = async (sourcePostId: string) => {
+    try {
+        const q = query(
+            collection(db, COLLECTION_NAME),
+            where('sourcePostId', '==', sourcePostId)
+        );
+        const snapshot = await getDocs(q);
+        const deletePromises = snapshot.docs.map(d => deleteDoc(d.ref));
+        await Promise.all(deletePromises);
+        return true;
+    } catch (error) {
+        console.error("Error deleting content plans by source ID:", error);
+        throw error;
+    }
+};

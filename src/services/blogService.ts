@@ -2,6 +2,7 @@ import { db, storage } from '@/lib/firebase';
 import { Post, Category } from '@/types/blog';
 import { collection, getDocs, query, where, orderBy, limit, Timestamp, doc, deleteDoc, updateDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
+import { deleteContentPlansBySourceId } from './planService';
 
 const COLLECTION_NAME = 'posts';
 
@@ -242,6 +243,7 @@ export const getPostByShortCode = async (shortCode: string): Promise<Post | null
 }
 
 
+
 export const deletePost = async (id: string) => {
     try {
         // 1. Get post data to find images
@@ -255,9 +257,12 @@ export const deletePost = async (id: string) => {
             // 3. Delete content images from storage
             const contentImages = extractImageUrls(post.content);
             await Promise.all(contentImages.map(url => deleteStorageImage(url)));
+
+            // 4. Delete associated content plans
+            await deleteContentPlansBySourceId(id);
         }
 
-        // 4. Delete document from Firestore
+        // 5. Delete document from Firestore
         await deleteDoc(doc(db, COLLECTION_NAME, id));
         return true;
     } catch (error) {
