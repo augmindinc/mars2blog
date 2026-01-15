@@ -57,3 +57,25 @@ export const getInflowLogsByPost = async (postId: string): Promise<InflowLog[]> 
         return [];
     }
 };
+
+export const getInflowLogsByDays = async (days: number): Promise<InflowLog[]> => {
+    try {
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+        const startTimestamp = Timestamp.fromDate(startDate);
+
+        const q = query(
+            collection(db, COLLECTION_NAME),
+            where('searchKeyword', '!=', null),
+            where('createdAt', '>=', startTimestamp)
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        } as InflowLog));
+    } catch (error) {
+        console.error("Error fetching inflow logs by days:", error);
+        return [];
+    }
+};
