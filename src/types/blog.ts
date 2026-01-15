@@ -49,6 +49,7 @@ export interface ContentPlan {
     description: string;
     reason: string;
     completed: boolean;
+    contentType: 'informational' | 'trend';
     createdAt: Timestamp;
     authorId: string;
 }

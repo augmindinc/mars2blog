@@ -114,13 +114,15 @@ export async function POST(req: Request) {
             1. Title (captivating and SEO-friendly)
             2. Description (what the post should be about, what points to cover)
             3. Rationale (why this is a good topic based on the specific themes and depth of your existing content)
+            4. ContentType (Determine if this is 'informational' (Evergreen, helpful, educational) or 'trend' (Reflecting recent industry shifts, news, or viral topics))
             
             IMPORTANT: Output only a JSON array of objects like this:
             [
                 {
                     "title": "...",
                     "description": "...",
-                    "reason": "..."
+                    "reason": "...",
+                    "contentType": "informational" or "trend"
                 }
             ]
             

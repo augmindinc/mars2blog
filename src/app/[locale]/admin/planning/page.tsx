@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Sparkles, RefreshCw, Trash2, ListChecks, FileText, ChevronRight } from 'lucide-react';
+import { Loader2, Sparkles, RefreshCw, Trash2, ListChecks, FileText, ChevronRight, TrendingUp, Info } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Timestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -52,6 +52,7 @@ export default function PlanningPage() {
                     title: item.title,
                     description: item.description,
                     reason: item.reason,
+                    contentType: item.contentType || 'informational',
                     completed: false,
                     createdAt: Timestamp.now(),
                     authorId: user?.uid || 'anonymous'
@@ -202,16 +203,35 @@ export default function PlanningPage() {
                                                         />
                                                     </div>
                                                     <div className="flex-1 space-y-4">
-                                                        <div className="space-y-1">
+                                                        <div className="flex items-center gap-2 mb-2">
                                                             <h4 className={`text-lg font-bold leading-tight transition-all duration-500 ${plan.completed ? 'line-through text-muted-foreground italic' : 'text-foreground'
                                                                 }`}>
                                                                 {plan.title}
                                                             </h4>
-                                                            <p className={`text-sm leading-relaxed transition-all duration-500 ${plan.completed ? 'text-muted-foreground/60' : 'text-muted-foreground font-medium'
-                                                                }`}>
-                                                                {plan.description}
-                                                            </p>
+                                                            <Badge
+                                                                variant={plan.contentType === 'trend' ? 'default' : 'secondary'}
+                                                                className={`text-[10px] h-5 gap-1 shrink-0 ${plan.contentType === 'trend'
+                                                                        ? 'bg-orange-500 hover:bg-orange-600 text-white border-none'
+                                                                        : 'bg-blue-500/10 text-blue-600 border-blue-200'
+                                                                    }`}
+                                                            >
+                                                                {plan.contentType === 'trend' ? (
+                                                                    <>
+                                                                        <TrendingUp className="w-3 h-3" />
+                                                                        최근 트렌드 이슈
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Info className="w-3 h-3" />
+                                                                        정보성 콘텐츠
+                                                                    </>
+                                                                )}
+                                                            </Badge>
                                                         </div>
+                                                        <p className={`text-sm leading-relaxed transition-all duration-500 ${plan.completed ? 'text-muted-foreground/60' : 'text-muted-foreground font-medium'
+                                                            }`}>
+                                                            {plan.description}
+                                                        </p>
 
                                                         {!plan.completed && (
                                                             <div className="bg-primary/5 rounded-lg p-4 border border-primary/10 transition-all group-hover:bg-primary/10">
