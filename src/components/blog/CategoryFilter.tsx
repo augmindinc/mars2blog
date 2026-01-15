@@ -12,7 +12,7 @@ interface CategoryFilterProps {
 export function CategoryFilter({ currentCategory, onSelectCategory }: CategoryFilterProps) {
     const locale = useLocale() as 'en' | 'ko';
 
-    const categories: Category[] = ['ALL', 'PLANNING', 'SHOPPING', 'COOKING', 'TRAVEL', 'ISSUE', 'ESSAY'];
+    const categories: Category[] = ['ALL', 'PLANNING', 'SHOPPING', 'COOKING', 'TRAVEL', 'ISSUE'];
 
     return (
         <div className="flex flex-wrap gap-2 mb-8 justify-center">

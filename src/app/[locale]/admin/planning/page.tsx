@@ -222,15 +222,22 @@ export default function PlanningPage() {
             const shortCode = Math.random().toString(36).substring(2, 8).toUpperCase();
             const groupId = `group-${Date.now()}`;
 
+            // Map contentType to System Category
+            const categoryMap: Record<string, string> = {
+                '정보형': 'PLANNING',
+                '커머스형': 'SHOPPING',
+                '이슈형': 'ISSUE'
+            };
+
             const newPost: any = {
                 groupId,
                 locale: 'ko',
                 title: data.title,
                 content: data.content,
                 excerpt: data.seoDescription?.substring(0, 160) || '',
-                slug: data.slug || `essay-${Date.now()}`,
-                category: 'ESSAY',
-                tags: ['AI-Partner', experienceData.contentType],
+                slug: data.slug || `post-${Date.now()}`,
+                category: categoryMap[experienceData.contentType] || 'PLANNING',
+                tags: ['AI-Partner', '에세이톤', experienceData.contentType],
                 author: {
                     id: user?.uid || 'anonymous',
                     name: user?.displayName || 'Anonymous',
