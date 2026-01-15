@@ -15,17 +15,17 @@ import {
 
 const COLLECTION_NAME = 'content_plans';
 
-export const getContentPlans = async (authorId?: string): Promise<ContentPlan[]> => {
+export const getContentPlans = async (sourcePostId?: string): Promise<ContentPlan[]> => {
     try {
         let q = query(
             collection(db, COLLECTION_NAME),
             orderBy('createdAt', 'desc')
         );
 
-        if (authorId) {
+        if (sourcePostId) {
             q = query(
                 collection(db, COLLECTION_NAME),
-                where('authorId', '==', authorId),
+                where('sourcePostId', '==', sourcePostId),
                 orderBy('createdAt', 'desc')
             );
         }

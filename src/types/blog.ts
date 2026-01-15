@@ -50,6 +50,7 @@ export interface ContentPlan {
     reason: string;
     completed: boolean;
     contentType: 'informational' | 'trend';
+    sourcePostId: string;
     createdAt: Timestamp;
     authorId: string;
 }
