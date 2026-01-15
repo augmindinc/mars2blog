@@ -8,7 +8,9 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { type, content, imageUrl } = body;
 
-        // Use the requested model
+        console.log(`[AI API] Type: ${type}`);
+
+        // Use a stable model first, change to 'gemini-2.0-flash-exp' if 2.0 is specifically needed
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         if (type === 'alt-text') {
@@ -75,8 +77,8 @@ export async function POST(req: Request) {
 
         if (type === 'translate') {
             const { targetLocale, title: postTitle, content: postContent } = body;
-            const prompt = `Translate the following blog post into ${targetLocale}. 
-            Return the result in JSON format:
+            const prompt = `Translate the post into ${targetLocale}. 
+            IMPORTANT: Output only the JSON object.
             {
                 "title": "...",
                 "slug": "...",
@@ -84,10 +86,9 @@ export async function POST(req: Request) {
                 "seoTitle": "...",
                 "seoDescription": "..."
             }
-            - slug should be in English always or common for the language, lowercase, hyphenated, SEO friendly.
-            - content should be in ${targetLocale} but keep the markdown structure.
-            - title, seoTitle, seoDescription should be in ${targetLocale}.
-
+            - slug: English, lowercase, hyphenated.
+            - content: markdown in ${targetLocale}.
+            
             Title: ${postTitle}
             Content: ${postContent}`;
 
@@ -105,7 +106,8 @@ export async function POST(req: Request) {
         console.error("AI Generation Error:", error);
         return NextResponse.json({
             error: "Failed to generate content",
-            details: error.message || String(error)
+            details: error.message || String(error),
+            stack: error.stack
         }, { status: 500 });
     }
 }
