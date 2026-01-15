@@ -137,6 +137,46 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Failed to parse JSON", text }, { status: 500 });
         }
 
+        if (type === 'full-post-generation') {
+            const { sourcePost, plan } = body;
+            const prompt = `Based on the following reference blog post, generate a NEW full blog post for the suggested topic.
+            
+            REFERENCE POST (Analyze its tone, length, structure, purpose, and target audience):
+            Title: ${sourcePost.title}
+            Content: ${sourcePost.content}
+            
+            NEW TOPIC TO WRITE ABOUT:
+            Title: ${plan.title}
+            Description: ${plan.description}
+            Rationale: ${plan.reason}
+            
+            INSTRUCTIONS:
+            1. TONE: Match the exact tone and voice of the reference post (e.g., formal, witty, professional, friendly).
+            2. STRUCTURE: Use a similar logical structure (e.g., introduction, bullet points, subheadings, conclusion).
+            3. LENGTH: The word count should be roughly similar to the reference post.
+            4. LANGUAGE: Must be written in Korean (ko).
+            5. SEO: Ensure the content is SEO-friendly.
+            
+            IMPORTANT: Output only a JSON object:
+            {
+                "title": "...",
+                "content": "...",
+                "slug": "english-lowercase-hyphenated-slug",
+                "seoTitle": "...",
+                "seoDescription": "..."
+            }
+            
+            Return ONLY the valid JSON object.`;
+
+            const result = await model.generateContent(prompt);
+            const text = result.response.text();
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                return NextResponse.json(JSON.parse(jsonMatch[0]));
+            }
+            return NextResponse.json({ error: "Failed to parse JSON", text }, { status: 500 });
+        }
+
         return NextResponse.json({ error: "Invalid type" }, { status: 400 });
     } catch (error: any) {
         console.error("AI Generation Error:", error);

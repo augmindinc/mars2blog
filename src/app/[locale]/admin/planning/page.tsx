@@ -20,10 +20,13 @@ import {
     ArrowLeft,
     Search,
     Calendar,
-    User
+    User,
+    PenLine
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import { ContentPlan } from '@/types/blog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
@@ -35,6 +38,7 @@ export default function PlanningPage() {
     const queryClient = useQueryClient();
     const [selectedPost, setSelectedPost] = useState<Post | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [generatingPosts, setGeneratingPosts] = useState<Record<string, boolean>>({});
     const [searchQuery, setSearchQuery] = useState('');
 
     // 1. Fetch original Korean posts
@@ -102,6 +106,84 @@ export default function PlanningPage() {
     const removePlan = async (id: string) => {
         await deleteContentPlan(id);
         queryClient.invalidateQueries({ queryKey: ['content-plans', selectedPost?.id] });
+    };
+
+    const handleGeneratePost = async (plan: ContentPlan) => {
+        if (!selectedPost || generatingPosts[plan.id]) return;
+
+        setGeneratingPosts(prev => ({ ...prev, [plan.id]: true }));
+        try {
+            const response = await fetch('/api/ai/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'full-post-generation',
+                    sourcePost: selectedPost,
+                    plan: plan
+                }),
+            });
+
+            if (!response.ok) throw new Error("AI generation failed");
+            const data = await response.json();
+
+            // Create new post document
+            const shortCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            const groupId = `group-${Date.now()}`;
+
+            const newPost: any = {
+                groupId,
+                locale: 'ko',
+                title: data.title,
+                content: data.content,
+                excerpt: data.seoDescription?.substring(0, 160) || '',
+                slug: data.slug || `post-${Date.now()}`,
+                category: selectedPost.category,
+                tags: [],
+                author: {
+                    id: user?.uid || 'anonymous',
+                    name: user?.displayName || 'Anonymous',
+                    photoUrl: user?.photoURL ?? null
+                },
+                thumbnail: {
+                    url: '',
+                    alt: data.title
+                },
+                seo: {
+                    metaTitle: data.seoTitle || data.title,
+                    metaDesc: data.seoDescription || '',
+                    structuredData: {
+                        "@context": "https://schema.org",
+                        "@type": "BlogPosting",
+                        "headline": data.seoTitle || data.title,
+                        "datePublished": new Date().toISOString(),
+                        "author": {
+                            "@type": "Person",
+                            "name": user?.displayName || 'Anonymous'
+                        }
+                    }
+                },
+                createdAt: Timestamp.now(),
+                updatedAt: Timestamp.now(),
+                publishedAt: Timestamp.now(),
+                status: 'draft',
+                viewCount: 0,
+                shortCode: shortCode
+            };
+
+            await addDoc(collection(db, 'posts'), newPost);
+
+            // Mark plan as completed
+            await updateContentPlan(plan.id, { completed: true });
+
+            queryClient.invalidateQueries({ queryKey: ['content-plans', selectedPost.id] });
+            alert("초안이 성공적으로 생성되었습니다. 'Posts' 메뉴에서 확인하실 수 있습니다.");
+
+        } catch (error) {
+            console.error("Error generating full post:", error);
+            alert("글 생성 중 오류가 발생했습니다.");
+        } finally {
+            setGeneratingPosts(prev => ({ ...prev, [plan.id]: false }));
+        }
     };
 
     const filteredPosts = sourcePosts?.filter(post =>
@@ -291,14 +373,32 @@ export default function PlanningPage() {
                                                                 <span className="text-[9px] text-muted-foreground font-mono">
                                                                     {format(new Date(plan.createdAt?.seconds * 1000), 'yyyy.MM.dd')}
                                                                 </span>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    onClick={() => removePlan(plan.id)}
-                                                                    className="h-6 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                                                >
-                                                                    <Trash2 className="w-3 h-3" />
-                                                                </Button>
+                                                                <div className="flex items-center gap-2">
+                                                                    {!plan.completed && (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="default"
+                                                                            onClick={() => handleGeneratePost(plan)}
+                                                                            disabled={generatingPosts[plan.id]}
+                                                                            className="h-7 px-3 bg-primary hover:bg-primary/90 text-[10px] font-bold gap-1.5"
+                                                                        >
+                                                                            {generatingPosts[plan.id] ? (
+                                                                                <Loader2 className="w-3 h-3 animate-spin" />
+                                                                            ) : (
+                                                                                <PenLine className="w-3 h-3" />
+                                                                            )}
+                                                                            AI 포스팅 생성
+                                                                        </Button>
+                                                                    )}
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        onClick={() => removePlan(plan.id)}
+                                                                        className="h-7 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                                    >
+                                                                        <Trash2 className="w-3 h-3" />
+                                                                    </Button>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
