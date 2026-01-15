@@ -11,7 +11,12 @@ const deleteStorageImage = async (url: string | undefined) => {
     try {
         const imageRef = ref(storage, url);
         await deleteObject(imageRef);
-    } catch (error) {
+    } catch (error: any) {
+        // Ignore "object not found" errors to prevent service failure
+        if (error.code === 'storage/object-not-found') {
+            console.warn("Storage object already deleted or not found:", url);
+            return;
+        }
         console.error("Error deleting image from storage:", error);
     }
 };
