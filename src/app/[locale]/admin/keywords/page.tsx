@@ -34,13 +34,21 @@ interface KeywordAnalysis {
 }
 
 export default function KeywordAnalysisPage() {
-    // 1. Fetch 90 days of logs for deep analysis
     const { data: rawLogs, isLoading } = useQuery({
         queryKey: ['inflow-logs-90d'],
         queryFn: () => getInflowLogsByDays(90),
     });
 
-    if (isLoading) {
+    // 2. Fetch GSC Data
+    const { data: gscData, isLoading: isLoadingGSC } = useQuery({
+        queryKey: ['admin-gsc-data'],
+        queryFn: async () => {
+            const res = await fetch('/api/admin/gsc');
+            return res.json();
+        }
+    });
+
+    if (isLoading || isLoadingGSC) {
         return <div className="p-8 text-center text-muted-foreground animate-pulse">Analyzing 90 days of search data...</div>;
     }
 
@@ -114,6 +122,11 @@ export default function KeywordAnalysisPage() {
 
     const analyzedData = analyzeKeywords();
     const filialKeywords = analyzedData.filter(d => d.isFilial);
+
+    // Filter GSC "Hidden Gems" (Rank 10-20, has clicks)
+    const hiddenGems = gscData?.queries?.filter((q: any) =>
+        q.position >= 10 && q.position <= 20 && q.clicks > 0
+    ) || [];
 
     return (
         <div className="space-y-8 pb-20">
@@ -265,35 +278,70 @@ export default function KeywordAnalysisPage() {
                 </CardContent>
             </Card>
 
-            {/* External Data Section Placeholder (GSC) */}
+            {/* GSC Insights Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <Card className="border-dashed border-2 bg-muted/20">
+                <Card className={`${!gscData?.configured ? 'border-dashed border-2 bg-muted/20' : 'shadow-lg'}`}>
                     <CardHeader>
                         <div className="flex items-center justify-between">
                             <CardTitle className="text-xl flex items-center gap-2">
-                                <Search className="w-5 h-5 text-gray-400" />
+                                <Search className={`w-5 h-5 ${gscData?.configured ? 'text-primary' : 'text-gray-400'}`} />
                                 Google Search Console Insights
                             </CardTitle>
-                            <Badge variant="secondary" className="text-[10px]">API Setup Required</Badge>
+                            {!gscData?.configured ? (
+                                <Badge variant="secondary" className="text-[10px]">API Setup Required</Badge>
+                            ) : (
+                                <Badge variant="default" className="text-[10px] bg-green-500">Connected</Badge>
+                            )}
                         </div>
                         <CardDescription>
-                            Connect your GSC account to identify high-potential keywords from search results.
+                            {gscData?.configured
+                                ? 'High-potential keywords from your actual search performance.'
+                                : 'Connect your GSC account to identify high-potential keywords from search results.'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="p-4 bg-background rounded-lg border border-dashed flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600">
-                                <TrendingUp className="w-5 h-5" />
+                        {!gscData?.configured ? (
+                            <div className="p-4 bg-background rounded-lg border border-dashed flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600">
+                                    <TrendingUp className="w-5 h-5" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-bold">Hidden Gems (평균 순위 10-20위)</p>
+                                    <p className="text-xs text-muted-foreground">노출은 많으나 순위가 아쉬운 효자 후보 키워드입니다.</p>
+                                </div>
+                                <Button size="sm" variant="outline" disabled>
+                                    <ExternalLink className="w-3 h-3 mr-2" />
+                                    Connect GSC
+                                </Button>
                             </div>
-                            <div className="flex-1">
-                                <p className="text-sm font-bold">Hidden Gems (평균 순위 10-20위)</p>
-                                <p className="text-xs text-muted-foreground">노출은 많으나 순위가 아쉬운 효자 후보 키워드입니다.</p>
+                        ) : (
+                            <div className="space-y-3">
+                                <h4 className="text-sm font-bold flex items-center gap-2">
+                                    <Star className="w-4 h-4 text-yellow-500" />
+                                    Hidden Gems Candidate (Top 10-20 Rank)
+                                </h4>
+                                <div className="grid gap-2">
+                                    {hiddenGems.slice(0, 5).map((q: any) => (
+                                        <div key={q.keys[0]} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg group hover:bg-muted/50 transition-colors">
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-bold">{q.keys[0]}</p>
+                                                <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                                                    <span>Rank: <span className="text-primary font-mono">{q.position.toFixed(1)}</span></span>
+                                                    <span>Clicks: <span className="text-primary font-mono">{q.clicks}</span></span>
+                                                    <span>CTR: <span className="text-primary font-mono">{(q.ctr * 100).toFixed(1)}%</span></span>
+                                                </div>
+                                            </div>
+                                            <Badge variant="outline" className="text-[9px]">Potential Hot</Badge>
+                                        </div>
+                                    ))}
+                                    {hiddenGems.length === 0 && (
+                                        <p className="text-xs text-center py-8 text-muted-foreground italic">
+                                            No keywords found in the 10-20 rank range.
+                                        </p>
+                                    )}
+                                </div>
                             </div>
-                            <Button size="sm" variant="outline" disabled>
-                                <ExternalLink className="w-3 h-3 mr-2" />
-                                Connect GSC
-                            </Button>
-                        </div>
+                        )}
                     </CardContent>
                 </Card>
 
