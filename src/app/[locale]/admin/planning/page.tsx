@@ -33,13 +33,13 @@ export default function PlanningPage() {
     // 3. AI Generation Mutation
     const generateMutation = useMutation({
         mutationFn: async () => {
-            const existingTitles = sourcePosts?.map(p => p.title) || [];
-            if (existingTitles.length === 0) throw new Error("No source posts found");
+            const existingPosts = sourcePosts?.map(p => ({ title: p.title, content: p.content })) || [];
+            if (existingPosts.length === 0) throw new Error("No source posts found");
 
             const response = await fetch('/api/ai/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: 'plan', existingTitles }),
+                body: JSON.stringify({ type: 'plan', existingPosts }),
             });
 
             if (!response.ok) throw new Error("AI failed");

@@ -102,16 +102,18 @@ export async function POST(req: Request) {
         }
 
         if (type === 'plan') {
-            const { existingTitles } = body;
-            const prompt = `Based on the following existing blog post titles, suggest 5 NEW and unique blog post ideas that would be interesting to the same audience.
+            const { existingPosts } = body; // Array of { title, content }
+            const context = existingPosts.map((p: any) => `Title: ${p.title}\nContent: ${p.content.substring(0, 500)}...`).join('\n\n---\n\n');
+
+            const prompt = `Based on the following existing blog posts (Title and partial Content), suggest 5 NEW and unique blog post ideas that would be interesting to the same audience.
             
-            Existing Titles:
-            ${existingTitles.join('\n')}
+            Existing Posts Context:
+            ${context}
             
             For each suggestion, provide:
             1. Title (captivating and SEO-friendly)
             2. Description (what the post should be about, what points to cover)
-            3. Rationale (why this is a good topic based on existing content)
+            3. Rationale (why this is a good topic based on the specific themes and depth of your existing content)
             
             IMPORTANT: Output only a JSON array of objects like this:
             [
