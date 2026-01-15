@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { getPosts } from '@/services/blogService';
+import { getAllPublishedPosts } from '@/services/blogService';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -28,17 +28,19 @@ export default function AdminSitemapPage() {
 
     const { data: posts, isLoading } = useQuery({
         queryKey: ['sitemap-posts'],
-        queryFn: () => getPosts('ALL'),
+        queryFn: () => getAllPublishedPosts(),
     });
 
     const staticPages: SitemapEntry[] = [
         { url: baseUrl, priority: 1.0, frequency: 'daily', type: 'Static' },
-        { url: `${baseUrl}/ko`, priority: 1.0, frequency: 'daily', type: 'Static' },
-        { url: `${baseUrl}/en`, priority: 1.0, frequency: 'daily', type: 'Static' },
+        { url: `${baseUrl}/ko`, priority: 0.9, frequency: 'daily', type: 'Static' },
+        { url: `${baseUrl}/en`, priority: 0.9, frequency: 'daily', type: 'Static' },
+        { url: `${baseUrl}/ja`, priority: 0.9, frequency: 'daily', type: 'Static' },
+        { url: `${baseUrl}/zh`, priority: 0.9, frequency: 'daily', type: 'Static' },
     ];
 
     const postEntries: SitemapEntry[] = posts?.map(post => ({
-        url: `${baseUrl}/ko/blog/${post.slug}`,
+        url: `${baseUrl}/${post.locale}/blog/${post.slug}`,
         priority: 0.7,
         frequency: 'weekly',
         type: 'Post',
