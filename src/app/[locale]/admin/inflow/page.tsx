@@ -128,9 +128,21 @@ export default function InflowPage() {
                                                     {log.referrerDomain}
                                                 </Badge>
                                             </div>
-                                            <div className="text-[10px] text-muted-foreground truncate max-w-[200px]" title={log.referrer}>
-                                                {log.referrer}
-                                            </div>
+                                            {log.referrer && log.referrer !== 'Direct' && log.referrer.startsWith('http') ? (
+                                                <a
+                                                    href={log.referrer}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-[10px] text-muted-foreground hover:text-primary hover:underline truncate max-w-[200px] block transition-colors"
+                                                    title={log.referrer}
+                                                >
+                                                    {log.referrer}
+                                                </a>
+                                            ) : (
+                                                <div className="text-[10px] text-muted-foreground truncate max-w-[200px]" title={log.referrer}>
+                                                    {log.referrer}
+                                                </div>
+                                            )}
                                         </div>
                                     </TableCell>
                                     <TableCell>
