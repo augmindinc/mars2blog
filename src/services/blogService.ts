@@ -131,6 +131,26 @@ export const getAdminPosts = async (): Promise<Post[]> => {
     }
 };
 
+export const getAllPublishedPosts = async (): Promise<Post[]> => {
+    try {
+        const q = query(
+            collection(db, COLLECTION_NAME),
+            where('status', '==', 'published'),
+            where('publishedAt', '<=', Timestamp.now()),
+            orderBy('publishedAt', 'desc')
+        );
+        const snapshot = await getDocs(q);
+
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        } as Post));
+    } catch (error) {
+        console.error("Error fetching all published posts:", error);
+        return [];
+    }
+};
+
 // Real-time subscription for admin posts
 export const subscribeToAdminPosts = (callback: (posts: Post[]) => void) => {
     const q = query(
