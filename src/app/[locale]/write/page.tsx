@@ -533,7 +533,7 @@ export default function WritePage() {
                                             {Object.keys(CATEGORY_LABELS).map((cat) => (
                                                 cat !== 'ALL' && (
                                                     <SelectItem key={cat} value={cat}>
-                                                        {CATEGORY_LABELS[cat as Category][locale]}
+                                                        {CATEGORY_LABELS[cat as Category]?.[locale] || cat}
                                                     </SelectItem>
                                                 )
                                             ))}

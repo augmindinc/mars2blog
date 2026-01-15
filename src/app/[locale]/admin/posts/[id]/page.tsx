@@ -40,7 +40,7 @@ export default function AdminPostDetailPage({ params }: { params: Promise<{ id: 
     if (isLoading) return <div className="p-8 text-center">Loading post...</div>;
     if (!post) return <div className="p-8 text-center">Post not found</div>;
 
-    const categoryLabel = CATEGORY_LABELS[post.category][locale] || post.category;
+    const categoryLabel = CATEGORY_LABELS[post.category]?.[locale] || post.category;
 
     return (
         <div className="max-w-4xl mx-auto">
