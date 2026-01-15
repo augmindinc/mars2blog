@@ -196,10 +196,10 @@ export default function PlanningPage() {
             {/* Header */}
             <div className="space-y-2">
                 <h2 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">
-                    Content Ideation Center
+                    AI 콘텐츠 기획 센터 (Ideation)
                 </h2>
                 <p className="text-muted-foreground font-medium">
-                    Select a published post to generate new content ideas based on its context.
+                    발행된 기존 게시글의 맥락을 분석하여 새로운 글감을 제안받으세요.
                 </p>
             </div>
 
@@ -209,12 +209,12 @@ export default function PlanningPage() {
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <CardTitle className="text-xl flex items-center gap-2">
                             <FileText className="w-5 h-5 text-primary" />
-                            Source Blog Posts
+                            아이디어 소스 (발행된 게시글)
                         </CardTitle>
                         <div className="relative w-full md:w-72">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <Input
-                                placeholder="Search by title or category..."
+                                placeholder="제목 또는 카테고리로 검색..."
                                 className="pl-9 bg-background/50"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -226,7 +226,7 @@ export default function PlanningPage() {
                     {isLoadingPosts ? (
                         <div className="p-20 text-center space-y-4">
                             <Loader2 className="w-10 h-10 animate-spin mx-auto text-primary" />
-                            <p className="text-muted-foreground animate-pulse">Fetching your content library...</p>
+                            <p className="text-muted-foreground animate-pulse">콘텐츠 라이브러리를 불러오는 중입니다...</p>
                         </div>
                     ) : (
                         <div className="divide-y divide-border/50">
@@ -259,7 +259,17 @@ export default function PlanningPage() {
                                             </div>
                                         </div>
                                     </div>
-                                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                                    <div className="flex items-center gap-4 group-hover:translate-x-[-4px] transition-transform">
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            className="hidden md:flex items-center gap-2 bg-primary/5 hover:bg-primary/10 text-primary border-primary/20"
+                                        >
+                                            <Sparkles className="w-3.5 h-3.5" />
+                                            아이디어 관리
+                                        </Button>
+                                        <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-all" />
+                                    </div>
                                 </div>
                             ))}
                             {filteredPosts?.length === 0 && (
@@ -301,7 +311,7 @@ export default function PlanningPage() {
                                 ) : (
                                     <Sparkles className="w-5 h-5 mr-2" />
                                 )}
-                                {plans && plans.length > 0 ? 'Shuffle New Ideas' : 'Generate AI Ideas'}
+                                {plans && plans.length > 0 ? '새로운 아이디어 추가 추출' : 'AI Ideas 생성'}
                             </Button>
                         </div>
                     </div>
