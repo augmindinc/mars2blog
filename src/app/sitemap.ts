@@ -16,20 +16,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
 
     // Add static pages for all locales
-    const staticPages: MetadataRoute.Sitemap = [
-        {
-            url: baseUrl,
-            lastModified: new Date(),
-            changeFrequency: 'daily',
-            priority: 1,
-        },
-        ...locales.map((locale) => ({
-            url: `${baseUrl}/${locale}`,
-            lastModified: new Date(),
-            changeFrequency: 'daily' as const,
-            priority: 0.9,
-        })),
-    ];
+    const staticPages: MetadataRoute.Sitemap = locales.map((locale) => ({
+        url: `${baseUrl}/${locale}`,
+        lastModified: new Date(),
+        changeFrequency: 'daily' as const,
+        priority: 0.9,
+    }));
 
     return [...staticPages, ...postEntries];
 }

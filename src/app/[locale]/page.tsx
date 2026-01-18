@@ -1,5 +1,28 @@
 import { useTranslations } from 'next-intl';
 import { PostList } from '@/components/blog/PostList';
+import { Metadata } from 'next';
+
+interface HomePageProps {
+    params: Promise<{ locale: string }>;
+}
+
+export async function generateMetadata({ params }: HomePageProps): Promise<Metadata> {
+    const { locale } = await params;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mars.it.kr';
+
+    return {
+        alternates: {
+            canonical: `${baseUrl}/${locale}`,
+            languages: {
+                'ko': `${baseUrl}/ko`,
+                'en': `${baseUrl}/en`,
+                'ja': `${baseUrl}/ja`,
+                'zh': `${baseUrl}/zh`,
+                'x-default': `${baseUrl}/`,
+            },
+        },
+    };
+}
 
 export default function HomePage() {
     const t = useTranslations('HomePage');
