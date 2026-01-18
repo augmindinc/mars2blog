@@ -3,8 +3,14 @@ import { Post, Category } from '@/types/blog';
 import { collection, getDocs, query, where, orderBy, limit, Timestamp, doc, deleteDoc, updateDoc, getDoc, onSnapshot, increment } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { deleteContentPlansBySourceId } from './planService';
+import { cosineSimilarity } from '@/lib/utils';
 
 const COLLECTION_NAME = 'posts';
+
+// Helper to convert Firestore Timestamps to plain objects for Server -> Client component props
+export const serializePost = (post: Post): Post => {
+    return JSON.parse(JSON.stringify(post));
+};
 
 // Helper to delete an image from storage using its URL
 const deleteStorageImage = async (url: string | undefined) => {
@@ -148,6 +154,50 @@ export const getAllPublishedPosts = async (): Promise<Post[]> => {
         } as Post));
     } catch (error) {
         console.error("Error fetching all published posts:", error);
+        return [];
+    }
+};
+
+export const getRecommendedPosts = async (currentPost: Post, limitNum: number = 3): Promise<Post[]> => {
+    try {
+        // 1. Fetch posts from the same locale, excluding the current post
+        const q = query(
+            collection(db, COLLECTION_NAME),
+            where('status', '==', 'published'),
+            where('locale', '==', currentPost.locale),
+            where('publishedAt', '<=', Timestamp.now()),
+            orderBy('publishedAt', 'desc')
+        );
+        const snapshot = await getDocs(q);
+        const allPosts = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as Post))
+            .filter(post => post.id !== currentPost.id);
+
+        if (allPosts.length === 0) return [];
+
+        // 2. If current post has embedding, use semantic similarity
+        if (currentPost.embedding && currentPost.embedding.length > 0) {
+            const withSimilarity = allPosts.map(post => ({
+                post,
+                similarity: post.embedding ? cosineSimilarity(currentPost.embedding!, post.embedding) : -1
+            }));
+
+            // Sort by similarity descending
+            return withSimilarity
+                .sort((a, b) => b.similarity - a.similarity)
+                .slice(0, limitNum)
+                .map(item => item.post);
+        }
+
+        // 3. Fallback: Same category, then most recent
+        const sameCategory = allPosts.filter(p => p.category === currentPost.category);
+        if (sameCategory.length > 0) {
+            return sameCategory.slice(0, limitNum);
+        }
+
+        return allPosts.slice(0, limitNum);
+    } catch (error) {
+        console.error("Error fetching recommended posts:", error);
         return [];
     }
 };

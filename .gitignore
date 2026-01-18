@@ -58,6 +58,8 @@ firebase-debug.log*
 !functions/package.json
 !functions/tsconfig.json
 !functions/package-lock.json
+/functions/lib/
+/functions/node_modules/
 
 # local env
 .env.local

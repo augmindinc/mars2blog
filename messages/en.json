@@ -13,5 +13,8 @@
   "Common": {
     "loading": "Loading...",
     "error": "Error occurred"
+  },
+  "BlogPost": {
+    "relatedPosts": "Related Posts"
   }
 }

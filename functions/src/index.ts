@@ -2,10 +2,23 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import * as admin from "firebase-admin";
 import { google } from "googleapis";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { defineSecret } from "firebase-functions/params";
 
 admin.initializeApp();
 
 const db = admin.firestore();
+
+// Secret to store the Gemini API Key
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
+
+// Helper to generate embedding using Gemini
+async function generateEmbedding(text: string, apiKey: string): Promise<number[]> {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+    const result = await model.embedContent(text);
+    return result.embedding.values;
+}
 
 // 1. Scheduled Publish Logic
 export const publishScheduledPosts = onSchedule("every 1 minutes", async (event) => {
@@ -57,23 +70,56 @@ async function notifyGoogleIndexing(url: string) {
     }
 }
 
-export const onPostCreated = onDocumentCreated("posts/{postId}", async (event) => {
+export const onPostCreated = onDocumentCreated({
+    document: "posts/{postId}",
+    secrets: [geminiApiKey]
+}, async (event) => {
     const data = event.data?.data();
     if (!data) return;
 
+    // 1. Generate and save embedding
+    try {
+        const textToEmbed = `${data.title}\n\n${data.excerpt || ""}\n\n${data.content.substring(0, 1000)}`;
+        const embedding = await generateEmbedding(textToEmbed, geminiApiKey.value());
+        await event.data?.ref.update({ embedding: embedding });
+        console.log(`Embedding generated for post: ${data.title}`);
+    } catch (error) {
+        console.error("Error generating embedding on create:", error);
+    }
+
+    // 2. Google Indexing
     if (data.status === "published" && data.slug) {
-        const baseUrl = "https://mars.it.kr"; // Updated to custom domain
+        const baseUrl = "https://mars.it.kr";
         const url = `${baseUrl}/ko/blog/${data.slug}`;
         await notifyGoogleIndexing(url);
     }
 });
 
-export const onPostUpdated = onDocumentUpdated("posts/{postId}", async (event) => {
+export const onPostUpdated = onDocumentUpdated({
+    document: "posts/{postId}",
+    secrets: [geminiApiKey]
+}, async (event) => {
     const newData = event.data?.after.data();
     const oldData = event.data?.before.data();
     if (!newData || !oldData) return;
 
-    // Trigger indexing if status changed to published or slug changed while published
+    // 1. Check if embedding needs update (title, excerpt, or content changed)
+    const contentChanged = newData.title !== oldData.title ||
+        newData.excerpt !== oldData.excerpt ||
+        newData.content !== oldData.content;
+
+    if (contentChanged || !newData.embedding) {
+        try {
+            const textToEmbed = `${newData.title}\n\n${newData.excerpt || ""}\n\n${newData.content.substring(0, 1000)}`;
+            const embedding = await generateEmbedding(textToEmbed, geminiApiKey.value());
+            await event.data?.after.ref.update({ embedding: embedding });
+            console.log(`Embedding updated for post: ${newData.title}`);
+        } catch (error) {
+            console.error("Error generating embedding on update:", error);
+        }
+    }
+
+    // 2. Trigger indexing if status changed to published or slug changed while published
     if (
         (newData.status === "published" && oldData.status !== "published") ||
         (newData.status === "published" && newData.slug !== oldData.slug)

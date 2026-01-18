@@ -1,4 +1,4 @@
-import { getPostBySlug, getPostTranslations } from '@/services/blogService';
+import { getPostBySlug, getPostTranslations, serializePost } from '@/services/blogService';
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
 import { CATEGORY_LABELS } from '@/types/blog';
@@ -8,6 +8,7 @@ import { cache } from 'react';
 
 import { TranslationManager } from '@/components/blog/TranslationManager';
 import { ViewCounter } from '@/components/blog/ViewCounter';
+import { RelatedPosts } from '@/components/blog/RelatedPosts';
 
 const getPost = cache(async (slug: string, locale: string) => {
     return await getPostBySlug(slug, locale);
@@ -78,6 +79,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         return notFound();
     }
 
+    const serializedPost = serializePost(post);
+
     const categoryLabel = CATEGORY_LABELS[post.category]?.[locale as 'en' | 'ko'] || post.category;
 
     const jsonLd = post.seo.structuredData || {
@@ -117,7 +120,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     return (
         <article className="container mx-auto px-4 py-8 max-w-3xl">
             <TranslationManager translations={translationMap} />
-            <ViewCounter postId={post.id} postTitle={post.title} />
+            <ViewCounter postId={serializedPost.id} postTitle={serializedPost.title} />
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -128,27 +131,27 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         {categoryLabel}
                     </span>
                 </div>
-                <h1 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">{post.title}</h1>
+                <h1 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">{serializedPost.title}</h1>
                 <div className="text-muted-foreground text-sm flex justify-center items-center gap-4">
-                    {post.author.photoUrl && (
+                    {serializedPost.author.photoUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={post.author.photoUrl} alt={post.author.name} className="w-6 h-6 rounded-full" />
+                        <img src={serializedPost.author.photoUrl} alt={serializedPost.author.name} className="w-6 h-6 rounded-full" />
                     )}
-                    <span>{post.author.name}</span>
+                    <span>{serializedPost.author.name}</span>
                     <span>•</span>
                     <span>
-                        {post.createdAt?.seconds
-                            ? format(new Date(post.createdAt.seconds * 1000), 'yyyy.MM.dd')
+                        {serializedPost.createdAt?.seconds
+                            ? format(new Date(serializedPost.createdAt.seconds * 1000), 'yyyy.MM.dd')
                             : format(new Date(), 'yyyy.MM.dd')}
                     </span>
                 </div>
             </div>
 
-            {post.thumbnail.url && (
+            {serializedPost.thumbnail.url && (
                 <div className="relative w-full aspect-video mb-12 rounded-xl overflow-hidden shadow-lg border">
                     <Image
-                        src={post.thumbnail.url}
-                        alt={post.thumbnail.alt || post.title}
+                        src={serializedPost.thumbnail.url}
+                        alt={serializedPost.thumbnail.alt || serializedPost.title}
                         fill
                         className="object-cover"
                         priority
@@ -158,20 +161,22 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 </div>
             )}
 
-            {post.excerpt && (
+            {serializedPost.excerpt && (
                 <div className="mb-12 p-6 bg-muted/30 border-l-4 border-primary rounded-r-lg">
                     <h2 className="text-sm font-bold uppercase tracking-wider mb-2 text-primary">Key Highlights (TL;DR)</h2>
                     <p className="text-muted-foreground leading-relaxed italic">
-                        {post.excerpt}
+                        {serializedPost.excerpt}
                     </p>
                 </div>
             )}
 
             <div className="prose prose-lg dark:prose-invert max-w-none">
                 <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
-                    {post.content}
+                    {serializedPost.content}
                 </ReactMarkdown>
             </div>
+
+            <RelatedPosts currentPost={serializedPost} />
         </article>
     );
 }

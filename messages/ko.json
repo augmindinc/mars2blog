@@ -13,5 +13,8 @@
     "Common": {
         "loading": "로딩 중...",
         "error": "오류가 발생했습니다"
+    },
+    "BlogPost": {
+        "relatedPosts": "관련 게시글"
     }
 }

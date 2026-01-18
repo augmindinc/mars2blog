@@ -42,6 +42,7 @@ export interface Post {
     publishedAt: Timestamp;
     viewCount: number;
     shortCode: string | null;
+    embedding?: number[];
 }
 
 export interface ContentPlan {
