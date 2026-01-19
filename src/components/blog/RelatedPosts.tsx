@@ -19,7 +19,7 @@ export async function RelatedPosts({ currentPost }: RelatedPostsProps) {
             <h2 className="text-2xl font-bold mb-8">{t('relatedPosts')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {posts.map((post) => (
-                    <PostCard key={post.id} post={post} />
+                    <PostCard key={post.id} post={post} fromPostTitle={currentPost.title} />
                 ))}
             </div>
         </section>

@@ -21,21 +21,28 @@ export function ViewCounter({ postId, postTitle }: ViewCounterProps) {
                 incrementViewCount(postId);
 
                 // 2. 유입 로그 기록
-                const referrer = document.referrer || 'Direct / Bookmark';
+                let referrer = document.referrer || 'Direct / Bookmark';
                 let domain = 'Direct';
                 let keyword = null;
 
+                // URL에서 내부 추천 정보 추출
                 try {
-                    if (document.referrer) {
-                        const url = new URL(document.referrer);
-                        domain = url.hostname;
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const internalFromTitle = urlParams.get('from_title');
 
-                        // 간단한 검색어 추출 (Naver: query, Google: q, Daum: q)
-                        const searchParams = url.searchParams;
+                    if (internalFromTitle) {
+                        referrer = `Related Post: ${internalFromTitle}`;
+                        domain = window.location.hostname;
+                    } else if (document.referrer) {
+                        const refUrl = new URL(document.referrer);
+                        domain = refUrl.hostname;
+
+                        // 간단한 검색어 추출
+                        const searchParams = refUrl.searchParams;
                         keyword = searchParams.get('query') || searchParams.get('q');
                     }
                 } catch (e) {
-                    console.error("Referrer parsing failed", e);
+                    console.error("Referrer/Params parsing failed", e);
                 }
 
                 logInflow({

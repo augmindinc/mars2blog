@@ -10,10 +10,15 @@ import { Link } from '@/i18n/routing';
 interface PostCardProps {
     post: Post;
     priority?: boolean;
+    fromPostTitle?: string;
 }
 
-export function PostCard({ post, priority = false }: PostCardProps) {
+export function PostCard({ post, priority = false, fromPostTitle }: PostCardProps) {
     const locale = useLocale() as 'en' | 'ko';
+
+    const postHref = fromPostTitle
+        ? `/blog/${post.slug}?from_title=${encodeURIComponent(fromPostTitle)}`
+        : `/blog/${post.slug}`;
 
     return (
         <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
@@ -47,7 +52,7 @@ export function PostCard({ post, priority = false }: PostCardProps) {
                     </span>
                 </div>
                 <h3 className="font-bold text-lg line-clamp-2 leading-tight">
-                    <Link href={`/blog/${post.slug}`} className="hover:underline">
+                    <Link href={postHref} className="hover:underline">
                         {post.title}
                     </Link>
                 </h3>

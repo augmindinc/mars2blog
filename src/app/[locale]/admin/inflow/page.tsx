@@ -47,12 +47,12 @@ export default function InflowPage() {
             </div>
 
             {/* Stats Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <Card className="bg-primary/5 border-primary/10">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium flex items-center gap-2">
                             <MousePointer2 className="w-4 h-4 text-primary" />
-                            Total Tracked Hits
+                            Total Tracking
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -61,11 +61,26 @@ export default function InflowPage() {
                     </CardContent>
                 </Card>
 
+                <Card className="bg-emerald-500/5 border-emerald-500/10">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                            <LinkIcon className="w-4 h-4 text-emerald-500" />
+                            Internal Clicks
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">
+                            {logs?.filter(l => l.referrer?.startsWith('Related Post:')).length || 0}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">From related posts</p>
+                    </CardContent>
+                </Card>
+
                 <Card className="bg-orange-500/5 border-orange-500/10">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium flex items-center gap-2">
                             <Globe className="w-4 h-4 text-orange-500" />
-                            Top Traffic Source
+                            Top Traffic
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -73,7 +88,7 @@ export default function InflowPage() {
                             {topDomains[0]?.[0] || 'N/A'}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
-                            {topDomains[0]?.[1] || 0} visits ({Math.round((topDomains[0]?.[1] || 0) / (logs?.length || 1) * 100)}%)
+                            {topDomains[0]?.[1] || 0} visits
                         </p>
                     </CardContent>
                 </Card>
@@ -128,7 +143,12 @@ export default function InflowPage() {
                                                     {log.referrerDomain}
                                                 </Badge>
                                             </div>
-                                            {log.referrer && log.referrer !== 'Direct' && log.referrer.startsWith('http') ? (
+                                            {log.referrer && log.referrer.startsWith('Related Post:') ? (
+                                                <div className="flex items-center gap-1.5 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 w-fit">
+                                                    <MessageSquare className="w-3 h-3" />
+                                                    {log.referrer}
+                                                </div>
+                                            ) : log.referrer && log.referrer !== 'Direct' && log.referrer.startsWith('http') ? (
                                                 <a
                                                     href={log.referrer}
                                                     target="_blank"
