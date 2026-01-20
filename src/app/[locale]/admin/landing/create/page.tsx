@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LandingPageType, LandingPageTemplate } from '@/types/landing';
@@ -73,6 +75,9 @@ export default function CreateLandingPage() {
     const [step, setStep] = useState(1);
     const [selectedGoal, setSelectedGoal] = useState<LandingPageType | null>(null);
     const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+    const [aiGoal, setAiGoal] = useState('');
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [title, setTitle] = useState('');
 
     const handleGoalSelect = (goal: LandingPageType) => {
         setSelectedGoal(goal);
@@ -81,8 +86,38 @@ export default function CreateLandingPage() {
 
     const handleTemplateSelect = (templateId: string) => {
         setSelectedTemplate(templateId);
-        // In real app, this would create the entry in DB and redirect to editor
         router.push(`/${locale}/admin/landing/builder?type=${selectedGoal}&template=${templateId}`);
+    };
+
+    const handleAIGenerate = async () => {
+        if (!selectedGoal || !aiGoal.trim() || !title.trim()) return;
+
+        setIsGenerating(true);
+        try {
+            const res = await fetch('/api/landing/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ goal: aiGoal, type: selectedGoal })
+            });
+            const data = await res.json();
+
+            if (data.sections) {
+                // Store in localStorage to pick up in builder
+                localStorage.setItem('ai_generated_config', JSON.stringify({
+                    title,
+                    type: selectedGoal,
+                    content: data.sections,
+                    locale,
+                    groupId: `lp-group-${Date.now()}`
+                }));
+                router.push(`/${locale}/admin/landing/builder?source=ai`);
+            }
+        } catch (error) {
+            console.error(error);
+            alert('AI GENERATION FAILED. RETRY PROTOCOL.');
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
     return (
@@ -113,7 +148,7 @@ export default function CreateLandingPage() {
                             <Card
                                 key={goal.id}
                                 className={`rounded-none border-black/10 hover:border-black transition-all cursor-pointer group ${selectedGoal === goal.id ? 'bg-black text-white' : 'bg-white'}`}
-                                onClick={() => handleGoalSelect(goal.id)}
+                                onClick={() => setSelectedGoal(goal.id)}
                             >
                                 <CardContent className="p-8 flex items-start gap-6">
                                     <div className={`p-4 rounded-none ${selectedGoal === goal.id ? 'bg-white text-black' : 'bg-black/[0.02] text-black'}`}>
@@ -129,6 +164,55 @@ export default function CreateLandingPage() {
                             </Card>
                         ))}
                     </div>
+
+                    {selectedGoal && (
+                        <div className="bg-black text-white p-8 md:p-12 space-y-8 animate-in fade-in slide-in-from-top-4">
+                            <div className="space-y-2">
+                                <h3 className="text-lg font-black uppercase tracking-tighter flex items-center gap-3">
+                                    <Sparkles className="w-5 h-5" />
+                                    AI Genesis Protocol
+                                </h3>
+                                <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Provide detailed tactical objectives for autonomous content synthesis</p>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-white/40">Operation Name (Title)</label>
+                                    <Input
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                        placeholder="e.g. SEO MAXIMIZER 2026"
+                                        className="bg-transparent border-white/20 text-white rounded-none h-12 uppercase font-bold text-xs"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-white/40">Detailed Mission Objectives</label>
+                                    <Textarea
+                                        value={aiGoal}
+                                        onChange={(e) => setAiGoal(e.target.value)}
+                                        placeholder="Describe your target audience, value proposition, and specific conversion desired..."
+                                        className="bg-transparent border-white/20 text-white rounded-none min-h-[120px] uppercase font-medium text-xs leading-relaxed"
+                                    />
+                                </div>
+                                <div className="flex flex-col md:flex-row gap-4 pt-4">
+                                    <Button
+                                        onClick={handleAIGenerate}
+                                        disabled={isGenerating || !aiGoal.trim() || !title.trim()}
+                                        className="flex-1 bg-white text-black hover:bg-white/90 rounded-none h-14 font-black text-xs uppercase tracking-[0.2em] disabled:opacity-50"
+                                    >
+                                        {isGenerating ? 'SYNTHESIZING MATRIX...' : 'INITIATE AI GENERATION'}
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setStep(2)}
+                                        className="bg-transparent border-white/20 text-white hover:bg-white/10 rounded-none h-14 font-black text-xs uppercase tracking-widest px-8"
+                                    >
+                                        Manual Blueprint Selection
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 

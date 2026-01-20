@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import slugify from 'slugify';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -9,12 +10,31 @@ import { LandingPage, LandingPageSection, LandingPageType } from '@/types/landin
 import {
     ChevronUp, ChevronDown, Trash2, Plus, Play, Save, Monitor, Smartphone,
     ArrowLeft, Type, Image as ImageIcon, FormInput as FormIcon, Layout as LayoutIcon,
-    Layers, Settings, Eye, CheckCircle2
+    Layers, Settings, Eye, EyeOff, CheckCircle2, Sparkles, X, RefreshCw,
+    Languages, Loader2
 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
+} from "@/components/ui/dialog";
 import { Link } from '@/i18n/routing';
 import { useLocale } from 'next-intl';
-import { createLandingPage, updateLandingPage, getLandingPage } from '@/services/landingService';
+import { createLandingPage, updateLandingPage, getLandingPage, getLandingPageTranslations } from '@/services/landingService';
 import { Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { addDoc, collection } from 'firebase/firestore';
+
+interface LandingTranslationData {
+    id?: string;
+    enabled: boolean;
+    title: string;
+    slug: string;
+    content: LandingPageSection[];
+    callouts: string[];
+    seo: { title: string; description: string; };
+}
 
 // --- SECTION PRESETS ---
 const SECTION_TEMPLATES: Record<string, any> = {
@@ -110,12 +130,26 @@ function BuilderContent() {
     const [isSaving, setIsSaving] = useState(false);
     const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
     const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+    const [isAiRefining, setIsAiRefining] = useState(false);
+    const [refineGoal, setRefineGoal] = useState('');
+    const [showAiPanel, setShowAiPanel] = useState(false);
+    const [isGeneratingCallouts, setIsGeneratingCallouts] = useState(false);
+    const [showCalloutModal, setShowCalloutModal] = useState(false);
+    const [tempCallouts, setTempCallouts] = useState<string[]>([]);
+    const [translations, setTranslations] = useState<Record<string, LandingTranslationData>>({
+        en: { enabled: false, title: '', slug: '', content: [], callouts: [], seo: { title: '', description: '' } },
+        ja: { enabled: false, title: '', slug: '', content: [], callouts: [], seo: { title: '', description: '' } },
+        zh: { enabled: false, title: '', slug: '', content: [], callouts: [], seo: { title: '', description: '' } },
+    });
+    const [isTranslating, setIsTranslating] = useState(false);
 
     const [pageConfig, setPageConfig] = useState<Partial<LandingPage>>({
         title: 'Untitled Landing Page',
         slug: 'new-landing-' + Date.now().toString().slice(-4),
         type: type,
-        status: 'inactive',
+        status: 'draft',
+        locale: locale as string,
+        groupId: `lp-group-${Date.now()}`,
         content: [
             { id: 'h1', type: 'hero', order: 0, content: SECTION_TEMPLATES.hero },
             { id: 'p1', type: 'problem', order: 1, content: SECTION_TEMPLATES.problem },
@@ -133,11 +167,54 @@ function BuilderContent() {
                 const data = await getLandingPage(pageId);
                 if (data) {
                     setPageConfig(data);
+
+                    // Fetch translations
+                    if (data.groupId) {
+                        const allTrans = await getLandingPageTranslations(data.groupId);
+                        const transObj = { ...translations };
+                        allTrans.forEach(t => {
+                            if (t.locale !== locale) {
+                                transObj[t.locale] = {
+                                    id: t.id,
+                                    enabled: true,
+                                    title: t.title,
+                                    slug: t.slug,
+                                    content: t.content,
+                                    callouts: t.callouts || [],
+                                    seo: t.seo
+                                };
+                            }
+                        });
+                        setTranslations(transObj);
+                    }
                 }
             };
             loadPage();
+        } else if (searchParams.get('source') === 'ai') {
+            const aiDataStr = localStorage.getItem('ai_generated_config');
+            if (aiDataStr) {
+                try {
+                    const aiData = JSON.parse(aiDataStr);
+                    setPageConfig(prev => ({
+                        ...prev,
+                        title: aiData.title || prev.title,
+                        type: aiData.type || prev.type,
+                        groupId: aiData.groupId || prev.groupId,
+                        locale: aiData.locale || prev.locale,
+                        content: aiData.content.map((s: any, idx: number) => ({
+                            ...s,
+                            order: idx
+                        })),
+                        slug: slugify(aiData.title || '', { lower: true }) + '-' + Date.now().toString().slice(-4)
+                    }));
+                    // Clean up
+                    localStorage.removeItem('ai_generated_config');
+                } catch (e) {
+                    console.error('Failed to parse AI data', e);
+                }
+            }
         }
-    }, [pageId]);
+    }, [pageId, searchParams]);
 
     const addSection = (sectionType: string) => {
         const newSection: LandingPageSection = {
@@ -177,32 +254,170 @@ function BuilderContent() {
         }));
     };
 
+    const handleAiRefine = async () => {
+        if (!refineGoal.trim()) return;
+        setIsAiRefining(true);
+        try {
+            const res = await fetch('/api/landing/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ goal: refineGoal, type: pageConfig.type })
+            });
+            const data = await res.json();
+            if (data.sections) {
+                setPageConfig(prev => ({
+                    ...prev,
+                    content: data.sections.map((s: any, idx: number) => ({ ...s, order: idx }))
+                }));
+                setShowAiPanel(false);
+                setRefineGoal('');
+                alert('ARCHITECTURAL MATRIX RE-GENERATED BY AI.');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('AI SYNTHESIS FAILED.');
+        } finally {
+            setIsAiRefining(false);
+        }
+    };
+
+    const handleGenerateCallouts = async () => {
+        setIsGeneratingCallouts(true);
+        try {
+            const res = await fetch('/api/landing/callouts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: pageConfig.content })
+            });
+            const data = await res.json();
+            if (data.callouts) {
+                setTempCallouts(data.callouts);
+                setShowCalloutModal(true);
+            }
+        } catch (error) {
+            console.error(error);
+            alert('CALLOUT SYNTHESIS FAILED.');
+        } finally {
+            setIsGeneratingCallouts(false);
+        }
+    };
+
+    const handleSaveCallouts = () => {
+        setPageConfig(prev => ({ ...prev, callouts: tempCallouts }));
+        setShowCalloutModal(false);
+        alert('CALLOUT PROTOCOL SECURED.');
+    };
+
+    const handleTranslateAll = async () => {
+        if (!pageConfig.title || !pageConfig.content) return;
+        setIsTranslating(true);
+        const targetLocales = Object.keys(translations);
+
+        try {
+            for (const lang of targetLocales) {
+                const res = await fetch('/api/ai/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'translate-landing',
+                        targetLocale: lang === 'en' ? 'English' : lang === 'ja' ? 'Japanese' : 'Chinese',
+                        title: pageConfig.title,
+                        content: pageConfig.content,
+                        callouts: pageConfig.callouts || [],
+                        seo: pageConfig.seo
+                    }),
+                });
+
+                if (!res.ok) continue;
+
+                const data = await res.json();
+                setTranslations(prev => ({
+                    ...prev,
+                    [lang]: {
+                        ...prev[lang],
+                        enabled: true,
+                        title: data.title,
+                        slug: data.slug,
+                        content: data.content,
+                        callouts: data.callouts,
+                        seo: data.seo
+                    }
+                }));
+            }
+            alert('ALL LANDING SEQUENCES TRANSLATED.');
+        } catch (error) {
+            console.error(error);
+            alert('TRANSLATION SYNTHESIS FAILED.');
+        } finally {
+            setIsTranslating(false);
+        }
+    };
+
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            const dataToSave = {
-                ...pageConfig,
-                updatedAt: Timestamp.now(),
+            const currentGroupId = pageConfig.groupId || `lp-group-${Date.now()}`;
+
+            // Clean undefined values for Firestore
+            const cleanData = (obj: any) => {
+                return Object.fromEntries(
+                    Object.entries(obj).filter(([_, v]) => v !== undefined)
+                );
             };
+
+            const dataToSave = cleanData({
+                ...pageConfig,
+                groupId: currentGroupId,
+                updatedAt: Timestamp.now(),
+            });
 
             if (pageId) {
                 // UPDATE EXISTING
                 delete (dataToSave as any).id;
-                await updateLandingPage(pageId, dataToSave);
-                alert('Page architecture updated significantly.');
+                await updateLandingPage(pageId, dataToSave as Partial<LandingPage>);
             } else {
                 // CREATE NEW
-                const finalData = {
+                const finalData = cleanData({
                     ...dataToSave,
                     createdAt: Timestamp.now(),
-                } as Omit<LandingPage, 'id'>;
+                }) as Omit<LandingPage, 'id'>;
                 await createLandingPage(finalData);
-                alert('New landing sequence deployed successfully.');
             }
+
+            // Handle translations
+            await Promise.all(Object.entries(translations).map(async ([lang, data]) => {
+                if (data.enabled && data.title && data.content.length > 0) {
+                    const transDoc: any = cleanData({
+                        title: data.title,
+                        slug: data.slug || `lp-${Date.now()}-${lang}`,
+                        type: pageConfig.type!,
+                        status: pageConfig.status!,
+                        locale: lang,
+                        groupId: currentGroupId,
+                        templateId: pageConfig.templateId || 'default',
+                        content: data.content,
+                        callouts: data.callouts || [],
+                        formConfig: pageConfig.formConfig || null, // Ensure at least null
+                        seo: data.seo,
+                        stats: { views: 0, conversions: 0 },
+                        createdAt: Timestamp.now(),
+                        updatedAt: Timestamp.now()
+                    });
+
+                    if (data.id) {
+                        const { id: _, ...updateData } = transDoc;
+                        await updateLandingPage(data.id, updateData);
+                    } else {
+                        await addDoc(collection(db, 'landing_pages'), transDoc);
+                    }
+                }
+            }));
+
+            alert('Global Architecture Synchronized Successfully.');
             router.push(`/${locale}/admin/landing`);
         } catch (error) {
             console.error(error);
-            alert('Operation failed. Check terminal logs.');
+            alert('CRITICAL FAILURE: Operation aborted.');
         } finally {
             setIsSaving(false);
         }
@@ -236,6 +451,115 @@ function BuilderContent() {
                                 onChange={e => setPageConfig(prev => ({ ...prev, slug: e.target.value }))}
                                 className="h-8 text-xs rounded-none border-black/5 bg-black/[0.02] font-medium"
                             />
+                        </div>
+
+                        <div className="space-y-2 pt-2">
+                            <label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground block">Deployment Status</label>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPageConfig(prev => ({ ...prev, status: prev.status === 'published' ? 'draft' : 'published' }))}
+                                className={`w-full h-9 rounded-none text-[9px] font-black uppercase tracking-widest gap-2 transition-all ${pageConfig.status === 'published' ? 'bg-black text-white hover:bg-black/90' : 'border-black/10 text-black/40 hover:text-black hover:border-black'}`}
+                            >
+                                {pageConfig.status === 'published' ? (
+                                    <><Eye className="w-3.5 h-3.5" /> Published Presence</>
+                                ) : (
+                                    <><EyeOff className="w-3.5 h-3.5" /> Draft Protocol</>
+                                )}
+                            </Button>
+                        </div>
+
+                        <div className="space-y-2 pt-2">
+                            <label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground block">Callout Protocol</label>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleGenerateCallouts}
+                                disabled={isGeneratingCallouts}
+                                className="w-full h-9 rounded-none text-[9px] font-black uppercase tracking-widest gap-2 border-black/10 text-black hover:bg-black hover:text-white transition-all"
+                            >
+                                <Sparkles className={`w-3.5 h-3.5 ${isGeneratingCallouts ? 'animate-spin' : ''}`} />
+                                {isGeneratingCallouts ? 'Generating...' : 'Callout AI Recommendation'}
+                            </Button>
+                            {pageConfig.callouts && pageConfig.callouts.length > 0 && (
+                                <div className="mt-2 p-3 bg-black/[0.02] border border-black/5 space-y-2">
+                                    {pageConfig.callouts.map((c, i) => (
+                                        <div key={i} className="text-[10px] font-medium leading-tight text-black/60 italic border-l border-black/10 pl-2">
+                                            "{c}"
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Global Translation Protocol */}
+                        <div className="space-y-4 pt-4 border-t border-black/5">
+                            <div className="flex items-center justify-between">
+                                <label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                                    <Languages className="w-3 h-3" /> Global Translation
+                                </label>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleTranslateAll}
+                                    disabled={isTranslating}
+                                    className="h-6 px-2 text-[8px] font-black uppercase tracking-tighter hover:bg-black hover:text-white transition-all"
+                                >
+                                    {isTranslating ? <Loader2 className="w-2.5 h-2.5 animate-spin mr-1" /> : <Sparkles className="w-2.5 h-2.5 mr-1" />}
+                                    AI Multi-Sync
+                                </Button>
+                            </div>
+
+                            <Tabs defaultValue="en" className="w-full">
+                                <TabsList className="grid grid-cols-3 w-full bg-black/[0.03] rounded-none p-1 h-auto">
+                                    {Object.keys(translations).map(lang => (
+                                        <TabsTrigger key={lang} value={lang} className="text-[9px] font-black uppercase tracking-widest py-1 rounded-none data-[state=active]:bg-black data-[state=active]:text-white">
+                                            {lang}
+                                        </TabsTrigger>
+                                    ))}
+                                </TabsList>
+                                {Object.entries(translations).map(([lang, data]) => (
+                                    <TabsContent key={lang} value={lang} className="space-y-4 pt-4">
+                                        <div className="flex items-center justify-between bg-black/[0.02] p-2 border border-dashed border-black/5">
+                                            <span className="text-[9px] font-black uppercase tracking-tighter text-black/40">Enable {lang.toUpperCase()}</span>
+                                            <Switch
+                                                checked={data.enabled}
+                                                onCheckedChange={(val) => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], enabled: val } }))}
+                                                className="scale-75 data-[state=checked]:bg-black"
+                                            />
+                                        </div>
+                                        <div className={data.enabled ? "space-y-3" : "opacity-30 pointer-events-none space-y-3"}>
+                                            <div className="space-y-1">
+                                                <label className="text-[8px] font-black uppercase text-muted-foreground">Title ({lang})</label>
+                                                <Input
+                                                    value={data.title}
+                                                    onChange={e => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], title: e.target.value } }))}
+                                                    className="h-7 text-[10px] rounded-none border-black/5 bg-black/[0.01] font-medium"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[8px] font-black uppercase text-muted-foreground">Slug ({lang})</label>
+                                                <Input
+                                                    value={data.slug}
+                                                    onChange={e => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], slug: e.target.value } }))}
+                                                    className="h-7 text-[10px] rounded-none border-black/5 bg-black/[0.01] font-medium"
+                                                />
+                                            </div>
+                                            {/* Callouts Summary */}
+                                            {data.callouts && data.callouts.length > 0 && (
+                                                <div className="space-y-1">
+                                                    <label className="text-[8px] font-black uppercase text-muted-foreground">Callouts ({lang})</label>
+                                                    <div className="p-2 bg-black/[0.02] border border-black/5 space-y-2">
+                                                        {data.callouts.map((c, i) => (
+                                                            <div key={i} className="text-[9px] text-black/60 italic font-medium leading-tight border-l-2 border-black/5 pl-2">"{c}"</div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </TabsContent>
+                                ))}
+                            </Tabs>
                         </div>
                     </div>
 
@@ -318,6 +642,40 @@ function BuilderContent() {
                     </div>
 
                     <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            {showAiPanel ? (
+                                <div className="flex items-center gap-2 animate-in slide-in-from-right-2">
+                                    <Input
+                                        value={refineGoal}
+                                        onChange={(e) => setRefineGoal(e.target.value)}
+                                        placeholder="Enter new objective..."
+                                        className="h-8 w-60 text-[9px] font-bold uppercase tracking-widest rounded-none border-black focus-visible:ring-0"
+                                        onKeyDown={(e) => e.key === 'Enter' && handleAiRefine()}
+                                    />
+                                    <Button
+                                        size="sm"
+                                        disabled={isAiRefining || !refineGoal.trim()}
+                                        onClick={handleAiRefine}
+                                        className="h-8 bg-black text-white rounded-none text-[8px] font-black uppercase px-4"
+                                    >
+                                        {isAiRefining ? 'GENING...' : 'APPLY'}
+                                    </Button>
+                                    <button onClick={() => setShowAiPanel(false)} className="p-1 text-black/20 hover:text-black">
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <Button
+                                    onClick={() => setShowAiPanel(true)}
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 border-black text-black hover:bg-black hover:text-white rounded-none text-[8px] font-black uppercase tracking-widest gap-2"
+                                >
+                                    <Sparkles className="w-3 h-3" /> AI Re-Synthesis
+                                </Button>
+                            )}
+                        </div>
+                        <div className="h-4 w-px bg-black/5" />
                         <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
                             <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                             Live Preview Syncing
@@ -1141,6 +1499,66 @@ function BuilderContent() {
                     </div>
                 )}
             </div>
+            {/* CALLOUT AI MODAL */}
+            <Dialog open={showCalloutModal} onOpenChange={setShowCalloutModal}>
+                <DialogContent className="max-w-2xl rounded-none border-black/10 shadow-2xl p-0 gap-0 overflow-hidden">
+                    <DialogHeader className="p-6 bg-black text-white rounded-none">
+                        <div className="flex items-center justify-between">
+                            <DialogTitle className="text-sm font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                                <Sparkles className="w-4 h-4" /> Callout Matrix Synthesis
+                            </DialogTitle>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleGenerateCallouts}
+                                disabled={isGeneratingCallouts}
+                                className="h-8 rounded-none text-[9px] font-black uppercase tracking-widest gap-2 bg-white/10 hover:bg-white/20 text-white"
+                            >
+                                <RefreshCw className={`w-3 h-3 ${isGeneratingCallouts ? 'animate-spin' : ''}`} /> Shuffle
+                            </Button>
+                        </div>
+                    </DialogHeader>
+
+                    <div className="p-8 space-y-6 bg-white">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                            AI analyzed your page content and generated these conversion-focused callouts for your blog posts.
+                        </p>
+
+                        <div className="space-y-4">
+                            {tempCallouts.map((callout, idx) => (
+                                <div
+                                    key={idx}
+                                    className="p-4 border border-black/5 bg-black/[0.01] hover:bg-black/[0.03] transition-colors group relative"
+                                >
+                                    <div className="text-[8px] font-black text-black/20 uppercase tracking-tighter mb-2">Message 0{idx + 1}</div>
+                                    <p className="text-xs font-bold text-black leading-relaxed">
+                                        {callout}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <DialogFooter className="p-6 bg-black/[0.02] border-t border-black/5 flex sm:justify-between items-center sm:flex-row gap-4">
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">3 SEQUENCED MESSAGES READY</span>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setShowCalloutModal(false)}
+                                className="rounded-none text-[9px] font-black uppercase tracking-widest h-10 px-6"
+                            >
+                                Discard
+                            </Button>
+                            <Button
+                                onClick={handleSaveCallouts}
+                                className="rounded-none text-[9px] font-black uppercase tracking-widest h-10 px-8 bg-black text-white hover:bg-black/90 shadow-xl"
+                            >
+                                Deployment & Save
+                            </Button>
+                        </div>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

@@ -9,6 +9,7 @@ import { cache } from 'react';
 import { TranslationManager } from '@/components/blog/TranslationManager';
 import { ViewCounter } from '@/components/blog/ViewCounter';
 import { RelatedPosts } from '@/components/blog/RelatedPosts';
+import { AiLandingCallout } from '@/components/blog/AiLandingCallout';
 
 const getPost = cache(async (slug: string, locale: string) => {
     return await getPostBySlug(slug, locale);
@@ -171,9 +172,16 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             )}
 
             <div className="prose prose-lg dark:prose-invert max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
-                    {serializedPost.content}
-                </ReactMarkdown>
+                {serializedPost.linkedLandingPageId ? (
+                    <AiLandingCallout
+                        landingPageId={serializedPost.linkedLandingPageId}
+                        content={serializedPost.content}
+                    />
+                ) : (
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                        {serializedPost.content}
+                    </ReactMarkdown>
+                )}
             </div>
 
             <RelatedPosts currentPost={serializedPost} />

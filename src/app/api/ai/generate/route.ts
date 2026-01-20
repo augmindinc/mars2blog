@@ -101,6 +101,42 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Failed to parse JSON", text }, { status: 500 });
         }
 
+        if (type === 'translate-landing') {
+            const { targetLocale, title, content, callouts, seo } = body;
+            const prompt = `Translate this entire landing page structure into ${targetLocale}.
+            
+            IMPORTANT: Return ONLY a valid JSON object.
+            {
+                "title": "Translated Page Title",
+                "slug": "hyphenated-english-slug",
+                "content": [ 
+                    // Maintain the same array structure as input
+                    // Translate all text values inside each content object
+                ],
+                "callouts": [ "Translated callout 1", "callout 2", "callout 3" ],
+                "seo": {
+                    "title": "Translated SEO Title",
+                    "description": "Translated SEO Description"
+                }
+            }
+            
+            INPUT DATA:
+            Title: ${title}
+            Content: ${JSON.stringify(content)}
+            Callouts: ${JSON.stringify(callouts)}
+            SEO: ${JSON.stringify(seo)}
+            
+            Return ONLY the JSON.`;
+
+            const result = await model.generateContent(prompt);
+            const text = result.response.text();
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                return NextResponse.json(JSON.parse(jsonMatch[0]));
+            }
+            return NextResponse.json({ error: "Failed to parse JSON", text }, { status: 500 });
+        }
+
         if (type === 'plan') {
             const { existingPosts } = body; // Array of { title, content }
             const context = existingPosts.map((p: any) => `Title: ${p.title}\nContent: ${p.content.substring(0, 500)}...`).join('\n\n---\n\n');

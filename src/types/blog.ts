@@ -51,6 +51,7 @@ export interface Post {
     viewCount: number;
     shortCode: string | null;
     embedding?: number[];
+    linkedLandingPageId?: string; // ID of the landing page to be promoted in this post
 }
 
 export interface ContentPlan {

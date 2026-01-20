@@ -25,6 +25,8 @@ import { Switch } from '@/components/ui/switch';
 import { getPostTranslations } from '@/services/blogService';
 import { addDoc, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { getLandingPages } from '@/services/landingService';
+import { LandingPage } from '@/types/landing';
 
 interface translationData {
     id?: string;
@@ -67,6 +69,8 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     });
     const [isTranslating, setIsTranslating] = useState(false);
     const [isShortCodePermanent, setIsShortCodePermanent] = useState(false);
+    const [landingPages, setLandingPages] = useState<LandingPage[]>([]);
+    const [selectedLandingId, setSelectedLandingId] = useState<string>('none');
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
@@ -125,6 +129,11 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                     });
                     setTranslations(transObj);
                 }
+
+                // Fetch landing pages
+                const lpList = await getLandingPages();
+                setLandingPages(lpList);
+                if (post.linkedLandingPageId) setSelectedLandingId(post.linkedLandingPageId);
             } else {
                 alert('Post not found');
                 router.push(`/${locale}/admin`);
@@ -266,7 +275,8 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                     }
                 },
                 shortCode: shortCode || null,
-                publishedAt: publishTimestamp
+                publishedAt: publishTimestamp,
+                linkedLandingPageId: selectedLandingId === 'none' ? undefined : selectedLandingId
             };
 
             await updatePost(id, updateData);
@@ -307,7 +317,8 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                         publishedAt: publishTimestamp,
                         status,
                         viewCount: 0,
-                        shortCode: shortCode || null
+                        shortCode: shortCode || null,
+                        linkedLandingPageId: selectedLandingId === 'none' ? undefined : selectedLandingId
                     };
 
                     if (data.id) {
@@ -647,6 +658,33 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                                         </div>
                                     </div>
                                 )}
+                            </CardContent>
+                        </Card>
+
+                        <Card className="rounded-none border-black/10 shadow-none">
+                            <CardHeader className="border-b border-black/5 bg-black/[0.02] py-4 px-6">
+                                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Linked Landing Page</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4 pt-6">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-bold uppercase tracking-tight">Active Campaign</Label>
+                                    <Select value={selectedLandingId} onValueChange={setSelectedLandingId}>
+                                        <SelectTrigger className="rounded-none border-black/10 font-bold">
+                                            <SelectValue placeholder="Select Landing Page" />
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-none border-black/10">
+                                            <SelectItem value="none">Disabled (No Landing Page)</SelectItem>
+                                            {landingPages.map(lp => (
+                                                <SelectItem key={lp.id} value={lp.id}>
+                                                    {lp.title} ({lp.locale?.toUpperCase() || '??'}, {lp.status})
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-tight">
+                                        Selected landing page callouts will be automatically injected into the post content by AI.
+                                    </p>
+                                </div>
                             </CardContent>
                         </Card>
 

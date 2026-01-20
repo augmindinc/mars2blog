@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getLandingPages, subscribeToLandingPages, deleteLandingPage } from '@/services/landingService';
+import { getLandingPages, subscribeToLandingPages, deleteLandingPage, updateLandingPage } from '@/services/landingService';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Link } from '@/i18n/routing';
@@ -43,6 +43,15 @@ export default function LandingPagesPage() {
     const handleDelete = async (id: string) => {
         if (confirm('Are you sure you want to delete this landing page?')) {
             await deleteLandingPage(id);
+        }
+    };
+
+    const handleStatusToggle = async (id: string, currentStatus: string) => {
+        const newStatus = currentStatus === 'published' ? 'draft' : 'published';
+        try {
+            await updateLandingPage(id, { status: newStatus as any });
+        } catch (error) {
+            console.error('Failed to toggle status:', error);
         }
     };
 
@@ -91,7 +100,14 @@ export default function LandingPagesPage() {
                             <TableRow key={page.id} className="group border-black/5 hover:bg-black/[0.01] transition-colors">
                                 <TableCell className="py-4">
                                     <div className="flex flex-col gap-1">
-                                        <span className="text-xs font-bold uppercase tracking-tight text-black">{page.title}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-bold uppercase tracking-tight text-black">{page.title}</span>
+                                            {page.locale && (
+                                                <Badge variant="secondary" className="text-[8px] h-3.5 px-1 rounded-none font-black uppercase tracking-tighter bg-black/5 text-black/40 border-none">
+                                                    {page.locale}
+                                                </Badge>
+                                            )}
+                                        </div>
                                         <div className="flex items-center gap-1.5 text-[9px] font-bold text-muted-foreground">
                                             <span>/{page.slug}</span>
                                             <a href={`/${locale}/lp/${page.slug}`} target="_blank" rel="noopener noreferrer" className="hover:text-black">
@@ -106,12 +122,15 @@ export default function LandingPagesPage() {
                                     </Badge>
                                 </TableCell>
                                 <TableCell>
-                                    <span className={`px-2 py-0.5 border text-[9px] font-black uppercase tracking-widest rounded-none ${page.status === 'active'
-                                        ? 'bg-black text-white border-black'
-                                        : 'bg-black/[0.05] text-black/40 border-black/5'
-                                        }`}>
-                                        {page.status}
-                                    </span>
+                                    <button
+                                        onClick={() => handleStatusToggle(page.id, page.status)}
+                                        className={`px-3 py-1 border text-[9px] font-black uppercase tracking-[0.1em] rounded-none transition-all hover:scale-105 active:scale-95 ${page.status === 'published'
+                                            ? 'bg-black text-white border-black'
+                                            : 'bg-white text-black/40 border-black/10 hover:border-black hover:text-black'
+                                            }`}
+                                    >
+                                        {page.status === 'published' ? 'PUBLISHED' : 'DRAFT'}
+                                    </button>
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex items-center gap-4 text-[10px] font-black tabular-nums">
@@ -146,9 +165,11 @@ export default function LandingPagesPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end" className="rounded-none border-black/10">
-                                                <DropdownMenuItem className="text-[10px] font-bold uppercase tracking-widest cursor-pointer">
-                                                    <BarChart2 className="w-3.5 h-3.5 mr-2" /> View Reports
-                                                </DropdownMenuItem>
+                                                <Link href={`/admin/landing/reports/${page.id}`}>
+                                                    <DropdownMenuItem className="text-[10px] font-bold uppercase tracking-widest cursor-pointer">
+                                                        <BarChart2 className="w-3.5 h-3.5 mr-2" /> View Reports
+                                                    </DropdownMenuItem>
+                                                </Link>
                                                 <DropdownMenuItem
                                                     className="text-[10px] font-bold uppercase tracking-widest cursor-pointer text-destructive focus:text-destructive"
                                                     onClick={() => handleDelete(page.id)}

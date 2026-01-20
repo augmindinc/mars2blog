@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { getLandingPageBySlug } from '@/services/landingService';
+import { getLandingPageBySlug, createSubmission, incrementPageView } from '@/services/landingService';
 import { LandingPage } from '@/types/landing';
+import { Timestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CheckCircle2, X } from 'lucide-react';
+import { LandingViewCounter } from '@/components/landing/LandingViewCounter';
 
 export default function LandingViewPage() {
     const params = useParams();
@@ -16,13 +18,24 @@ export default function LandingViewPage() {
     const [formData, setFormData] = useState<Record<string, any>>({});
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSubmitted, setIsSubmitted] = useState(false);
     const [modalUrl, setModalUrl] = useState<string | null>(null);
 
+    const scrollToCta = () => {
+        const element = document.getElementById('cta_form');
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+
     useEffect(() => {
+        window.scrollTo(0, 0);
         const loadPage = async () => {
             try {
                 const data = await getLandingPageBySlug(slug);
-                setPage(data);
+                if (data) {
+                    setPage(data);
+                }
             } catch (error) {
                 console.error('Failed to load landing page:', error);
             } finally {
@@ -56,13 +69,25 @@ export default function LandingViewPage() {
 
     const handleSubmit = async (sectionContent: any) => {
         if (!validateForm(sectionContent.fields)) return;
+        if (!page) return;
 
         setIsSubmitting(true);
         try {
-            // Here you would typically send data to Firebase or an API
-            console.log('Submission Data:', formData);
-            alert('PROTOCOL INITIATED. YOUR DATA HAS BEEN SYNCED.');
-            setFormData({}); // Reset form
+            await createSubmission({
+                pageId: page.id,
+                data: formData,
+                createdAt: Timestamp.now()
+            });
+
+            setIsSubmitted(true);
+            setFormData({});
+
+            // Handle redirect if configured
+            if (page.formConfig?.postSubmitAction === 'redirect' && page.formConfig.postSubmitValue) {
+                setTimeout(() => {
+                    window.location.href = page.formConfig!.postSubmitValue;
+                }, 2000);
+            }
         } catch (error) {
             console.error(error);
             alert('SUBMISSION FAILED. RE-INITIALIZE ATTEMPT.');
@@ -90,8 +115,51 @@ export default function LandingViewPage() {
         );
     }
 
+    if (page.status !== 'published') {
+        return (
+            <div className="min-h-screen bg-white flex flex-col items-center justify-center p-12 text-center space-y-6">
+                <div className="w-12 h-1 bg-black/10" />
+                <div className="space-y-2">
+                    <h1 className="text-2xl font-black uppercase tracking-tighter">Secure Protocol Active</h1>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">This landing sequence is currently in draft mode.</p>
+                </div>
+                <div className="w-12 h-1 bg-black/10" />
+            </div>
+        );
+    }
+
+    if (isSubmitted) {
+        return (
+            <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-12 text-center space-y-10 animate-in fade-in zoom-in duration-500">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-white/20 blur-3xl rounded-full scale-150 animate-pulse" />
+                    <CheckCircle2 className="w-24 h-24 text-white relative z-10" strokeWidth={1} />
+                </div>
+                <div className="space-y-4 relative z-10">
+                    <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter leading-none">
+                        Protocol Success
+                    </h2>
+                    <p className="text-[10px] md:text-xs font-bold uppercase tracking-[0.4em] text-white/40 max-w-sm mx-auto leading-relaxed">
+                        Your data has been securely synchronized with our architecture.
+                        A synchronization specialist will initiate contact shortly.
+                    </p>
+                </div>
+                <div className="pt-8">
+                    <Button
+                        onClick={() => window.location.reload()}
+                        variant="outline"
+                        className="border-white/20 text-white rounded-none px-12 h-14 font-black text-[10px] uppercase tracking-widest hover:bg-white hover:text-black transition-all"
+                    >
+                        Return to Origin
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-white flex flex-col selection:bg-black selection:text-white overflow-x-hidden">
+            <LandingViewCounter pageId={page.id} pageTitle={page.title} />
             {page.content?.map((section) => (
                 <div key={section.id} className="relative w-full">
                     {/* HERO SECTION */}
@@ -109,7 +177,10 @@ export default function LandingViewPage() {
                                 {section.content.subtitle}
                             </p>
                             <div className="pt-6">
-                                <Button className="bg-black text-white rounded-none px-12 h-14 font-black text-xs uppercase tracking-[0.2em] shadow-none hover:bg-black/90 transition-all">
+                                <Button
+                                    onClick={scrollToCta}
+                                    className="bg-black text-white rounded-none px-12 h-14 font-black text-xs uppercase tracking-[0.2em] shadow-none hover:bg-black/90 transition-all cursor-pointer"
+                                >
                                     {section.content.buttonText}
                                 </Button>
                             </div>
@@ -294,7 +365,7 @@ export default function LandingViewPage() {
 
                     {/* CTA FORM SECTION */}
                     {section.type === 'cta_form' && (
-                        <div className="py-24 md:py-40 px-6 md:px-12 text-center bg-black text-white space-y-16 overflow-hidden">
+                        <div id="cta_form" className="py-24 md:py-40 px-6 md:px-12 text-center bg-black text-white space-y-16 overflow-hidden scroll-mt-20">
                             <div className="space-y-6">
                                 <h2 className="text-4xl md:text-7xl font-black uppercase tracking-tighter leading-[0.9] break-words">
                                     {section.content.title}
@@ -407,7 +478,7 @@ export default function LandingViewPage() {
                                 <Button
                                     disabled={isSubmitting}
                                     onClick={() => handleSubmit(section.content)}
-                                    className="w-full bg-white text-black hover:bg-white/90 disabled:opacity-50 rounded-none h-16 font-black text-xs uppercase tracking-[0.3em] mt-8 shadow-2xl transition-all"
+                                    className="w-full bg-white text-black hover:bg-white/90 disabled:opacity-50 rounded-none h-16 font-black text-xs uppercase tracking-[0.3em] mt-8 shadow-2xl transition-all cursor-pointer"
                                 >
                                     {isSubmitting ? 'PROCESSING...' : section.content.buttonText}
                                 </Button>

@@ -7,7 +7,9 @@ export interface LandingPage {
     title: string;
     slug: string;
     type: LandingPageType;
-    status: 'active' | 'inactive';
+    status: 'published' | 'draft';
+    locale: string;  // ko, en, ja, zh
+    groupId: string; // To link translations
     templateId: string;
     content: LandingPageSection[];
     formConfig?: LandingPageFormConfig;
@@ -21,6 +23,7 @@ export interface LandingPage {
     };
     createdAt: Timestamp;
     updatedAt: Timestamp;
+    callouts?: string[]; // AI generated callout messages for blog posts (max 3)
 }
 
 export interface LandingPageSection {

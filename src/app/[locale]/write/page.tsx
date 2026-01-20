@@ -22,6 +22,8 @@ import slugify from 'slugify';
 import { SocialPreview } from '@/components/admin/SocialPreview';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import { getLandingPages } from '@/services/landingService';
+import { LandingPage } from '@/types/landing';
 
 interface translationData {
     enabled: boolean;
@@ -59,6 +61,8 @@ export default function WritePage() {
     const [shortCode, setShortCode] = useState('');
     const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
     const [isTranslating, setIsTranslating] = useState(false);
+    const [landingPages, setLandingPages] = useState<LandingPage[]>([]);
+    const [selectedLandingId, setSelectedLandingId] = useState<string>('none');
     const thumbnailInputRef = useRef<HTMLInputElement>(null);
 
     const [translations, setTranslations] = useState<Record<string, translationData>>({
@@ -66,6 +70,14 @@ export default function WritePage() {
         ja: { enabled: false, title: '', content: '', slug: '', seoTitle: '', seoDescription: '', excerpt: '' },
         zh: { enabled: false, title: '', content: '', slug: '', seoTitle: '', seoDescription: '', excerpt: '' },
     });
+
+    useEffect(() => {
+        const fetchLandingPages = async () => {
+            const lps = await getLandingPages();
+            setLandingPages(lps);
+        };
+        fetchLandingPages();
+    }, []);
 
     const handleGenerateAI = async () => {
         if (!content && !title) return;
@@ -279,7 +291,8 @@ export default function WritePage() {
                 publishedAt: publishTimestamp,
                 status: initialStatus,
                 viewCount: 0,
-                shortCode: shortCode || null
+                shortCode: shortCode || null,
+                linkedLandingPageId: selectedLandingId === 'none' ? undefined : selectedLandingId
             };
 
             const postsToSave = [originalPost];
@@ -651,6 +664,33 @@ export default function WritePage() {
                                     thumbnailUrl={thumbnailUrl}
                                     locale={locale}
                                 />
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-sm font-medium">Linked Landing Page</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label className="text-xs">Active Campaign</Label>
+                                    <Select value={selectedLandingId} onValueChange={setSelectedLandingId}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select Landing Page" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">Disabled (No Landing Page)</SelectItem>
+                                            {landingPages.map(lp => (
+                                                <SelectItem key={lp.id} value={lp.id}>
+                                                    {lp.title} ({lp.locale?.toUpperCase() || '??'}, {lp.status})
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-[10px] text-muted-foreground italic">
+                                        Selected landing page callouts will be automatically injected into the post content by AI.
+                                    </p>
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
