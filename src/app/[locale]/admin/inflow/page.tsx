@@ -41,30 +41,30 @@ export default function InflowPage() {
         <div className="space-y-8">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-3xl font-extrabold tracking-tight">Inflow Analytics</h2>
-                    <p className="text-muted-foreground">Monitor where your visitors are coming from.</p>
+                    <h2 className="text-3xl font-bold tracking-tight">Inflow Analytics</h2>
+                    <p className="text-muted-foreground text-sm">Monitor where your visitors are coming from.</p>
                 </div>
             </div>
 
             {/* Stats Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <Card className="bg-primary/5 border-primary/10">
+                <Card className="rounded-none bg-black/[0.02] border-black/10 shadow-none">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <MousePointer2 className="w-4 h-4 text-primary" />
+                        <CardTitle className="text-xs font-bold flex items-center gap-2 uppercase tracking-tight text-muted-foreground">
+                            <MousePointer2 className="w-4 h-4" />
                             Total Tracking
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{logs?.length || 0}</div>
-                        <p className="text-xs text-muted-foreground mt-1">Last 100 entries</p>
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground mt-1 tracking-tight">Last 100 entries</p>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-emerald-500/5 border-emerald-500/10">
+                <Card className="rounded-none bg-black/[0.02] border-black/10 shadow-none">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <LinkIcon className="w-4 h-4 text-emerald-500" />
+                        <CardTitle className="text-xs font-bold flex items-center gap-2 uppercase tracking-tight text-muted-foreground">
+                            <LinkIcon className="w-4 h-4" />
                             Internal Clicks
                         </CardTitle>
                     </CardHeader>
@@ -72,14 +72,14 @@ export default function InflowPage() {
                         <div className="text-2xl font-bold">
                             {logs?.filter(l => l.referrer?.startsWith('Related Post:')).length || 0}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">From related posts</p>
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground mt-1 tracking-tight">From related posts</p>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-orange-500/5 border-orange-500/10">
+                <Card className="rounded-none bg-black/[0.02] border-black/10 shadow-none">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <Globe className="w-4 h-4 text-orange-500" />
+                        <CardTitle className="text-xs font-bold flex items-center gap-2 uppercase tracking-tight text-muted-foreground">
+                            <Globe className="w-4 h-4" />
                             Top Traffic
                         </CardTitle>
                     </CardHeader>
@@ -87,16 +87,16 @@ export default function InflowPage() {
                         <div className="text-2xl font-bold truncate">
                             {topDomains[0]?.[0] || 'N/A'}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground mt-1 tracking-tight">
                             {topDomains[0]?.[1] || 0} visits
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-blue-500/5 border-blue-500/10">
+                <Card className="rounded-none bg-black/[0.02] border-black/10 shadow-none">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <Search className="w-4 h-4 text-blue-500" />
+                        <CardTitle className="text-xs font-bold flex items-center gap-2 uppercase tracking-tight text-muted-foreground">
+                            <Search className="w-4 h-4" />
                             Search Entries
                         </CardTitle>
                     </CardHeader>
@@ -104,23 +104,23 @@ export default function InflowPage() {
                         <div className="text-2xl font-bold">
                             {logs?.filter(l => l.searchKeyword).length || 0}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">Identified keywords</p>
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground mt-1 tracking-tight">Identified keywords</p>
                     </CardContent>
                 </Card>
             </div>
 
             {/* Inflow Logs Table */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-xl flex items-center gap-2">
-                        <BarChart3 className="w-5 h-5 text-primary" />
+            <Card className="rounded-none border-black/10 shadow-none overflow-hidden">
+                <CardHeader className="border-b border-black/5 bg-black/[0.02]">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5" />
                         Recent Inflow Logs
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
-                            <TableRow>
+                            <TableRow className="border-black/5">
                                 <TableHead className="w-[180px]">Time</TableHead>
                                 <TableHead>Source (Referrer)</TableHead>
                                 <TableHead>Target Post</TableHead>
@@ -129,7 +129,7 @@ export default function InflowPage() {
                         </TableHeader>
                         <TableBody>
                             {logs?.map((log) => (
-                                <TableRow key={log.id} className="group">
+                                <TableRow key={log.id} className="group border-black/5">
                                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                                         <div className="flex items-center gap-2">
                                             <Clock className="w-3 h-3" />
@@ -139,12 +139,12 @@ export default function InflowPage() {
                                     <TableCell>
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-2">
-                                                <Badge variant="outline" className="px-1.5 py-0 h-5 font-mono text-[10px]">
+                                                <Badge variant="outline" className="px-1.5 py-0 h-5 text-[10px] rounded-none border-black/10">
                                                     {log.referrerDomain}
                                                 </Badge>
                                             </div>
                                             {log.referrer && log.referrer.startsWith('Related Post:') ? (
-                                                <div className="flex items-center gap-1.5 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 w-fit">
+                                                <div className="flex items-center gap-1.5 text-[10px] font-bold text-black bg-black/[0.05] px-1.5 py-0.5 rounded-none border border-black/5 w-fit">
                                                     <MessageSquare className="w-3 h-3" />
                                                     {log.referrer}
                                                 </div>
@@ -153,7 +153,7 @@ export default function InflowPage() {
                                                     href={log.referrer}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="text-[10px] text-muted-foreground hover:text-primary hover:underline truncate max-w-[200px] block transition-colors"
+                                                    className="text-[10px] text-muted-foreground hover:text-black hover:underline truncate max-w-[200px] block transition-colors"
                                                     title={log.referrer}
                                                 >
                                                     {log.referrer}
@@ -168,19 +168,19 @@ export default function InflowPage() {
                                     <TableCell>
                                         <Link
                                             href={`/admin/posts/${log.postId}`}
-                                            className="font-medium text-sm hover:underline hover:text-primary transition-colors line-clamp-1"
+                                            className="font-semibold text-sm hover:underline hover:text-black transition-colors line-clamp-1"
                                         >
                                             {log.postTitle}
                                         </Link>
                                     </TableCell>
                                     <TableCell>
                                         {log.searchKeyword ? (
-                                            <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-200">
+                                            <Badge variant="outline" className="rounded-none border-black/10 bg-black/[0.02] text-black font-bold text-[10px]">
                                                 <Search className="w-3 h-3 mr-1" />
                                                 {log.searchKeyword}
                                             </Badge>
                                         ) : (
-                                            <span className="text-xs text-muted-foreground italic">-</span>
+                                            <span className="text-xs text-muted-foreground italic font-medium">-</span>
                                         )}
                                     </TableCell>
                                 </TableRow>

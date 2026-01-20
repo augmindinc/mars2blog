@@ -1,7 +1,7 @@
 import { getPostBySlug, getPostTranslations, serializePost } from '@/services/blogService';
 import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
-import { CATEGORY_LABELS } from '@/types/blog';
+import { getCategoryLabel } from '@/services/categoryService';
 import { Metadata } from 'next';
 import Image from 'next/image';
 import { cache } from 'react';
@@ -81,7 +81,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
     const serializedPost = serializePost(post);
 
-    const categoryLabel = CATEGORY_LABELS[post.category]?.[locale as 'en' | 'ko'] || post.category;
+    const categoryLabel = await getCategoryLabel(post.category, locale);
 
     const jsonLd = post.seo.structuredData || {
         '@context': 'https://schema.org',
@@ -125,9 +125,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
-            <div className="mb-8 text-center">
-                <div className="flex justify-center gap-2 mb-4">
-                    <span className="text-sm font-semibold text-primary px-3 py-1 bg-primary/10 rounded-full">
+            <div className="mb-12 text-center">
+                <div className="flex justify-center gap-2 mb-6">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-white px-3 py-1 bg-black">
                         {categoryLabel}
                     </span>
                 </div>
@@ -135,7 +135,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 <div className="text-muted-foreground text-sm flex justify-center items-center gap-4">
                     {serializedPost.author.photoUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={serializedPost.author.photoUrl} alt={serializedPost.author.name} className="w-6 h-6 rounded-full" />
+                        <img src={serializedPost.author.photoUrl} alt={serializedPost.author.name} className="w-6 h-6 rounded-none border border-black/10" />
                     )}
                     <span>{serializedPost.author.name}</span>
                     <span>•</span>
@@ -148,7 +148,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </div>
 
             {serializedPost.thumbnail.url && (
-                <div className="relative w-full aspect-video mb-12 rounded-xl overflow-hidden shadow-lg border">
+                <div className="relative w-full aspect-video mb-16 rounded-none overflow-hidden border border-black">
                     <Image
                         src={serializedPost.thumbnail.url}
                         alt={serializedPost.thumbnail.alt || serializedPost.title}
@@ -162,9 +162,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             )}
 
             {serializedPost.excerpt && (
-                <div className="mb-12 p-6 bg-muted/30 border-l-4 border-primary rounded-r-lg">
-                    <h2 className="text-sm font-bold uppercase tracking-wider mb-2 text-primary">Key Highlights (TL;DR)</h2>
-                    <p className="text-muted-foreground leading-relaxed italic">
+                <div className="mb-16 p-8 bg-black/[0.02] border border-black/10">
+                    <h2 className="text-sm font-semibold mb-4 text-black border-b border-black/5 pb-2 inline-block">Key Highlights</h2>
+                    <p className="text-muted-foreground leading-relaxed italic text-lg">
                         {serializedPost.excerpt}
                     </p>
                 </div>

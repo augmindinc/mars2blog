@@ -70,7 +70,7 @@ export default function MembersPage() {
     );
 
     if (profile?.role !== 'admin') {
-        return <div className="p-8 text-center text-destructive font-bold text-xl uppercase tracking-widest">Access Denied</div>;
+        return <div className="p-8 text-center text-destructive font-bold text-lg">Access Denied</div>;
     }
 
     return (
@@ -78,7 +78,7 @@ export default function MembersPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 className="text-2xl font-bold flex items-center gap-2">
-                        <User className="w-6 h-6 text-primary" />
+                        <User className="w-6 h-6" />
                         Member Management
                     </h2>
                     <p className="text-muted-foreground text-sm">
@@ -89,17 +89,17 @@ export default function MembersPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                         placeholder="Search members..."
-                        className="pl-9"
+                        className="pl-9 rounded-none border-black/10"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
             </div>
 
-            <div className="bg-background rounded-xl border shadow-sm overflow-hidden">
+            <div className="bg-background rounded-none border border-black/10 shadow-none overflow-hidden">
                 <Table>
-                    <TableHeader className="bg-muted/50">
-                        <TableRow>
+                    <TableHeader className="bg-black/[0.02]">
+                        <TableRow className="border-black/5">
                             <TableHead>User</TableHead>
                             <TableHead>Role</TableHead>
                             <TableHead>Status</TableHead>
@@ -118,14 +118,14 @@ export default function MembersPage() {
                             </TableRow>
                         ) : (
                             filteredUsers.map((user) => (
-                                <TableRow key={user.uid}>
+                                <TableRow key={user.uid} className="border-black/5">
                                     <TableCell>
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                                            <div className="w-8 h-8 rounded-none bg-black/[0.05] flex items-center justify-center overflow-hidden border border-black/5">
                                                 {user.photoURL ? (
                                                     <img src={user.photoURL} alt={user.displayName} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <User className="w-4 h-4 text-primary" />
+                                                    <User className="w-4 h-4 text-black/50" />
                                                 )}
                                             </div>
                                             <div className="flex flex-col">
@@ -136,13 +136,13 @@ export default function MembersPage() {
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-2">
-                                            <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                                            <Badge variant={user.role === 'admin' ? 'default' : 'outline'} className="rounded-none font-bold text-[10px] border-black/10">
                                                 {user.role.toUpperCase()}
                                             </Badge>
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="h-6 px-1 text-[10px]"
+                                                className="h-6 px-2 text-[10px] rounded-none hover:bg-black/5"
                                                 onClick={() => handleUpdateRole(user.uid, user.role === 'admin' ? 'author' : 'admin')}
                                             >
                                                 Switch
@@ -150,7 +150,7 @@ export default function MembersPage() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant={user.status === 'approved' ? 'success' : 'warning' as any}>
+                                        <Badge variant="outline" className={`rounded-none font-bold text-[10px] ${user.status === 'approved' ? 'bg-black text-white border-black' : 'border-black/10'}`}>
                                             {user.status.toUpperCase()}
                                         </Badge>
                                     </TableCell>
@@ -162,7 +162,7 @@ export default function MembersPage() {
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                className="h-8 gap-1 border-green-200 hover:bg-green-50 hover:text-green-700 hover:border-green-300"
+                                                className="h-8 gap-1 rounded-none border-black/10 hover:bg-black hover:text-white"
                                                 onClick={() => handleUpdateStatus(user.uid, 'approved')}
                                             >
                                                 <CheckCircle className="w-3 h-3" />
@@ -172,7 +172,7 @@ export default function MembersPage() {
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                className="h-8 gap-1 hover:bg-destructive/5 hover:text-destructive hover:border-destructive/30"
+                                                className="h-8 gap-1 rounded-none border-black/10 hover:bg-black hover:text-white"
                                                 onClick={() => handleUpdateStatus(user.uid, 'pending')}
                                             >
                                                 <XCircle className="w-3 h-3" />

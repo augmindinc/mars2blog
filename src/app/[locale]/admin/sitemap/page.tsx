@@ -85,7 +85,7 @@ export default function AdminSitemapPage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 className="text-2xl font-bold flex items-center gap-2">
-                        <Globe className="w-6 h-6 text-primary" />
+                        <Globe className="w-6 h-6" />
                         Sitemap Management
                     </h2>
                     <p className="text-muted-foreground text-sm">
@@ -96,54 +96,54 @@ export default function AdminSitemapPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                         placeholder="Search URLs..."
-                        className="pl-9"
+                        className="pl-9 rounded-none border-black/10"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
             </div>
 
-            <div className="bg-background rounded-xl border shadow-sm overflow-hidden">
+            <div className="bg-background rounded-none border border-black/10 shadow-none overflow-hidden">
                 <Table>
-                    <TableHeader className="bg-muted/50">
-                        <TableRow>
+                    <TableHeader className="bg-black/[0.02]">
+                        <TableRow className="border-black/5">
                             <TableHead>Type</TableHead>
                             <TableHead>URL / Title</TableHead>
                             <TableHead>Priority</TableHead>
                             <TableHead>Frequency</TableHead>
                             <TableHead>Last Modified</TableHead>
-                            <TableHead className="text-right">Link</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filteredEntries.map((entry, idx) => (
-                            <TableRow key={idx}>
+                            <TableRow key={idx} className="border-black/5">
                                 <TableCell>
-                                    <Badge variant={entry.type === 'Static' ? 'secondary' : 'outline'}>
+                                    <Badge variant="outline" className="rounded-none border-black/10 font-bold text-[10px]">
                                         {entry.type}
                                     </Badge>
                                 </TableCell>
                                 <TableCell className="max-w-[400px]">
                                     <div className="flex flex-col">
-                                        {entry.title && <span className="font-semibold text-sm truncate">{entry.title}</span>}
+                                        {entry.title && <span className="font-bold text-sm truncate">{entry.title}</span>}
                                         <span className="text-xs text-muted-foreground break-all">{entry.url}</span>
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <span className="text-sm font-mono text-blue-600">{entry.priority.toFixed(1)}</span>
+                                    <span className="text-sm font-bold text-black">{entry.priority.toFixed(1)}</span>
                                 </TableCell>
-                                <TableCell className="text-sm italic text-muted-foreground capitalize">
+                                <TableCell className="text-sm font-medium text-muted-foreground capitalize">
                                     {entry.frequency}
                                 </TableCell>
-                                <TableCell className="text-sm text-muted-foreground">
-                                    {entry.lastModified ? format(entry.lastModified, 'yyyy-MM-dd HH:mm') : '-'}
+                                <TableCell className="text-sm text-muted-foreground font-medium">
+                                    {entry.lastModified ? format(entry.lastModified, 'yyyy-MM-dd') : '-'}
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-2">
                                         <Button
-                                            variant="ghost"
+                                            variant="outline"
                                             size="sm"
-                                            className="h-8 px-2 text-xs gap-1 hover:text-primary hover:bg-primary/5"
+                                            className="h-8 px-2 text-[10px] gap-1 rounded-none border-black/10 hover:bg-black hover:text-white uppercase font-bold tracking-tight"
                                             onClick={() => handleRequestIndex(entry.url)}
                                             disabled={indexingUrls.has(entry.url)}
                                         >
@@ -158,9 +158,9 @@ export default function AdminSitemapPage() {
                                             href={entry.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="inline-flex items-center justify-center p-2 hover:bg-muted rounded-md transition-colors text-primary"
+                                            className="inline-flex items-center justify-center h-8 w-8 hover:bg-black/[0.05] border border-black/10 rounded-none transition-colors text-black"
                                         >
-                                            <ExternalLink className="w-4 h-4" />
+                                            <ExternalLink className="w-3.5 h-3.5" />
                                         </a>
                                     </div>
                                 </TableCell>
@@ -170,10 +170,10 @@ export default function AdminSitemapPage() {
                 </Table>
             </div>
 
-            <div className="flex justify-between items-center text-xs text-muted-foreground px-2">
+            <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-tight text-muted-foreground px-2">
                 <span>Total Entries: {filteredEntries.length}</span>
                 <span className="flex items-center gap-1">
-                    Live XML: <a href="/sitemap.xml" target="_blank" className="underline hover:text-primary">/sitemap.xml</a>
+                    Live XML: <a href="/sitemap.xml" target="_blank" className="underline hover:text-black">/sitemap.xml</a>
                 </span>
             </div>
         </div>

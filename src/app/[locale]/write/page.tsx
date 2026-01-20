@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Category, CATEGORY_LABELS, Post } from '@/types/blog';
+import { useCategories } from '@/hooks/useCategories';
 import { useAuth } from '@/context/AuthContext';
 import { db, storage } from '@/lib/firebase';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
@@ -38,10 +39,12 @@ export default function WritePage() {
     const { user } = useAuth();
     const locale = useLocale() as 'en' | 'ko';
 
+    const { data: categories, isLoading: isCategoriesLoading } = useCategories();
+
     const [title, setTitle] = useState('');
     const [slug, setSlug] = useState('');
     const [content, setContent] = useState('');
-    const [category, setCategory] = useState<Category>('ISSUE');
+    const [category, setCategory] = useState<string>('PLANNING');
     const [summary, setSummary] = useState('');
     const [thumbnailUrl, setThumbnailUrl] = useState('');
     const [thumbnailAlt, setThumbnailAlt] = useState('');
@@ -525,18 +528,30 @@ export default function WritePage() {
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="category">Category</Label>
-                                    <Select value={category} onValueChange={(val) => setCategory(val as Category)}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select category" />
+                                    <Select value={category} onValueChange={(val) => setCategory(val)}>
+                                        <SelectTrigger disabled={isCategoriesLoading}>
+                                            <SelectValue placeholder={isCategoriesLoading ? "Loading..." : "Select category"} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {Object.keys(CATEGORY_LABELS).map((cat) => (
-                                                cat !== 'ALL' && (
-                                                    <SelectItem key={cat} value={cat}>
-                                                        {CATEGORY_LABELS[cat as Category]?.[locale] || cat}
+                                            {isCategoriesLoading ? (
+                                                <SelectItem value="loading" disabled>Loading categories...</SelectItem>
+                                            ) : (
+                                                categories?.map((cat) => (
+                                                    <SelectItem key={cat.id} value={cat.id}>
+                                                        {cat.name[locale] || cat.name['ko'] || cat.id}
                                                     </SelectItem>
-                                                )
-                                            ))}
+                                                ))
+                                            )}
+                                            {/* Static fallback if no dynamic categories yet */}
+                                            {(!categories || categories.length === 0) && !isCategoriesLoading &&
+                                                Object.keys(CATEGORY_LABELS).map((cat) => (
+                                                    cat !== 'ALL' && (
+                                                        <SelectItem key={cat} value={cat}>
+                                                            {CATEGORY_LABELS[cat]?.[locale] || cat}
+                                                        </SelectItem>
+                                                    )
+                                                ))
+                                            }
                                         </SelectContent>
                                     </Select>
                                 </div>

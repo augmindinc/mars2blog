@@ -40,30 +40,30 @@ export default function BotLogsPage() {
         <div className="space-y-8">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-3xl font-extrabold tracking-tight">Crawler Bot Activity</h2>
-                    <p className="text-muted-foreground">Monitor search engine and crawler bot visits.</p>
+                    <h2 className="text-3xl font-bold tracking-tight">Crawler Bot Activity</h2>
+                    <p className="text-muted-foreground text-sm">Monitor search engine and crawler bot visits.</p>
                 </div>
             </div>
 
             {/* Stats Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="bg-primary/5 border-primary/10">
+                <Card className="rounded-none bg-black/[0.02] border-black/10 shadow-none">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <Activity className="w-4 h-4 text-primary" />
+                        <CardTitle className="text-xs font-bold flex items-center gap-2 uppercase tracking-tight text-muted-foreground">
+                            <Activity className="w-4 h-4" />
                             Total Bot Visits
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{logs?.length || 0}</div>
-                        <p className="text-xs text-muted-foreground mt-1">Last 100 entries</p>
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground mt-1 tracking-tight">Last 100 entries</p>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-orange-500/5 border-orange-500/10">
+                <Card className="rounded-none bg-black/[0.02] border-black/10 shadow-none">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <Building2 className="w-4 h-4 text-orange-500" />
+                        <CardTitle className="text-xs font-bold flex items-center gap-2 uppercase tracking-tight text-muted-foreground">
+                            <Building2 className="w-4 h-4" />
                             Most Active Company
                         </CardTitle>
                     </CardHeader>
@@ -71,16 +71,16 @@ export default function BotLogsPage() {
                         <div className="text-2xl font-bold truncate">
                             {topCompanies[0]?.[0] || 'N/A'}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground mt-1 tracking-tight">
                             {topCompanies[0]?.[1] || 0} visits
                         </p>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-emerald-500/5 border-emerald-500/10">
+                <Card className="rounded-none bg-black/[0.02] border-black/10 shadow-none">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                        <CardTitle className="text-xs font-bold flex items-center gap-2 uppercase tracking-tight text-muted-foreground">
+                            <ShieldCheck className="w-4 h-4" />
                             Top Bot
                         </CardTitle>
                     </CardHeader>
@@ -88,23 +88,23 @@ export default function BotLogsPage() {
                         <div className="text-2xl font-bold">
                             {logs?.[0]?.botName || 'N/A'}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">Latest visit</p>
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground mt-1 tracking-tight">Latest visit</p>
                     </CardContent>
                 </Card>
             </div>
 
             {/* Bot Logs Table */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-xl flex items-center gap-2">
-                        <Bot className="w-5 h-5 text-primary" />
+            <Card className="rounded-none border-black/10 shadow-none overflow-hidden">
+                <CardHeader className="border-b border-black/5 bg-black/[0.02]">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <Bot className="w-5 h-5" />
                         Detailed Bot Activity
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
-                            <TableRow>
+                            <TableRow className="border-black/5">
                                 <TableHead className="w-[180px]">Time</TableHead>
                                 <TableHead>Bot Name</TableHead>
                                 <TableHead>Company</TableHead>
@@ -114,7 +114,7 @@ export default function BotLogsPage() {
                         </TableHeader>
                         <TableBody>
                             {logs?.map((log) => (
-                                <TableRow key={log.id} className="group">
+                                <TableRow key={log.id} className="group border-black/5">
                                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                                         <div className="flex items-center gap-2">
                                             <Clock className="w-3 h-3" />
@@ -122,25 +122,25 @@ export default function BotLogsPage() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <div className="font-bold flex items-center gap-2">
-                                            <Bot className="w-3.5 h-3.5 text-primary" />
+                                        <div className="font-bold flex items-center gap-2 text-sm">
+                                            <Bot className="w-3.5 h-3.5" />
                                             {log.botName}
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant="outline" className="font-normal border-orange-200 bg-orange-50 text-orange-700">
+                                        <Badge variant="outline" className="font-bold text-[10px] rounded-none border-black/10 px-1.5 h-5 uppercase tracking-tight">
                                             {log.botCompany}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
-                                        <div className="flex items-center gap-1 font-mono text-xs">
-                                            <Globe className="w-3 h-3 text-muted-foreground" />
+                                        <div className="flex items-center gap-1 font-medium text-xs text-muted-foreground">
+                                            <Globe className="w-3 h-3" />
                                             {log.pagePath}
                                         </div>
                                     </TableCell>
                                     <TableCell>
                                         <div className="space-y-1">
-                                            <div className="text-[10px] font-mono font-semibold text-muted-foreground">
+                                            <div className="text-[10px] font-bold text-muted-foreground">
                                                 IP: {log.ip}
                                             </div>
                                             <div className="text-[10px] text-muted-foreground truncate max-w-[250px]" title={log.userAgent}>

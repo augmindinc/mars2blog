@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLocale } from 'next-intl';
 import { useRef } from 'react';
 import { storage } from '@/lib/firebase';
+import { useCategories } from '@/hooks/useCategories';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { compressImage } from '@/lib/imageCompression';
 import { Sparkles, Loader2, UploadCloud, Languages, Lock } from 'lucide-react';
@@ -41,9 +42,11 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     const locale = useLocale() as 'en' | 'ko';
     const { id } = use(params);
 
+    const { data: categories, isLoading: isCategoriesLoading } = useCategories();
+
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
-    const [category, setCategory] = useState<Category>('ISSUE');
+    const [category, setCategory] = useState<string>('PLANNING');
     const [summary, setSummary] = useState('');
     const [thumbnailUrl, setThumbnailUrl] = useState('');
     const [thumbnailAlt, setThumbnailAlt] = useState('');
@@ -336,9 +339,9 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                     variant="outline"
                     onClick={handleGenerateAI}
                     disabled={isGeneratingAI || (!content && !title)}
-                    className="gap-2"
+                    className="gap-2 rounded-none border-black/10"
                 >
-                    {isGeneratingAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-primary" />}
+                    {isGeneratingAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                     Generate AI Meta
                 </Button>
             </div>
@@ -346,28 +349,28 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-6">
-                        <div className="space-y-4 bg-background p-6 rounded-lg border">
-                            <div className="space-y-2">
-                                <Label htmlFor="title">Title</Label>
+                        <div className="space-y-4 bg-background p-6 rounded-none border border-black/10 shadow-none">
+                            <div className="space-y-2 text-start">
+                                <Label htmlFor="title" className="font-bold text-xs uppercase tracking-tight">Title</Label>
                                 <Input
                                     id="title"
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
                                     placeholder="Enter post title"
                                     required
-                                    className="text-lg font-medium"
+                                    className="text-lg font-bold rounded-none border-black/10"
                                 />
                             </div>
-                            <div className="space-y-2 pt-2 border-t border-dashed">
-                                <Label className="text-xs text-muted-foreground">Short URL (Optional)</Label>
+                            <div className="space-y-2 pt-4 border-t border-black/5">
+                                <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight text-start block">Short URL (Optional)</Label>
                                 <div className="flex gap-2">
-                                    <div className="flex-grow bg-muted/50 rounded-md px-3 py-2 text-sm font-mono flex items-center justify-between border">
-                                        <span>{shortCode ? `mars.it.kr/s/${shortCode}` : 'Not generated'}</span>
+                                    <div className="flex-grow bg-black/[0.02] rounded-none px-3 py-2 text-sm font-medium flex items-center justify-between border border-black/5">
+                                        <span className="text-muted-foreground">{shortCode ? `mars.it.kr/s/${shortCode}` : 'Not generated'}</span>
                                         {shortCode && (
                                             <button
                                                 type="button"
                                                 onClick={() => copyToClipboard(`https://mars.it.kr/s/${shortCode}`)}
-                                                className="text-primary hover:underline text-xs"
+                                                className="text-black font-bold hover:underline text-[10px] uppercase tracking-tight"
                                             >
                                                 Copy
                                             </button>
@@ -378,7 +381,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                                         variant={isShortCodePermanent ? "ghost" : "outline"}
                                         size="sm"
                                         onClick={generateShortUrl}
-                                        className="whitespace-nowrap"
+                                        className="whitespace-nowrap rounded-none border-black/10 font-bold text-[10px] uppercase tracking-tight"
                                         disabled={isShortCodePermanent}
                                     >
                                         {isShortCodePermanent ? (
@@ -393,41 +396,42 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label>Content (Markdown)</Label>
+                        <div className="space-y-2 text-start">
+                            <Label className="font-bold text-xs uppercase tracking-tight">Content (Markdown)</Label>
                             <MarkdownEditor content={content} onChange={setContent} />
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="tldr">AI 핵심 요약 (TL;DR)</Label>
+                        <div className="space-y-2 text-start">
+                            <Label htmlFor="tldr" className="font-bold text-xs uppercase tracking-tight">AI 핵심 요약 (TL;DR)</Label>
                             <Textarea
                                 id="tldr"
                                 value={tldr}
                                 onChange={(e) => setTldr(e.target.value)}
                                 placeholder="AI summary will appear here..."
                                 rows={3}
+                                className="rounded-none border-black/10 font-medium text-sm"
                             />
                         </div>
 
-                        <Card className="border-primary/20 bg-primary/5">
+                        <Card className="rounded-none border-black/10 bg-black/[0.02] shadow-none">
                             <CardHeader className="pb-3 px-4 sm:px-6">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                    <div>
-                                        <CardTitle className="flex items-center gap-2 text-lg">
-                                            <Languages className="w-5 h-5 text-primary" />
+                                    <div className="text-start">
+                                        <CardTitle className="flex items-center gap-2 text-lg font-bold">
+                                            <Languages className="w-5 h-5" />
                                             Multi-Language Translations
                                         </CardTitle>
-                                        <p className="text-xs text-muted-foreground mt-1">
+                                        <p className="text-[10px] uppercase font-bold text-muted-foreground mt-1 tracking-tight">
                                             Manage translations for this post. Enable to edit.
                                         </p>
                                     </div>
                                     <Button
                                         type="button"
-                                        variant="default"
+                                        variant="outline"
                                         size="sm"
                                         onClick={handleTranslateAll}
                                         disabled={isTranslating || !content || !title}
-                                        className="shadow-sm"
+                                        className="bg-black text-white hover:bg-black/90 rounded-none font-bold text-[10px] uppercase tracking-tight"
                                     >
                                         {isTranslating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
                                         {Object.values(translations).some(t => t.id) ? 'Update All Translations' : 'Translate to All Languages'}
@@ -436,57 +440,60 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                             </CardHeader>
                             <CardContent className="px-4 sm:px-6">
                                 <Tabs defaultValue="en" className="w-full">
-                                    <TabsList className="grid grid-cols-3 w-full max-w-md">
+                                    <TabsList className="grid grid-cols-3 w-full max-w-md bg-black/[0.05] rounded-none p-1 h-auto">
                                         {Object.keys(translations).map(lang => (
-                                            <TabsTrigger key={lang} value={lang} className="flex items-center gap-2">
-                                                <span className="uppercase text-xs font-bold">{lang}</span>
+                                            <TabsTrigger key={lang} value={lang} className="flex items-center gap-2 rounded-none data-[state=active]:bg-white data-[state=active]:text-black py-2">
+                                                <span className="uppercase text-[10px] font-bold tracking-widest">{lang}</span>
                                                 {translations[lang].enabled && (
-                                                    <span className="w-2 h-2 rounded-full bg-primary" />
+                                                    <span className="w-1.5 h-1.5 rounded-none bg-black" />
                                                 )}
                                             </TabsTrigger>
                                         ))}
                                     </TabsList>
                                     {Object.entries(translations).map(([lang, data]) => (
-                                        <TabsContent key={lang} value={lang} className="space-y-4 pt-4 border-t mt-4">
-                                            <div className="flex items-center justify-between bg-muted/30 p-3 rounded-lg border border-dashed">
+                                        <TabsContent key={lang} value={lang} className="space-y-4 pt-4 border-t border-black/5 mt-4">
+                                            <div className="flex items-center justify-between bg-black/[0.02] p-3 rounded-none border border-dashed border-black/10 text-start">
                                                 <div className="flex items-center gap-2">
-                                                    <Languages className="w-4 h-4 text-muted-foreground" />
-                                                    <span className="text-sm font-medium">Enable {lang.toUpperCase()} Translation</span>
+                                                    <Languages className="w-3.5 h-3.5" />
+                                                    <span className="text-[10px] font-bold uppercase tracking-tight">Enable {lang.toUpperCase()} Translation</span>
                                                 </div>
                                                 <Switch
                                                     checked={data.enabled}
                                                     onCheckedChange={(val) => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], enabled: val } }))}
+                                                    className="data-[state=checked]:bg-black"
                                                 />
                                             </div>
                                             {!data.enabled && (
-                                                <div className="bg-muted/50 rounded-md p-4 text-center text-sm text-muted-foreground">
+                                                <div className="bg-black/[0.02] rounded-none p-4 text-center text-[10px] font-bold uppercase tracking-tight text-muted-foreground border border-black/5">
                                                     Enable this language to edit and publish the translation.
                                                 </div>
                                             )}
-                                            <div className={data.enabled ? "space-y-4" : "opacity-50 pointer-events-none space-y-4"}>
+                                            <div className={data.enabled ? "space-y-4" : "opacity-50 pointer-events-none space-y-4 text-start"}>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <div className="space-y-2">
-                                                        <Label className="text-xs">Title ({lang.toUpperCase()})</Label>
+                                                        <Label className="text-[10px] font-bold uppercase tracking-tight">Title ({lang.toUpperCase()})</Label>
                                                         <Input
                                                             value={data.title}
                                                             onChange={(e) => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], title: e.target.value } }))}
+                                                            className="rounded-none border-black/10 font-bold"
                                                         />
                                                     </div>
                                                     <div className="space-y-2">
-                                                        <Label className="text-xs">Slug ({lang.toUpperCase()})</Label>
+                                                        <Label className="text-[10px] font-bold uppercase tracking-tight">Slug ({lang.toUpperCase()})</Label>
                                                         <Input
                                                             value={data.slug}
                                                             onChange={(e) => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], slug: e.target.value } }))}
+                                                            className="rounded-none border-black/10 font-medium"
                                                         />
                                                     </div>
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label className="text-xs">Content ({lang.toUpperCase()})</Label>
+                                                    <Label className="text-[10px] font-bold uppercase tracking-tight">Content ({lang.toUpperCase()})</Label>
                                                     <Textarea
                                                         value={data.content}
                                                         onChange={(e) => setTranslations(prev => ({ ...prev, [lang]: { ...prev[lang], content: e.target.value } }))}
                                                         rows={12}
-                                                        className="font-mono text-sm leading-relaxed"
+                                                        className="font-mono text-sm leading-relaxed rounded-none border-black/10"
                                                     />
                                                 </div>
                                             </div>
@@ -497,19 +504,19 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                         </Card>
                     </div>
 
-                    <div className="space-y-6">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-sm font-medium">Publishing Settings</CardTitle>
+                    <div className="space-y-6 text-start">
+                        <Card className="rounded-none border-black/10 shadow-none">
+                            <CardHeader className="border-b border-black/5 bg-black/[0.02] py-4 px-6">
+                                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Publishing Settings</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-4">
+                            <CardContent className="space-y-4 pt-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="status">Status</Label>
+                                    <Label htmlFor="status" className="text-[10px] font-bold uppercase tracking-tight">Status</Label>
                                     <Select value={status} onValueChange={(val) => setStatus(val as any)}>
-                                        <SelectTrigger>
+                                        <SelectTrigger className="rounded-none border-black/10 font-bold">
                                             <SelectValue placeholder="Select status" />
                                         </SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent className="rounded-none border-black/10">
                                             <SelectItem value="published">Published</SelectItem>
                                             <SelectItem value="draft">Draft</SelectItem>
                                             <SelectItem value="scheduled">Scheduled</SelectItem>
@@ -518,68 +525,81 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="category">Category</Label>
-                                    <Select value={category} onValueChange={(val) => setCategory(val as Category)}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select category" />
+                                    <Label htmlFor="category" className="text-[10px] font-bold uppercase tracking-tight">Category</Label>
+                                    <Select value={category} onValueChange={(val) => setCategory(val)}>
+                                        <SelectTrigger disabled={isCategoriesLoading} className="rounded-none border-black/10 font-bold">
+                                            <SelectValue placeholder={isCategoriesLoading ? "Loading..." : "Select category"} />
                                         </SelectTrigger>
-                                        <SelectContent>
-                                            {Object.keys(CATEGORY_LABELS).map((cat) => (
-                                                cat !== 'ALL' && (
-                                                    <SelectItem key={cat} value={cat}>
-                                                        {CATEGORY_LABELS[cat as Category]?.[locale] || cat}
+                                        <SelectContent className="rounded-none border-black/10">
+                                            {isCategoriesLoading ? (
+                                                <SelectItem value="loading" disabled>Loading categories...</SelectItem>
+                                            ) : (
+                                                categories?.map((cat) => (
+                                                    <SelectItem key={cat.id} value={cat.id}>
+                                                        {cat.name[locale] || cat.name['ko'] || cat.id}
                                                     </SelectItem>
-                                                )
-                                            ))}
+                                                ))
+                                            )}
+                                            {(!categories || categories.length === 0) && !isCategoriesLoading &&
+                                                Object.keys(CATEGORY_LABELS).map((cat) => (
+                                                    cat !== 'ALL' && (
+                                                        <SelectItem key={cat} value={cat}>
+                                                            {CATEGORY_LABELS[cat]?.[locale] || cat}
+                                                        </SelectItem>
+                                                    )
+                                                ))
+                                            }
                                         </SelectContent>
                                     </Select>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="publishedAt">Scheduled Date</Label>
+                                    <Label htmlFor="publishedAt" className="text-[10px] font-bold uppercase tracking-tight">Scheduled Date</Label>
                                     <Input
                                         id="publishedAt"
                                         type="datetime-local"
                                         value={publishedAt}
                                         onChange={(e) => setPublishedAt(e.target.value)}
-                                        className="accent-primary"
+                                        className="rounded-none border-black/10 font-medium"
                                     />
                                 </div>
                             </CardContent>
                         </Card>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-sm font-medium">SEO Optimization</CardTitle>
+                        <Card className="rounded-none border-black/10 shadow-none">
+                            <CardHeader className="border-b border-black/5 bg-black/[0.02] py-4 px-6">
+                                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">SEO Optimization</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-4">
+                            <CardContent className="space-y-4 pt-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="seoTitle">SEO Title</Label>
+                                    <Label htmlFor="seoTitle" className="text-[10px] font-bold uppercase tracking-tight">SEO Title</Label>
                                     <Input
                                         id="seoTitle"
                                         value={seoTitle}
                                         onChange={(e) => setSeoTitle(e.target.value)}
                                         placeholder="Search engine title"
+                                        className="rounded-none border-black/10 font-bold"
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="seoDescription">SEO Description</Label>
+                                    <Label htmlFor="seoDescription" className="text-[10px] font-bold uppercase tracking-tight">SEO Description</Label>
                                     <Textarea
                                         id="seoDescription"
                                         value={seoDescription}
                                         onChange={(e) => setSeoDescription(e.target.value)}
                                         placeholder="Search engine summary"
                                         rows={3}
+                                        className="rounded-none border-black/10 text-sm"
                                     />
                                 </div>
                             </CardContent>
                         </Card>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-sm font-medium">Thumbnail</CardTitle>
+                        <Card className="rounded-none border-black/10 shadow-none">
+                            <CardHeader className="border-b border-black/5 bg-black/[0.02] py-4 px-6">
+                                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Thumbnail</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-4">
+                            <CardContent className="space-y-4 pt-6">
                                 <div className="flex gap-2">
                                     <input
                                         type="file"
@@ -591,36 +611,38 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                                     <Button
                                         type="button"
                                         variant="outline"
-                                        className="w-full"
+                                        className="w-full rounded-none border-black/10 font-bold text-[10px] uppercase tracking-tight"
                                         onClick={() => thumbnailInputRef.current?.click()}
                                         disabled={isUploadingThumbnail}
                                     >
-                                        {isUploadingThumbnail ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UploadCloud className="w-4 h-4 mr-2" />}
+                                        {isUploadingThumbnail ? <Loader2 className="h-3 h-3 animate-spin mr-2" /> : <UploadCloud className="w-3.5 h-3.5 mr-2" />}
                                         Upload Image
                                     </Button>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="thumbnailUrl">Thumbnail URL</Label>
+                                    <Label htmlFor="thumbnailUrl" className="text-[10px] font-bold uppercase tracking-tight">Thumbnail URL</Label>
                                     <Input
                                         id="thumbnailUrl"
                                         value={thumbnailUrl}
                                         onChange={(e) => setThumbnailUrl(e.target.value)}
                                         placeholder="https://..."
+                                        className="rounded-none border-black/10 font-medium text-xs"
                                     />
                                 </div>
                                 {thumbnailUrl && (
                                     <div className="space-y-4">
-                                        <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
+                                        <div className="relative aspect-video bg-black/[0.05] rounded-none overflow-hidden border border-black/5">
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img src={thumbnailUrl} alt="Thumbnail preview" className="w-full h-full object-cover" />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="thumbnailAlt">Alt Text</Label>
+                                            <Label htmlFor="thumbnailAlt" className="text-[10px] font-bold uppercase tracking-tight">Alt Text</Label>
                                             <Input
                                                 id="thumbnailAlt"
                                                 value={thumbnailAlt}
                                                 onChange={(e) => setThumbnailAlt(e.target.value)}
                                                 placeholder="Description for accessibility"
+                                                className="rounded-none border-black/10 font-medium"
                                             />
                                         </div>
                                     </div>
@@ -628,11 +650,11 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                             </CardContent>
                         </Card>
 
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-sm font-medium">Social & Search Preview</CardTitle>
+                        <Card className="rounded-none border-black/10 shadow-none overflow-hidden">
+                            <CardHeader className="border-b border-black/5 bg-black/[0.02] py-4 px-6">
+                                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Social & Search Preview</CardTitle>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="p-0">
                                 <SocialPreview
                                     title={seoTitle || title}
                                     description={seoDescription || summary || content.replace(/[#*`]/g, '').substring(0, 160)}
@@ -644,11 +666,11 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                     </div>
                 </div>
 
-                <div className="flex justify-end gap-4 border-t pt-6">
-                    <Button type="button" variant="outline" onClick={() => router.back()}>
+                <div className="flex justify-end gap-3 border-t border-black/5 pt-8">
+                    <Button type="button" variant="outline" onClick={() => router.back()} className="rounded-none border-black/10 px-8 font-bold text-[10px] uppercase tracking-widest hover:bg-black/[0.05]">
                         Cancel
                     </Button>
-                    <Button type="submit" disabled={isSubmitting || isGeneratingAI} className="px-8">
+                    <Button type="submit" disabled={isSubmitting || isGeneratingAI} className="px-10 rounded-none bg-black text-white hover:bg-black/90 font-bold text-[10px] uppercase tracking-widest">
                         {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...</> : 'Update Post'}
                     </Button>
                 </div>

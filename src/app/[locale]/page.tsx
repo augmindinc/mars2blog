@@ -30,9 +30,15 @@ export default function HomePage() {
     return (
         <main className="min-h-screen bg-background">
             <div className="container mx-auto px-4 py-8">
-                <header className="mb-12 text-center">
-                    <h1 className="text-4xl font-bold mb-4">{t('title')}</h1>
-                    <p className="text-xl text-muted-foreground">{t('welcome')}</p>
+                <header className="mb-16 text-center">
+                    <h1 className="text-2xl font-black mb-4 uppercase tracking-tighter">
+                        {t('title')}
+                    </h1>
+                    <div className="flex justify-center">
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-t border-black/10 pt-4 px-8">
+                            {t('welcome')}
+                        </p>
+                    </div>
                 </header>
 
                 <PostList />

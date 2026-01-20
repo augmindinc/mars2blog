@@ -103,21 +103,21 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-muted/30 px-4">
-            <Card className="w-full max-w-md shadow-xl border-t-4 border-t-primary">
-                <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl font-bold text-center">
-                        {isLogin ? 'Admin Login' : 'Admin Registration'}
+        <div className="flex items-center justify-center min-h-screen bg-white px-4">
+            <Card className="w-full max-w-sm rounded-none border border-black/10 shadow-none">
+                <CardHeader className="space-y-4 py-8 border-b border-black/5 bg-black/[0.02]">
+                    <CardTitle className="text-xl font-bold text-center uppercase tracking-widest">
+                        {isLogin ? 'Admin Access' : 'Admin Registration'}
                     </CardTitle>
-                    <CardDescription className="text-center">
+                    <CardDescription className="text-center text-[10px] font-bold uppercase tracking-tight text-muted-foreground">
                         {isLogin
-                            ? 'Manage your blog with admin access'
-                            : 'Sign up for a new admin account'}
+                            ? 'Authenticate to manage your platform'
+                            : 'Initialize a new administrative account'}
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-6 pt-8 pb-6">
                     {error && (
-                        <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-3 rounded-md text-center font-medium animate-in fade-in zoom-in duration-200">
+                        <div className="bg-black text-white text-[10px] p-3 rounded-none text-center font-bold uppercase tracking-widest">
                             {error}
                         </div>
                     )}
@@ -125,21 +125,21 @@ export default function LoginPage() {
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {!isLogin && (
                             <div className="space-y-2">
-                                <Label htmlFor="displayName">Full Name</Label>
+                                <Label htmlFor="displayName" className="text-[10px] font-bold uppercase tracking-tight">Full Name</Label>
                                 <Input
                                     id="displayName"
                                     type="text"
-                                    placeholder="John Doe"
+                                    placeholder="Enter your name"
                                     value={displayName}
                                     onChange={(e) => setDisplayName(e.target.value)}
                                     required={!isLogin}
                                     disabled={isLoading}
-                                    className="h-11"
+                                    className="h-10 rounded-none border-black/10 font-bold"
                                 />
                             </div>
                         )}
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email Address</Label>
+                            <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-tight">Email Address</Label>
                             <Input
                                 id="email"
                                 type="email"
@@ -148,13 +148,11 @@ export default function LoginPage() {
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
                                 disabled={isLoading}
-                                className="h-11"
+                                className="h-10 rounded-none border-black/10 font-bold"
                             />
                         </div>
                         <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="password">Password</Label>
-                            </div>
+                            <Label htmlFor="password" className="text-[10px] font-bold uppercase tracking-tight">Password</Label>
                             <Input
                                 id="password"
                                 type="password"
@@ -162,22 +160,22 @@ export default function LoginPage() {
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                                 disabled={isLoading}
-                                className="h-11"
+                                className="h-10 rounded-none border-black/10 font-medium"
                             />
                         </div>
-                        <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={isLoading}>
+                        <Button type="submit" className="w-full h-10 bg-black text-white hover:bg-black/90 rounded-none font-bold text-[10px] uppercase tracking-widest" disabled={isLoading}>
                             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                            {isLogin ? 'Sign In' : 'Create Admin Account'}
+                            {isLogin ? 'Sign In' : 'Register Account'}
                         </Button>
                     </form>
 
                     <div className="relative">
                         <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t" />
+                            <span className="w-full border-t border-black/5" />
                         </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-background px-2 text-muted-foreground font-medium">
-                                Or continue with
+                        <div className="relative flex justify-center text-[9px] uppercase tracking-widest">
+                            <span className="bg-white px-3 text-muted-foreground font-bold">
+                                Authentication Matrix
                             </span>
                         </div>
                     </div>
@@ -185,54 +183,55 @@ export default function LoginPage() {
                     <Button
                         variant="outline"
                         type="button"
-                        className="w-full h-11 font-medium bg-background"
+                        className="w-full h-10 rounded-none border-black/10 font-bold text-[10px] uppercase tracking-widest hover:bg-black hover:text-white transition-all"
                         onClick={handleGoogleLogin}
                         disabled={isLoading}
                     >
-                        <svg className="mr-3 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+                        <svg className="mr-2.5 h-3.5 w-3.5" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
                             <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
                         </svg>
-                        Google Admin Login
+                        Google Authentication
                     </Button>
                 </CardContent>
-                <CardFooter className="flex flex-col space-y-4 border-t bg-muted/10 pt-4">
-                    <div className="text-sm text-center text-muted-foreground font-medium">
-                        {isLogin ? "Need admin access?" : "Already have an account?"}{' '}
+                <CardFooter className="flex flex-col space-y-4 border-t border-black/5 bg-black/[0.01] py-6">
+                    <div className="text-[10px] text-center text-muted-foreground font-bold uppercase tracking-tight">
+                        {isLogin ? "Need admin privileges?" : "Identity already verified?"}{' '}
                         <button
                             type="button"
-                            className="text-primary hover:underline font-bold"
+                            className="text-black hover:underline font-black"
                             onClick={() => setIsLogin(!isLogin)}
                         >
-                            {isLogin ? 'Sign up' : 'Login'}
+                            {isLogin ? 'Apply' : 'Login'}
                         </button>
                     </div>
                 </CardFooter>
             </Card>
 
-            {/* Pending Approval Modal */}
             <Dialog open={showPendingModal} onOpenChange={(open) => !open && handleCloseModal()}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-xl">
-                            <AlertTriangle className="w-6 h-6 text-amber-500" />
+                <DialogContent className="sm:max-w-md rounded-none border-black/20 shadow-2xl p-0 overflow-hidden">
+                    <DialogHeader className="p-6 bg-black/[0.02] border-b border-black/5">
+                        <DialogTitle className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                            <AlertTriangle className="w-4 h-4" />
                             Approval Pending
                         </DialogTitle>
-                        <DialogDescription className="text-base pt-2">
-                            Your admin account has been created successfully, but it requires manual approval from a super administrator before you can access the dashboard.
-                        </DialogDescription>
                     </DialogHeader>
-                    <div className="bg-muted/50 p-4 rounded-lg flex items-start gap-3 mt-4">
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
-                        <div className="text-sm">
-                            <p className="font-semibold">Next Steps:</p>
-                            <ul className="list-disc list-inside mt-1 space-y-1 text-muted-foreground">
-                                <li>The administrator will review your request.</li>
-                                <li>You will be able to log in once approved.</li>
-                            </ul>
+                    <div className="p-6 space-y-6">
+                        <p className="text-xs font-medium leading-relaxed text-muted-foreground uppercase tracking-tight">
+                            Your admin account has been created successfully, but it requires manual approval from a super administrator before dashboard access is granted.
+                        </p>
+                        <div className="bg-black/[0.02] p-5 border border-black/5 rounded-none flex items-start gap-3">
+                            <CheckCircle2 className="w-4 h-4 text-black shrink-0 mt-0.5" />
+                            <div className="text-[10px] uppercase font-bold tracking-tight">
+                                <p className="text-black">Protocol Status:</p>
+                                <ul className="mt-2 space-y-1.5 text-muted-foreground">
+                                    <li>• Supervisor review in progress</li>
+                                    <li>• Access tokens will be activated post-approval</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
-                    <DialogFooter className="mt-6">
-                        <Button type="button" className="w-full" onClick={handleCloseModal}>
+                    <DialogFooter className="p-6 bg-black/[0.02] border-t border-black/5">
+                        <Button type="button" className="w-full bg-black text-white hover:bg-black/90 rounded-none font-bold text-[10px] uppercase tracking-widest h-10" onClick={handleCloseModal}>
                             Understood
                         </Button>
                     </DialogFooter>

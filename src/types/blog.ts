@@ -1,8 +1,16 @@
 import { Timestamp } from 'firebase/firestore';
 
-export type Category = 'ALL' | 'PLANNING' | 'SHOPPING' | 'COOKING' | 'TRAVEL' | 'ISSUE' | 'ESSAY';
+export type Category = string;
 
-export const CATEGORY_LABELS: Record<Category, Record<string, string>> = {
+export interface CategoryMeta {
+    id: string;
+    name: Record<string, string>; // { ko: '기획', en: 'Planning', ja: '企画', zh: '策划' }
+    slug: string; // e.g., 'planning'
+    order: number;
+    createdAt: Timestamp;
+}
+
+export const CATEGORY_LABELS: Record<string, Record<string, string>> = {
     ALL: { ko: '전체', en: 'All', ja: 'すべて', zh: '全部' },
     PLANNING: { ko: '기획', en: 'Planning', ja: '企画', zh: '策划' },
     SHOPPING: { ko: '쇼핑', en: 'Shopping', ja: 'ショッピング', zh: '购物' },

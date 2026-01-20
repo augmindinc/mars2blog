@@ -132,76 +132,76 @@ export default function KeywordAnalysisPage() {
         <div className="space-y-8 pb-20">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600">
+                    <h2 className="text-3xl font-bold tracking-tight text-black">
                         Keyword Intelligence
                     </h2>
-                    <p className="text-muted-foreground font-medium">Identify "Filial Keywords" and strategic content opportunities.</p>
+                    <p className="text-muted-foreground text-sm font-medium">Identify "Filial Keywords" and strategic content opportunities.</p>
                 </div>
-                <Badge variant="outline" className="px-4 py-2 bg-background border-primary/20 shadow-sm text-sm">
-                    <Calendar className="w-4 h-4 mr-2 text-primary" />
+                <Badge variant="outline" className="px-4 py-2 bg-background border-black/10 rounded-none text-sm font-bold">
+                    <Calendar className="w-4 h-4 mr-2" />
                     Last 90 Days Analysis
                 </Badge>
             </div>
 
             {/* Analysis Summary */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <Card className="bg-gradient-to-br from-primary/5 to-transparent border-primary/10">
+                <Card className="rounded-none bg-black/[0.02] border-black/10 shadow-none">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Top Analyzed</CardTitle>
+                        <CardTitle className="text-xs font-bold uppercase tracking-tight text-muted-foreground">Top Analyzed</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-black">{analyzedData.length}</div>
-                        <p className="text-xs text-muted-foreground mt-1">High-volume keywords</p>
+                        <div className="text-3xl font-bold">{analyzedData.length}</div>
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground mt-1 tracking-tight">High-volume keywords</p>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-yellow-500/5 to-transparent border-yellow-500/10">
-                    <CardHeader className="pb-2 text-yellow-600">
-                        <CardTitle className="text-xs font-bold uppercase tracking-wider">Filial Keywords (효자)</CardTitle>
+                <Card className="rounded-none bg-black/[0.02] border-black/10 shadow-none">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-xs font-bold uppercase tracking-tight text-muted-foreground">Filial Keywords (효자)</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-black text-yellow-600">{filialKeywords.length}</div>
-                        <p className="text-xs text-muted-foreground mt-1">10+ days consistent inflow</p>
+                        <div className="text-3xl font-bold">{filialKeywords.length}</div>
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground mt-1 tracking-tight">10+ days consistent inflow</p>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-green-500/5 to-transparent border-green-500/10">
-                    <CardHeader className="pb-2 text-green-600">
-                        <CardTitle className="text-xs font-bold uppercase tracking-wider">Series Potential</CardTitle>
+                <Card className="rounded-none bg-black/[0.02] border-black/10 shadow-none">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-xs font-bold uppercase tracking-tight text-muted-foreground">Series Potential</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-black text-green-600">
+                        <div className="text-3xl font-bold">
                             {analyzedData.filter(d => d.recommendation === 'series').length}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">Multi-post targeting</p>
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground mt-1 tracking-tight">Multi-post targeting</p>
                     </CardContent>
                 </Card>
 
-                <Card className="bg-muted/30 border-dashed">
+                <Card className="rounded-none bg-black/[0.02] border-black/10 border-dashed shadow-none">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Internal Link Opp.</CardTitle>
+                        <CardTitle className="text-xs font-bold uppercase tracking-tight text-muted-foreground">Internal Link Opp.</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-black">
+                        <div className="text-3xl font-bold">
                             {analyzedData.filter(d => d.recommendation === 'internal_link').length}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">Reinforce successful posts</p>
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground mt-1 tracking-tight">Reinforce successful posts</p>
                     </CardContent>
                 </Card>
             </div>
 
             {/* Keyword List Table */}
-            <Card className="shadow-xl border-none bg-background/60 backdrop-blur-xl">
-                <CardHeader className="border-b bg-muted/20">
+            <Card className="rounded-none border border-black/10 shadow-none bg-background overflow-hidden">
+                <CardHeader className="border-b border-black/5 bg-black/[0.02]">
                     <div className="flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-primary" />
-                        <CardTitle>Top 20 Search Keywords (90d)</CardTitle>
+                        <TrendingUp className="w-5 h-5" />
+                        <CardTitle className="text-lg">Top 20 Search Keywords (90d)</CardTitle>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
-                            <TableRow className="bg-muted/10">
+                            <TableRow className="border-black/5">
                                 <TableHead className="w-[200px]">Keyword / Status</TableHead>
                                 <TableHead className="text-center">Unique Days</TableHead>
                                 <TableHead className="text-center">Total Hits</TableHead>
@@ -211,42 +211,42 @@ export default function KeywordAnalysisPage() {
                         </TableHeader>
                         <TableBody>
                             {analyzedData.map((item, idx) => (
-                                <TableRow key={item.keyword} className="group hover:bg-muted/30 transition-colors">
+                                <TableRow key={item.keyword} className="group hover:bg-black/[0.02] transition-colors border-black/5">
                                     <TableCell>
                                         <div className="space-y-2">
                                             <div className="flex items-center gap-2">
-                                                <span className="font-bold text-lg">{item.keyword}</span>
+                                                <span className="font-bold text-xl">{item.keyword}</span>
                                                 {item.isFilial && (
-                                                    <Badge className="bg-yellow-500 hover:bg-yellow-600 text-[10px] h-5 gap-1">
-                                                        <Star className="w-3 h-3 fill-current" />
+                                                    <Badge className="rounded-none bg-black text-white text-[10px] h-5 gap-1 border-none font-bold px-2">
+                                                        <Star className="w-3 h-3" />
                                                         효자키워드
                                                     </Badge>
                                                 )}
                                             </div>
-                                            <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                            <div className="text-[10px] text-muted-foreground flex items-center gap-1 font-bold uppercase tracking-tight">
                                                 <Clock className="w-3 h-3" />
                                                 Recently: {format(item.lastAppearance, 'MM.dd HH:mm')}
                                             </div>
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-center">
-                                        <span className={`text-lg font-black ${item.uniqueDays >= 10 ? 'text-primary' : 'text-muted-foreground'}`}>
-                                            {item.uniqueDays} <span className="text-xs font-normal">days</span>
+                                        <span className={`text-xl font-bold ${item.uniqueDays >= 10 ? 'text-black' : 'text-muted-foreground'}`}>
+                                            {item.uniqueDays} <span className="text-[10px] uppercase font-bold tracking-tight">days</span>
                                         </span>
                                     </TableCell>
-                                    <TableCell className="text-center font-mono font-medium">
+                                    <TableCell className="text-center font-bold text-lg">
                                         {item.totalHits.toLocaleString()}
                                     </TableCell>
                                     <TableCell>
                                         <div className="space-y-1.5 py-2">
                                             {item.linkedPosts.map(post => (
                                                 <div key={post.id} className="flex items-center gap-2 text-xs">
-                                                    <span className="w-5 h-5 rounded bg-primary/10 flex items-center justify-center shrink-0 text-primary font-bold">
+                                                    <span className="w-5 h-5 rounded-none bg-black text-white flex items-center justify-center shrink-0 text-[10px] font-bold">
                                                         {post.count}
                                                     </span>
                                                     <Link
                                                         href={`/admin/posts/${post.id}`}
-                                                        className="hover:underline text-muted-foreground hover:text-foreground truncate max-w-[200px]"
+                                                        className="font-semibold text-muted-foreground hover:text-black truncate max-w-[200px]"
                                                     >
                                                         {post.title}
                                                     </Link>
@@ -256,19 +256,19 @@ export default function KeywordAnalysisPage() {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         {item.recommendation === 'series' && (
-                                            <Badge variant="default" className="bg-purple-600 hover:bg-purple-700 h-7 gap-1.5 px-3">
+                                            <Badge variant="outline" className="rounded-none border-black text-black bg-black/[0.02] h-7 gap-1.5 px-3 font-bold text-[10px] uppercase tracking-tight">
                                                 <Layers className="w-3 h-3" />
                                                 시리즈물 기획 추천
                                             </Badge>
                                         )}
                                         {item.recommendation === 'internal_link' && (
-                                            <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-200 h-7 gap-1.5 px-3">
+                                            <Badge variant="outline" className="rounded-none border-black/20 text-muted-foreground h-7 gap-1.5 px-3 font-bold text-[10px] uppercase tracking-tight">
                                                 <LinkIcon className="w-3 h-3" />
                                                 내부 링크 강화
                                             </Badge>
                                         )}
                                         {item.recommendation === 'none' && (
-                                            <span className="text-xs text-muted-foreground italic">Monitor development</span>
+                                            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">Monitor</span>
                                         )}
                                     </TableCell>
                                 </TableRow>
@@ -280,58 +280,57 @@ export default function KeywordAnalysisPage() {
 
             {/* GSC Insights Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <Card className={`${!gscData?.configured ? 'border-dashed border-2 bg-muted/20' : 'shadow-lg'}`}>
-                    <CardHeader>
+                <Card className={`rounded-none border-black/10 shadow-none ${!gscData?.configured ? 'bg-black/[0.02] border-dashed' : ''}`}>
+                    <CardHeader className="border-b border-black/5 bg-black/[0.02]">
                         <div className="flex items-center justify-between">
-                            <CardTitle className="text-xl flex items-center gap-2">
-                                <Search className={`w-5 h-5 ${gscData?.configured ? 'text-primary' : 'text-gray-400'}`} />
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <Search className="w-5 h-5" />
                                 Google Search Console Insights
                             </CardTitle>
                             {!gscData?.configured ? (
-                                <Badge variant="secondary" className="text-[10px]">API Setup Required</Badge>
+                                <Badge variant="outline" className="text-[9px] rounded-none border-black/10">API Required</Badge>
                             ) : (
-                                <Badge variant="default" className="text-[10px] bg-green-500">Connected</Badge>
+                                <Badge variant="outline" className="text-[9px] rounded-none bg-black text-white border-none">Connected</Badge>
                             )}
                         </div>
-                        <CardDescription>
+                        <CardDescription className="text-xs pt-2">
                             {gscData?.configured
                                 ? 'High-potential keywords from your actual search performance.'
-                                : 'Connect your GSC account to identify high-potential keywords from search results.'}
+                                : 'Connect your GSC account to identify high-potential keywords.'}
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-4 pt-6">
                         {!gscData?.configured ? (
-                            <div className="p-4 bg-background rounded-lg border border-dashed flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600">
+                            <div className="p-4 bg-white border border-black/10 rounded-none flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-none bg-black/[0.05] flex items-center justify-center text-black">
                                     <TrendingUp className="w-5 h-5" />
                                 </div>
                                 <div className="flex-1">
                                     <p className="text-sm font-bold">Hidden Gems (평균 순위 10-20위)</p>
                                     <p className="text-xs text-muted-foreground">노출은 많으나 순위가 아쉬운 효자 후보 키워드입니다.</p>
                                 </div>
-                                <Button size="sm" variant="outline" disabled>
-                                    <ExternalLink className="w-3 h-3 mr-2" />
-                                    Connect GSC
+                                <Button size="sm" variant="outline" disabled className="rounded-none border-black/10">
+                                    Connect
                                 </Button>
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                <h4 className="text-sm font-bold flex items-center gap-2">
-                                    <Star className="w-4 h-4 text-yellow-500" />
-                                    Hidden Gems Candidate (Top 10-20 Rank)
+                                <h4 className="text-[10px] font-bold flex items-center gap-2 uppercase tracking-widest text-muted-foreground">
+                                    <Star className="w-3 h-3" />
+                                    Hidden Gems Candidate
                                 </h4>
-                                <div className="grid gap-2">
+                                <div className="grid gap-2 text-start">
                                     {hiddenGems.slice(0, 5).map((q: any) => (
-                                        <div key={q.keys[0]} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg group hover:bg-muted/50 transition-colors">
+                                        <div key={q.keys[0]} className="flex items-center justify-between p-3 bg-black/[0.02] border border-black/5 rounded-none group hover:bg-black/[0.05] transition-colors">
                                             <div className="space-y-1">
                                                 <p className="text-sm font-bold">{q.keys[0]}</p>
-                                                <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                                                    <span>Rank: <span className="text-primary font-mono">{q.position.toFixed(1)}</span></span>
-                                                    <span>Clicks: <span className="text-primary font-mono">{q.clicks}</span></span>
-                                                    <span>CTR: <span className="text-primary font-mono">{(q.ctr * 100).toFixed(1)}%</span></span>
+                                                <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-bold uppercase tracking-tight">
+                                                    <span>Rank: <span className="text-black">{q.position.toFixed(1)}</span></span>
+                                                    <span>Clicks: <span className="text-black">{q.clicks}</span></span>
+                                                    <span>CTR: <span className="text-black">{(q.ctr * 100).toFixed(1)}%</span></span>
                                                 </div>
                                             </div>
-                                            <Badge variant="outline" className="text-[9px]">Potential Hot</Badge>
+                                            <Badge variant="outline" className="text-[9px] rounded-none border-black/10">Potential</Badge>
                                         </div>
                                     ))}
                                     {hiddenGems.length === 0 && (
@@ -345,27 +344,27 @@ export default function KeywordAnalysisPage() {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-primary/5 border-primary/20">
-                    <CardHeader>
-                        <CardTitle className="text-xl flex items-center gap-2 text-primary">
+                <Card className="rounded-none bg-black/[0.02] border-black/10 shadow-none">
+                    <CardHeader className="border-b border-black/5">
+                        <CardTitle className="text-lg flex items-center gap-2">
                             <Key className="w-5 h-5" />
                             Strategy Tip: 효자키워드 활용
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-1 text-sm">
-                            <div className="font-bold flex items-center gap-2">
-                                <Badge className="h-5 px-1.5">1</Badge>
+                    <CardContent className="space-y-6 pt-6">
+                        <div className="space-y-2 text-sm text-start">
+                            <div className="font-bold flex items-center gap-2 text-xs uppercase tracking-tight text-black">
+                                <Badge variant="outline" className="h-5 px-1.5 rounded-none border-black/10">1</Badge>
                                 내부 링크(Internal Link) 전략
                             </div>
-                            <p className="text-muted-foreground pl-7">유입이 활발한 글에서 다른 글들을 링크하여 체류시간을 높이세요.</p>
+                            <p className="text-muted-foreground pl-7 text-xs font-medium leading-relaxed">유입이 활발한 글에서 다른 글들을 링크하여 체류시간을 높이세요.</p>
                         </div>
-                        <div className="space-y-1 text-sm">
-                            <div className="font-bold flex items-center gap-2">
-                                <Badge className="h-5 px-1.5">2</Badge>
+                        <div className="space-y-2 text-sm text-start">
+                            <div className="font-bold flex items-center gap-2 text-xs uppercase tracking-tight text-black">
+                                <Badge variant="outline" className="h-5 px-1.5 rounded-none border-black/10">2</Badge>
                                 시리즈화(Series) 전략
                             </div>
-                            <p className="text-muted-foreground pl-7">검색 의도가 다양한 키워드는 'A-Z 시리즈'로 묶어 권위를 강화하세요.</p>
+                            <p className="text-muted-foreground pl-7 text-xs font-medium leading-relaxed">검색 의도가 다양한 키워드는 'A-Z 시리즈'로 묶어 권위를 강화하세요.</p>
                         </div>
                     </CardContent>
                 </Card>

@@ -8,8 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Link } from '@/i18n/routing';
 import { format } from 'date-fns';
-import { CATEGORY_LABELS, Category } from '@/types/blog';
+import { CATEGORY_LABELS, CategoryMeta, Category } from '@/types/blog';
 import { useLocale } from 'next-intl';
+import { useCategories } from '@/hooks/useCategories';
 import { Badge } from '@/components/ui/badge';
 import { Pencil, Trash2, Plus, AlertCircle, Search, FolderInput, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -25,12 +26,13 @@ import {
 export default function AdminDashboardPage() {
     const locale = useLocale() as 'en' | 'ko';
     const queryClient = useQueryClient();
+    const { data: categories } = useCategories();
 
     const [postToDelete, setPostToDelete] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [search, setSearch] = useState('');
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
-    const [targetCategory, setTargetCategory] = useState<Category | ''>('');
+    const [targetCategory, setTargetCategory] = useState<string | ''>('');
     const [isUpdating, setIsUpdating] = useState(false);
 
     const { data: posts, isLoading } = useQuery({
@@ -38,11 +40,18 @@ export default function AdminDashboardPage() {
         queryFn: getAdminPosts,
     });
 
-    const filteredPosts = posts?.filter(post =>
-        post.title.toLowerCase().includes(search.toLowerCase()) ||
-        post.author.name.toLowerCase().includes(search.toLowerCase()) ||
-        (CATEGORY_LABELS[post.category]?.[locale] || post.category).toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredPosts = posts?.filter(post => {
+        const dynamicCat = categories?.find(c => c.id === post.category || c.slug.toUpperCase() === post.category);
+        const catLabel = dynamicCat
+            ? (dynamicCat.name[locale] || dynamicCat.name['ko'])
+            : (CATEGORY_LABELS[post.category]?.[locale] || post.category);
+
+        return (
+            post.title.toLowerCase().includes(search.toLowerCase()) ||
+            post.author.name.toLowerCase().includes(search.toLowerCase()) ||
+            catLabel.toLowerCase().includes(search.toLowerCase())
+        );
+    });
 
     useEffect(() => {
         const unsubscribe = subscribeToAdminPosts((newPosts) => {
@@ -102,29 +111,29 @@ export default function AdminDashboardPage() {
         );
     };
 
-    if (isLoading) return <div className="p-8 text-center text-muted-foreground font-medium animate-pulse">Loading posts...</div>;
+    if (isLoading) return <div className="p-8 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground animate-pulse">Initializing Dashboard Data...</div>;
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="space-y-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
-                    <h2 className="text-2xl font-bold">Posts ({filteredPosts?.length || 0})</h2>
-                    <p className="text-muted-foreground text-sm">Manage and organize your blog content.</p>
+                    <h2 className="text-xl font-black uppercase tracking-tighter">Posts ({filteredPosts?.length || 0})</h2>
+                    <p className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground mt-1">Platform Content Architecture & Management</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row w-full md:w-auto items-center gap-3">
-                    <div className="relative w-full sm:w-72">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <div className="relative w-full sm:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                         <Input
-                            placeholder="Search posts..."
-                            className="pl-9 h-10"
+                            placeholder="SEARCH PROJECT..."
+                            className="pl-9 h-10 rounded-none border-black/10 text-[10px] font-bold uppercase tracking-widest bg-black/[0.02]"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
                     <Link href="/write" className="w-full sm:w-auto">
-                        <Button type="button" className="w-full shadow-sm">
-                            <Plus className="w-4 h-4 mr-2" /> New Post
+                        <Button type="button" className="w-full h-10 bg-black text-white hover:bg-black/90 rounded-none font-bold text-[10px] uppercase tracking-widest px-6 shadow-none">
+                            <Plus className="w-3.5 h-3.5 mr-2" /> New Entry
                         </Button>
                     </Link>
                 </div>
@@ -132,134 +141,137 @@ export default function AdminDashboardPage() {
 
             {/* Bulk Action Bar */}
             {selectedIds.length > 0 && (
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2">
-                    <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="bg-primary text-primary-foreground px-2">
-                            {selectedIds.length} Selected
+                <div className="bg-black text-white p-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 rounded-none">
+                    <div className="flex items-center gap-3">
+                        <Badge variant="outline" className="px-2 border-white/20 text-white font-bold text-[9px] rounded-none uppercase">
+                            {selectedIds.length} SELECTED
                         </Badge>
-                        <span className="text-sm font-medium">Bulk Action: Move to Category</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest">BULK PROTOCOL: REASSIGN CATEGORY</span>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <Select value={targetCategory} onValueChange={(val) => setTargetCategory(val as Category)}>
-                            <SelectTrigger className="w-full sm:w-40 bg-background">
-                                <SelectValue placeholder="Select Category" />
+                        <Select value={targetCategory} onValueChange={(val) => setTargetCategory(val)}>
+                            <SelectTrigger className="w-full sm:w-44 bg-white text-black rounded-none border-none h-9 text-[10px] font-bold uppercase tracking-widest">
+                                <SelectValue placeholder="CHOOSE CATEGORY" />
                             </SelectTrigger>
-                            <SelectContent>
-                                {Object.entries(CATEGORY_LABELS)
-                                    .filter(([key]) => key !== 'ALL')
-                                    .map(([key, labels]) => (
-                                        <SelectItem key={key} value={key}>
-                                            {labels[locale] || key}
-                                        </SelectItem>
-                                    ))}
+                            <SelectContent className="rounded-none border-black/10">
+                                {categories?.map((cat) => (
+                                    <SelectItem key={cat.id} value={cat.id} className="text-[10px] font-bold uppercase tracking-widest cursor-pointer">
+                                        {cat.name[locale] || cat.name['ko'] || cat.id}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                         <Button
                             size="sm"
                             onClick={handleBulkUpdate}
                             disabled={!targetCategory || isUpdating}
-                            className="whitespace-nowrap"
+                            className="h-9 whitespace-nowrap bg-white text-black hover:bg-white/90 rounded-none font-bold text-[10px] uppercase tracking-widest px-6 border-none"
                         >
-                            {isUpdating ? 'Updating...' : <><Check className="w-4 h-4 mr-1" /> Move</>}
+                            {isUpdating ? 'PROCESSING...' : 'EXECUTE'}
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => setSelectedIds([])}>
-                            Cancel
+                        <Button variant="ghost" size="sm" onClick={() => setSelectedIds([])} className="h-9 text-white hover:bg-white/10 rounded-none font-bold text-[10px] uppercase tracking-widest hover:text-white">
+                            ABORT
                         </Button>
                     </div>
                 </div>
             )}
 
-            <div className="bg-background rounded-md border shadow-sm overflow-hidden">
+            <div className="bg-white rounded-none border border-black/10 overflow-hidden shadow-none">
                 <Table>
                     <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[40px]">
+                        <TableRow className="bg-black/[0.02] border-black/5">
+                            <TableHead className="w-[50px] py-4">
                                 <Checkbox
                                     checked={selectedIds.length > 0 && selectedIds.length === filteredPosts?.length}
                                     onCheckedChange={toggleSelectAll}
+                                    className="rounded-none border-black/20 data-[state=checked]:bg-black data-[state=checked]:border-black"
                                 />
                             </TableHead>
-                            <TableHead>Title</TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead>Author</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Scheduled At</TableHead>
-                            <TableHead>Created At</TableHead>
-                            <TableHead className="text-right">Views</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Entry Title</TableHead>
+                            <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Category</TableHead>
+                            <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Author</TableHead>
+                            <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Protocol Status</TableHead>
+                            <TableHead className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Execution Date</TableHead>
+                            <TableHead className="text-right text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Engagement</TableHead>
+                            <TableHead className="text-right text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-6">Operations</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredPosts?.map((post) => (
-                            <TableRow key={post.id} className={selectedIds.includes(post.id) ? 'bg-primary/5' : ''}>
-                                <TableCell>
-                                    <Checkbox
-                                        checked={selectedIds.includes(post.id)}
-                                        onCheckedChange={() => toggleSelect(post.id)}
-                                    />
-                                </TableCell>
-                                <TableCell className="font-medium max-w-[300px] truncate" title={post.title}>
-                                    <Link href={`/admin/posts/${post.id}`} className="hover:underline text-primary">
-                                        {post.title}
-                                    </Link>
-                                </TableCell>
-                                <TableCell>
-                                    <Badge variant="outline" className="font-normal">
-                                        {CATEGORY_LABELS[post.category]?.[locale] || post.category}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell>{post.author.name}</TableCell>
-                                <TableCell>
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${post.status === 'published'
-                                        ? 'bg-green-100 text-green-800'
-                                        : post.status === 'scheduled'
-                                            ? 'bg-blue-100 text-blue-800'
-                                            : 'bg-gray-100 text-gray-800'
-                                        }`}>
-                                        {post.status.toUpperCase()}
-                                    </span>
-                                </TableCell>
-                                <TableCell className="text-sm">
-                                    {post.status === 'scheduled' && post.publishedAt?.seconds
-                                        ? format(new Date(post.publishedAt.seconds * 1000), 'yyyy.MM.dd HH:mm')
-                                        : '-'}
-                                </TableCell>
-                                <TableCell className="text-sm">
-                                    {post.createdAt?.seconds
-                                        ? format(new Date(post.createdAt.seconds * 1000), 'yyyy.MM.dd HH:mm')
-                                        : '-'}
-                                </TableCell>
-                                <TableCell className="text-right font-bold text-primary">
-                                    {post.viewCount.toLocaleString()}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <div className="flex justify-end gap-2">
-                                        <Link href={`/admin/posts/${post.id}/edit`}>
-                                            <Button variant="ghost" size="icon" type="button">
-                                                <Pencil className="w-4 h-4" />
-                                            </Button>
+                        {filteredPosts?.map((post) => {
+                            const dynamicCat = categories?.find(c => c.id === post.category || c.slug.toUpperCase() === post.category);
+                            const catLabel = dynamicCat
+                                ? (dynamicCat.name[locale] || dynamicCat.name['ko'])
+                                : (CATEGORY_LABELS[post.category]?.[locale] || post.category);
+
+                            return (
+                                <TableRow key={post.id} className={`group border-black/5 hover:bg-black/[0.01] transition-colors ${selectedIds.includes(post.id) ? 'bg-black/[0.02]' : ''}`}>
+                                    <TableCell className="py-4">
+                                        <Checkbox
+                                            checked={selectedIds.includes(post.id)}
+                                            onCheckedChange={() => toggleSelect(post.id)}
+                                            className="rounded-none border-black/20 data-[state=checked]:bg-black data-[state=checked]:border-black"
+                                        />
+                                    </TableCell>
+                                    <TableCell className="max-w-[300px] truncate">
+                                        <Link href={`/admin/posts/${post.id}`} className="text-xs font-bold hover:text-black/60 transition-colors uppercase tracking-tight text-black">
+                                            {post.title}
                                         </Link>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            type="button"
-                                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                setPostToDelete(post.id);
-                                            }}
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                        ))}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge variant="outline" className="text-[9px] font-bold rounded-none border-black/10 uppercase tracking-tight bg-black/[0.02]">
+                                            {catLabel}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-[10px] font-medium uppercase tracking-tight text-muted-foreground">{post.author.name}</TableCell>
+                                    <TableCell>
+                                        <span className={`px-2 py-0.5 border text-[9px] font-black uppercase tracking-widest rounded-none ${post.status === 'published'
+                                            ? 'bg-black text-white border-black'
+                                            : post.status === 'scheduled'
+                                                ? 'bg-white text-black border-black/40'
+                                                : 'bg-black/[0.05] text-black/40 border-black/5'
+                                            }`}>
+                                            {post.status}
+                                        </span>
+                                    </TableCell>
+                                    <TableCell className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">
+                                        {post.status === 'scheduled' && post.publishedAt?.seconds
+                                            ? format(new Date(post.publishedAt.seconds * 1000), 'yyyy.MM.dd')
+                                            : post.createdAt?.seconds
+                                                ? format(new Date(post.createdAt.seconds * 1000), 'yyyy.MM.dd')
+                                                : '-'}
+                                    </TableCell>
+                                    <TableCell className="text-right text-[10px] font-black text-black tabular-nums">
+                                        {post.viewCount.toLocaleString().padStart(2, '0')}
+                                    </TableCell>
+                                    <TableCell className="text-right px-6">
+                                        <div className="flex justify-end gap-1">
+                                            <Link href={`/admin/posts/${post.id}/edit`}>
+                                                <Button variant="ghost" size="icon" type="button" className="h-8 w-8 rounded-none hover:bg-black/[0.05]">
+                                                    <Pencil className="w-3.5 h-3.5 text-black/40 hover:text-black transition-colors" />
+                                                </Button>
+                                            </Link>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                type="button"
+                                                className="h-8 w-8 rounded-none text-black/20 hover:text-black hover:bg-black/[0.05]"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setPostToDelete(post.id);
+                                                }}
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })}
                         {posts && posts.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center h-24">
-                                    No posts found.
+                                <TableCell colSpan={8} className="text-center h-48 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                    No records found in local matrix.
                                 </TableCell>
                             </TableRow>
                         )}
@@ -269,29 +281,31 @@ export default function AdminDashboardPage() {
 
             {/* Delete Confirmation Modal */}
             <Dialog open={!!postToDelete} onOpenChange={(open) => !open && setPostToDelete(null)}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <AlertCircle className="w-5 h-5 text-destructive" />
-                            Delete Post
+                <DialogContent className="sm:max-w-md rounded-none border-black/20 shadow-2xl p-0 overflow-hidden">
+                    <DialogHeader className="p-6 bg-black/[0.02] border-b border-black/5">
+                        <DialogTitle className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                            <AlertCircle className="w-4 h-4" />
+                            Purge Command
                         </DialogTitle>
-                        <DialogDescription>
-                            Are you sure you want to delete this post? This action cannot be undone.
-                        </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter className="mt-4">
+                    <div className="p-6">
+                        <p className="text-xs font-medium leading-relaxed text-muted-foreground uppercase tracking-tight">
+                            You are about to initiate a terminal deletion protocol for this entry. This operation is permanent and irreversible.
+                        </p>
+                    </div>
+                    <DialogFooter className="p-6 bg-black/[0.02] border-t border-black/5 gap-3">
                         <DialogClose asChild>
-                            <Button type="button" variant="outline">
-                                Cancel
+                            <Button type="button" variant="outline" className="rounded-none border-black/10 font-bold text-[10px] uppercase tracking-widest px-6 h-10">
+                                Abort
                             </Button>
                         </DialogClose>
                         <Button
                             type="button"
-                            variant="destructive"
+                            className="bg-black text-white hover:bg-black/90 rounded-none font-bold text-[10px] uppercase tracking-widest px-8 h-10"
                             onClick={handleDeleteConfirm}
                             disabled={isDeleting}
                         >
-                            {isDeleting ? 'Deleting...' : 'Delete'}
+                            {isDeleting ? 'PURGING...' : 'CONFIRM PURGE'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -3,7 +3,8 @@
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getPost } from '@/services/blogService';
-import { Post, CATEGORY_LABELS } from '@/types/blog';
+import { Post } from '@/types/blog';
+import { useCategories } from '@/hooks/useCategories';
 import { Button } from '@/components/ui/button';
 import { useLocale } from 'next-intl';
 import { format } from 'date-fns';
@@ -19,6 +20,7 @@ export default function AdminPostDetailPage({ params }: { params: Promise<{ id: 
     const locale = useLocale() as 'en' | 'ko';
     // Unwrap params
     const { id } = use(params);
+    const { data: categories } = useCategories();
 
     const [post, setPost] = useState<Post | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -37,65 +39,68 @@ export default function AdminPostDetailPage({ params }: { params: Promise<{ id: 
         fetchPost();
     }, [id, router, locale]);
 
-    if (isLoading) return <div className="p-8 text-center">Loading post...</div>;
-    if (!post) return <div className="p-8 text-center">Post not found</div>;
+    if (isLoading) return <div className="p-8 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground animate-pulse">Retrieving Record...</div>;
+    if (!post) return <div className="p-8 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Record not found</div>;
 
-    const categoryLabel = CATEGORY_LABELS[post.category]?.[locale] || post.category;
+    const dynamicCat = categories?.find(c => c.id === post.category || c.slug.toUpperCase() === post.category);
+    const categoryLabel = dynamicCat
+        ? (dynamicCat.name[locale] || dynamicCat.name['ko'] || dynamicCat.name['en'])
+        : post.category;
 
     return (
-        <div className="max-w-4xl mx-auto">
-            <div className="mb-6 flex items-center justify-between">
-                <Button variant="ghost" className="gap-2" onClick={() => router.push(`/${locale}/admin`)}>
-                    <ArrowLeft className="w-4 h-4" />
-                    Back to Dashboard
+        <div className="max-w-4xl mx-auto space-y-8">
+            <div className="flex items-center justify-between">
+                <Button variant="ghost" className="gap-2 rounded-none font-bold text-[10px] uppercase tracking-widest hover:bg-black/[0.05]" onClick={() => router.push(`/${locale}/admin`)}>
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    Back to Terminal
                 </Button>
                 <div className="flex gap-2">
                     <Link href={`/admin/posts/${id}/edit`}>
-                        <Button>
-                            <Pencil className="w-4 h-4 mr-2" />
-                            Edit Post
+                        <Button className="rounded-none bg-black text-white hover:bg-black/90 font-bold text-[10px] uppercase tracking-widest px-6 h-10">
+                            <Pencil className="w-3.5 h-3.5 mr-2" />
+                            Modify Entry
                         </Button>
                     </Link>
                 </div>
             </div>
 
-            <article className="bg-background rounded-lg border p-8 shadow-sm">
-                <div className="mb-8 border-b pb-6">
-                    <div className="flex items-center gap-3 mb-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${post.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                            {post.status.toUpperCase()}
+            <article className="bg-white rounded-none border border-black/10 p-12 shadow-none overflow-hidden">
+                <div className="mb-12 border-b border-black/5 pb-8">
+                    <div className="flex items-center gap-3 mb-6">
+                        <span className={`px-2.5 py-1 border text-[10px] font-black uppercase tracking-widest rounded-none ${post.status === 'published' ? 'bg-black text-white border-black' : 'bg-white text-black border-black/20'}`}>
+                            {post.status}
                         </span>
-                        <span className="text-sm font-semibold text-primary px-3 py-1 bg-primary/10 rounded-full">
+                        <span className="text-[10px] font-bold text-muted-foreground px-3 py-1 bg-black/[0.02] border border-black/5 rounded-none uppercase tracking-tight">
                             {categoryLabel}
                         </span>
                     </div>
 
-                    <h1 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">{post.title}</h1>
+                    <h1 className="text-3xl font-black mb-6 leading-tight uppercase tracking-tighter text-black">{post.title}</h1>
 
-                    <div className="text-muted-foreground text-sm flex items-center gap-4">
+                    <div className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest flex items-center gap-4">
                         {post.author.photoUrl && (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={post.author.photoUrl} alt={post.author.name} className="w-6 h-6 rounded-full" />
+                            <img src={post.author.photoUrl} alt={post.author.name} className="w-6 h-6 rounded-none border border-black/10 grayscale" />
                         )}
-                        <span>{post.author.name}</span>
-                        <span>•</span>
+                        <span className="text-black">{post.author.name}</span>
+                        <span className="text-black/10">•</span>
                         <span>
                             {post.createdAt?.seconds
-                                ? format(new Date(post.createdAt.seconds * 1000), 'yyyy.MM.dd HH:mm')
-                                : format(new Date(), 'yyyy.MM.dd HH:mm')}
+                                ? format(new Date(post.createdAt.seconds * 1000), 'yyyy.MM.dd')
+                                : format(new Date(), 'yyyy.MM.dd')}
                         </span>
-                        <span>•</span>
-                        <span>Views: {post.viewCount}</span>
+                        <span className="text-black/10">•</span>
+                        <span>Engagement: {post.viewCount.toLocaleString().padStart(2, '0')}</span>
                     </div>
                 </div>
 
                 {post.thumbnail.url && (
-                    <div className="relative w-full aspect-video mb-8 rounded-xl overflow-hidden bg-muted border">
+                    <div className="relative w-full aspect-video mb-12 rounded-none overflow-hidden bg-black/[0.02] border border-black/10">
                         <Image
                             src={post.thumbnail.url}
                             alt={post.thumbnail.alt || post.title}
                             fill
-                            className="object-cover"
+                            className="object-cover grayscale hover:grayscale-0 transition-all duration-700"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 75vw, 60vw"
                             priority
                             unoptimized
@@ -104,8 +109,11 @@ export default function AdminPostDetailPage({ params }: { params: Promise<{ id: 
                 )}
 
                 {post.excerpt && (
-                    <div className="mb-8 p-4 bg-muted/50 rounded-lg italic text-muted-foreground">
-                        <p>{post.excerpt}</p>
+                    <div className="mb-12 p-8 bg-black/[0.02] border-l-2 border-black rounded-none">
+                        <h2 className="text-[10px] font-bold uppercase tracking-widest text-black mb-3">Manifesto / Abstract</h2>
+                        <p className="text-sm font-medium leading-relaxed text-muted-foreground uppercase tracking-tight italic">
+                            "{post.excerpt}"
+                        </p>
                     </div>
                 )}
 

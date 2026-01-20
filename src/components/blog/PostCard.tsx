@@ -2,6 +2,7 @@
 
 import { Post, CATEGORY_LABELS } from '@/types/blog';
 import { useLocale } from 'next-intl';
+import { useCategories } from '@/hooks/useCategories';
 import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { format } from 'date-fns';
@@ -15,13 +16,20 @@ interface PostCardProps {
 
 export function PostCard({ post, priority = false, fromPostTitle }: PostCardProps) {
     const locale = useLocale() as 'en' | 'ko';
+    const { data: categories } = useCategories();
 
     const postHref = fromPostTitle
         ? `/blog/${post.slug}?from_title=${encodeURIComponent(fromPostTitle)}`
         : `/blog/${post.slug}`;
 
+    // Get dynamic label
+    const dynamicCategory = categories?.find(c => c.id === post.category || c.slug.toUpperCase() === post.category);
+    const categoryLabel = dynamicCategory
+        ? (dynamicCategory.name[locale] || dynamicCategory.name['ko'] || dynamicCategory.name['en'])
+        : (CATEGORY_LABELS[post.category]?.[locale] || post.category);
+
     return (
-        <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full flex flex-col">
+        <Card className="rounded-none border-black/10 hover:border-black/20 hover:bg-black/[0.01] transition-all h-full flex flex-col">
             <div className="relative w-full h-48 bg-muted">
                 {post.thumbnail.url ? (
                     <Image
@@ -41,8 +49,8 @@ export function PostCard({ post, priority = false, fromPostTitle }: PostCardProp
             </div>
             <CardHeader className="p-4 pb-2">
                 <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-semibold text-primary px-2 py-1 bg-primary/10 rounded-full">
-                        {CATEGORY_LABELS[post.category]?.[locale] || post.category}
+                    <span className="text-[10px] font-bold text-white px-2.5 py-1 bg-black">
+                        {categoryLabel}
                     </span>
                     <span className="text-xs text-muted-foreground">
                         {/* Handle Timestamp or Date object robustly */}
@@ -51,8 +59,8 @@ export function PostCard({ post, priority = false, fromPostTitle }: PostCardProp
                             : format(new Date(), 'yyyy.MM.dd')}
                     </span>
                 </div>
-                <h3 className="font-bold text-lg line-clamp-2 leading-tight">
-                    <Link href={postHref} className="hover:underline">
+                <h3 className="font-semibold text-lg line-clamp-2 leading-tight">
+                    <Link href={postHref} className="hover:text-black/70 transition-colors">
                         {post.title}
                     </Link>
                 </h3>
