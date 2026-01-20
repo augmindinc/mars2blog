@@ -536,7 +536,10 @@ function BuilderContent() {
                                             <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-center md:items-center w-full md:w-auto">
                                                 <span className="break-words max-w-full">{section.content.company}</span>
                                                 <div className="flex flex-wrap justify-center gap-4 text-muted-foreground">
-                                                    {section.content.links.map((l: string) => <span key={l} className="hover:text-black cursor-pointer break-words">{l}</span>)}
+                                                    {(section.content.links || []).map((l: any, i: number) => {
+                                                        const label = typeof l === 'string' ? l : l.label;
+                                                        return <span key={i} className="hover:text-black cursor-pointer break-words">{label}</span>;
+                                                    })}
                                                 </div>
                                             </div>
                                             <span className="text-black/20 break-words">{section.content.copyright}</span>
