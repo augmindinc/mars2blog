@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { LayoutDashboard, FileText, Globe, LogOut, Users, Lightbulb, BarChart3, Key, Bot, FolderInput } from 'lucide-react';
+import { LayoutDashboard, FileText, Globe, LogOut, Users, Lightbulb, BarChart3, Key, Bot, FolderInput, LayoutTemplate } from 'lucide-react';
 import { logout } from '@/services/authService';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -56,6 +56,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     // RBAC: Filtering navigation items
     const navItems = [
         { href: '/admin', label: 'Posts', icon: FileText, roles: ['admin', 'author'] },
+        { href: '/admin/landing', label: 'Landing Pages', icon: LayoutTemplate, roles: ['admin', 'author'] },
         { href: '/admin/planning', label: 'Planning', icon: Lightbulb, roles: ['admin', 'author'] },
         { href: '/admin/categories', label: 'Categories', icon: FolderInput, roles: ['admin', 'author'] },
         { href: '/admin/inflow', label: 'Inflow', icon: BarChart3, roles: ['admin', 'author'] },
@@ -63,7 +64,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { href: '/admin/keywords', label: 'Keywords', icon: Key, roles: ['admin', 'author'] },
         { href: '/admin/members', label: 'Members', icon: Users, roles: ['admin'] },
         { href: '/admin/sitemap', label: 'Sitemap', icon: Globe, roles: ['admin'] },
-    ].filter(item => item.roles.includes(profile.role));
+    ].filter(item => item.roles.includes(profile?.role || ''));
 
     return (
         <div className="min-h-screen flex bg-white font-sans">
