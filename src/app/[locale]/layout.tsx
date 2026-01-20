@@ -49,6 +49,9 @@ export default async function LocaleLayout({
 
     return (
         <html lang={locale} suppressHydrationWarning>
+            <head>
+                <meta name="google-adsense-account" content="ca-pub-7171708184619536" />
+            </head>
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
                 {/* Google Analytics */}
                 <Script
