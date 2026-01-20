@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { Providers } from '@/providers/Providers';
 import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from 'next/headers';
+import { detectAndLogBot } from '@/services/botService';
 import Script from 'next/script';
 import "../globals.css";
 
@@ -27,6 +29,14 @@ export default async function LocaleLayout({
     params: Promise<{ locale: string }>;
 }) {
     const { locale } = await params;
+
+    // Server-side bot detection
+    const headerList = await headers();
+    const userAgent = headerList.get('user-agent') || '';
+    const ip = headerList.get('x-forwarded-for')?.split(',')[0] || '';
+
+    // Non-blocking log
+    detectAndLogBot(userAgent, `/${locale}`, ip).catch(console.error);
 
     // Ensure that the incoming `locale` is valid
     if (!routing.locales.includes(locale as any)) {

@@ -67,3 +67,13 @@ export interface InflowLog {
     userAgent: string;
     createdAt: Timestamp;
 }
+
+export interface BotLog {
+    id: string;
+    botName: string;
+    botCompany: string;
+    pagePath: string;
+    userAgent: string;
+    ip?: string;
+    createdAt: Timestamp;
+}
