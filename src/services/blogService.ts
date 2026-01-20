@@ -356,3 +356,20 @@ export const incrementViewCount = async (id: string) => {
         console.error("Error incrementing view count:", error);
     }
 }
+
+export const bulkUpdateCategory = async (ids: string[], category: Category) => {
+    try {
+        const batch = ids.map(id => {
+            const docRef = doc(db, COLLECTION_NAME, id);
+            return updateDoc(docRef, {
+                category,
+                updatedAt: Timestamp.now()
+            });
+        });
+        await Promise.all(batch);
+        return true;
+    } catch (error) {
+        console.error("Error bulk updating categories:", error);
+        throw error;
+    }
+};

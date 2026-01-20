@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { LayoutDashboard, FileText, Globe, LogOut, Users, Lightbulb, BarChart3, Key, Bot } from 'lucide-react';
+import { LayoutDashboard, FileText, Globe, LogOut, Users, Lightbulb, BarChart3, Key, Bot, FolderInput } from 'lucide-react';
 import { logout } from '@/services/authService';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -57,6 +57,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const navItems = [
         { href: '/admin', label: 'Posts', icon: FileText, roles: ['admin', 'author'] },
         { href: '/admin/planning', label: 'Planning', icon: Lightbulb, roles: ['admin', 'author'] },
+        { href: '/admin/categories', label: 'Categories', icon: FolderInput, roles: ['admin', 'author'] },
         { href: '/admin/inflow', label: 'Inflow', icon: BarChart3, roles: ['admin', 'author'] },
         { href: '/admin/bots', label: 'Bot Logs', icon: Bot, roles: ['admin', 'author'] },
         { href: '/admin/keywords', label: 'Keywords', icon: Key, roles: ['admin', 'author'] },

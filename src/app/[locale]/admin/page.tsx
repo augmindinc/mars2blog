@@ -2,16 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getAdminPosts, deletePost, subscribeToAdminPosts } from '@/services/blogService';
+import { getAdminPosts, deletePost, subscribeToAdminPosts, bulkUpdateCategory } from '@/services/blogService';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Link } from '@/i18n/routing';
 import { format } from 'date-fns';
-import { CATEGORY_LABELS } from '@/types/blog';
+import { CATEGORY_LABELS, Category } from '@/types/blog';
 import { useLocale } from 'next-intl';
-import { Pencil, Trash2, Plus, AlertCircle, Search } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Pencil, Trash2, Plus, AlertCircle, Search, FolderInput, Check } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 export default function AdminDashboardPage() {
     const locale = useLocale() as 'en' | 'ko';
@@ -20,11 +29,20 @@ export default function AdminDashboardPage() {
     const [postToDelete, setPostToDelete] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [search, setSearch] = useState('');
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [targetCategory, setTargetCategory] = useState<Category | ''>('');
+    const [isUpdating, setIsUpdating] = useState(false);
 
     const { data: posts, isLoading } = useQuery({
         queryKey: ['admin-posts'],
         queryFn: getAdminPosts,
     });
+
+    const filteredPosts = posts?.filter(post =>
+        post.title.toLowerCase().includes(search.toLowerCase()) ||
+        post.author.name.toLowerCase().includes(search.toLowerCase()) ||
+        (CATEGORY_LABELS[post.category]?.[locale] || post.category).toLowerCase().includes(search.toLowerCase())
+    );
 
     useEffect(() => {
         const unsubscribe = subscribeToAdminPosts((newPosts) => {
@@ -54,11 +72,35 @@ export default function AdminDashboardPage() {
         }
     };
 
-    const filteredPosts = posts?.filter(post =>
-        post.title.toLowerCase().includes(search.toLowerCase()) ||
-        post.author.name.toLowerCase().includes(search.toLowerCase()) ||
-        (CATEGORY_LABELS[post.category]?.[locale] || post.category).toLowerCase().includes(search.toLowerCase())
-    );
+    const handleBulkUpdate = async () => {
+        if (selectedIds.length > 0 && targetCategory) {
+            setIsUpdating(true);
+            try {
+                await bulkUpdateCategory(selectedIds, targetCategory as Category);
+                setSelectedIds([]);
+                setTargetCategory('');
+                queryClient.invalidateQueries({ queryKey: ['admin-posts'] });
+            } catch (error) {
+                alert('Failed to update categories');
+            } finally {
+                setIsUpdating(false);
+            }
+        }
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.length === filteredPosts?.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(filteredPosts?.map(p => p.id) || []);
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
 
     if (isLoading) return <div className="p-8 text-center text-muted-foreground font-medium animate-pulse">Loading posts...</div>;
 
@@ -88,10 +130,55 @@ export default function AdminDashboardPage() {
                 </div>
             </div>
 
-            <div className="bg-background rounded-md border">
+            {/* Bulk Action Bar */}
+            {selectedIds.length > 0 && (
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="bg-primary text-primary-foreground px-2">
+                            {selectedIds.length} Selected
+                        </Badge>
+                        <span className="text-sm font-medium">Bulk Action: Move to Category</span>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <Select value={targetCategory} onValueChange={(val) => setTargetCategory(val as Category)}>
+                            <SelectTrigger className="w-full sm:w-40 bg-background">
+                                <SelectValue placeholder="Select Category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {Object.entries(CATEGORY_LABELS)
+                                    .filter(([key]) => key !== 'ALL')
+                                    .map(([key, labels]) => (
+                                        <SelectItem key={key} value={key}>
+                                            {labels[locale] || key}
+                                        </SelectItem>
+                                    ))}
+                            </SelectContent>
+                        </Select>
+                        <Button
+                            size="sm"
+                            onClick={handleBulkUpdate}
+                            disabled={!targetCategory || isUpdating}
+                            className="whitespace-nowrap"
+                        >
+                            {isUpdating ? 'Updating...' : <><Check className="w-4 h-4 mr-1" /> Move</>}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setSelectedIds([])}>
+                            Cancel
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            <div className="bg-background rounded-md border shadow-sm overflow-hidden">
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead className="w-[40px]">
+                                <Checkbox
+                                    checked={selectedIds.length > 0 && selectedIds.length === filteredPosts?.length}
+                                    onCheckedChange={toggleSelectAll}
+                                />
+                            </TableHead>
                             <TableHead>Title</TableHead>
                             <TableHead>Category</TableHead>
                             <TableHead>Author</TableHead>
@@ -104,13 +191,23 @@ export default function AdminDashboardPage() {
                     </TableHeader>
                     <TableBody>
                         {filteredPosts?.map((post) => (
-                            <TableRow key={post.id}>
+                            <TableRow key={post.id} className={selectedIds.includes(post.id) ? 'bg-primary/5' : ''}>
+                                <TableCell>
+                                    <Checkbox
+                                        checked={selectedIds.includes(post.id)}
+                                        onCheckedChange={() => toggleSelect(post.id)}
+                                    />
+                                </TableCell>
                                 <TableCell className="font-medium max-w-[300px] truncate" title={post.title}>
                                     <Link href={`/admin/posts/${post.id}`} className="hover:underline text-primary">
                                         {post.title}
                                     </Link>
                                 </TableCell>
-                                <TableCell>{CATEGORY_LABELS[post.category]?.[locale] || post.category}</TableCell>
+                                <TableCell>
+                                    <Badge variant="outline" className="font-normal">
+                                        {CATEGORY_LABELS[post.category]?.[locale] || post.category}
+                                    </Badge>
+                                </TableCell>
                                 <TableCell>{post.author.name}</TableCell>
                                 <TableCell>
                                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${post.status === 'published'
