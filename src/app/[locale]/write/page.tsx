@@ -292,7 +292,7 @@ export default function WritePage() {
                 status: initialStatus,
                 viewCount: 0,
                 shortCode: shortCode || null,
-                linkedLandingPageId: selectedLandingId === 'none' ? undefined : selectedLandingId
+                linkedLandingPageId: selectedLandingId === 'none' ? null : selectedLandingId
             };
 
             const postsToSave = [originalPost];

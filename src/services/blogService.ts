@@ -61,7 +61,7 @@ export const getPosts = async (category: Category = 'ALL', locale: string = 'ko'
             where('locale', '==', locale),
             where('publishedAt', '<=', Timestamp.now()),
             orderBy('publishedAt', 'desc'),
-            limit(20)
+            limit(100)
         );
 
         if (category !== 'ALL') {
@@ -72,7 +72,7 @@ export const getPosts = async (category: Category = 'ALL', locale: string = 'ko'
                 where('locale', '==', locale),
                 where('publishedAt', '<=', Timestamp.now()),
                 orderBy('publishedAt', 'desc'),
-                limit(20)
+                limit(100)
             );
         }
 
@@ -95,7 +95,7 @@ export const subscribeToPosts = (category: Category, locale: string = 'ko', call
         where('status', '==', 'published'),
         where('locale', '==', locale),
         orderBy('publishedAt', 'desc'),
-        limit(20)
+        limit(100)
     );
 
     if (category !== 'ALL') {
@@ -105,7 +105,7 @@ export const subscribeToPosts = (category: Category, locale: string = 'ko', call
             where('category', '==', category),
             where('locale', '==', locale),
             orderBy('publishedAt', 'desc'),
-            limit(20)
+            limit(100)
         );
     }
 
@@ -335,8 +335,13 @@ export const updatePost = async (id: string, data: Partial<Post>) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { id: _id, createdAt, ...updateData } = data;
 
+        // Filter out undefined values to avoid Firebase error
+        const cleanUpdateData = Object.fromEntries(
+            Object.entries(updateData).filter(([_, v]) => v !== undefined)
+        );
+
         await updateDoc(doc(db, COLLECTION_NAME, id), {
-            ...updateData,
+            ...cleanUpdateData,
             updatedAt: Timestamp.now()
         });
         return true;

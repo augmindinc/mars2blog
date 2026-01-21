@@ -16,5 +16,10 @@
     },
     "BlogPost": {
         "relatedPosts": "관련 게시글"
+    },
+    "PostList": {
+        "searchPlaceholder": "제목 또는 내용 검색...",
+        "noSearchResults": "검색 결과가 없습니다.",
+        "noPosts": "이 카테고리에 게시글이 없습니다."
     }
 }

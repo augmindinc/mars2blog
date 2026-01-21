@@ -13,6 +13,40 @@ export async function POST(req: Request) {
         // Using the requested Gemini 2.5 Flash model (stable in 2026)
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
+        // Helper for robust JSON parsing
+        const safeParseJson = (text: string) => {
+            try {
+                // Remove markdown code blocks and whitespace
+                let cleaned = text.replace(/```json|```/g, "").trim();
+
+                // Find the first '{' and last '}' to extract the JSON object
+                const start = cleaned.indexOf('{');
+                const end = cleaned.lastIndexOf('}');
+
+                if (start !== -1 && end !== -1) {
+                    cleaned = cleaned.substring(start, end + 1);
+                }
+
+                // Repair 1: AI often puts raw newlines/tabs inside JSON strings which is invalid.
+                // Replace raw newlines/tabs within double quotes with escaped versions.
+                let repaired = cleaned.replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/gs, (match) => {
+                    return match
+                        .replace(/\n/g, "\\n")
+                        .replace(/\r/g, "\\r")
+                        .replace(/\t/g, "\\t");
+                });
+
+                // Repair 2: AI sometimes forgets commas between properties in large JSON outputs.
+                repaired = repaired.replace(/"\s*\n\s*"/g, '",\n"');
+
+                return JSON.parse(repaired);
+            } catch (error) {
+                console.error("JSON Parse Error:", error);
+                console.error("Raw text:", text);
+                throw error;
+            }
+        };
+
         if (type === 'alt-text') {
             if (!imageUrl) return NextResponse.json({ error: "Image URL required" }, { status: 400 });
 
@@ -66,13 +100,11 @@ export async function POST(req: Request) {
             Content:
             ${content}`;
 
-            const result = await model.generateContent(prompt);
-            const text = result.response.text();
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                return NextResponse.json(JSON.parse(jsonMatch[0]));
-            }
-            return NextResponse.json({ error: "Failed to parse JSON" }, { status: 500 });
+            const result = await model.generateContent({
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            });
+            return NextResponse.json(safeParseJson(result.response.text()));
         }
 
         if (type === 'translate') {
@@ -92,13 +124,11 @@ export async function POST(req: Request) {
             Title: ${postTitle}
             Content: ${postContent}`;
 
-            const result = await model.generateContent(prompt);
-            const text = result.response.text();
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                return NextResponse.json(JSON.parse(jsonMatch[0]));
-            }
-            return NextResponse.json({ error: "Failed to parse JSON", text }, { status: 500 });
+            const result = await model.generateContent({
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            });
+            return NextResponse.json(safeParseJson(result.response.text()));
         }
 
         if (type === 'translate-landing') {
@@ -128,13 +158,11 @@ export async function POST(req: Request) {
             
             Return ONLY the JSON.`;
 
-            const result = await model.generateContent(prompt);
-            const text = result.response.text();
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                return NextResponse.json(JSON.parse(jsonMatch[0]));
-            }
-            return NextResponse.json({ error: "Failed to parse JSON", text }, { status: 500 });
+            const result = await model.generateContent({
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            });
+            return NextResponse.json(safeParseJson(result.response.text()));
         }
 
         if (type === 'plan') {
@@ -164,28 +192,52 @@ export async function POST(req: Request) {
             
             Return ONLY the valid JSON array.`;
 
-            const result = await model.generateContent(prompt);
-            const text = result.response.text();
-            const jsonMatch = text.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-                return NextResponse.json(JSON.parse(jsonMatch[0]));
-            }
-            return NextResponse.json({ error: "Failed to parse JSON", text }, { status: 500 });
+            const result = await model.generateContent({
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            });
+            return NextResponse.json(safeParseJson(result.response.text()));
         }
 
         if (type === 'experience-to-post') {
             const { experience, context, contentType } = body;
+
+            // URL detection and fetching
+            const isUrl = experience.trim().startsWith('http');
+            let referenceContent = "";
+            let urlContext = "";
+
+            if (isUrl) {
+                try {
+                    const fetchRes = await fetch(experience.trim());
+                    const html = await fetchRes.text();
+                    // Simple HTML text extraction (strip scripts, styles, and tags)
+                    referenceContent = html
+                        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+                        .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+                        .replace(/<[^>]+>/g, " ")
+                        .replace(/\s+/g, " ")
+                        .trim()
+                        .substring(0, 15000); // Truncate to fit within model limits
+                    urlContext = `사용자가 제공한 [레퍼런스 URL: ${experience}]의 내용을 분석하여 초안을 작성하라.`;
+                } catch (e) {
+                    console.error("URL fetch failed:", e);
+                    referenceContent = `(URL 페치 실패: ${experience})`;
+                }
+            }
+
             const prompt = `
                 너는 사용자의 ‘경험과 생각을 정리해주는 에세이 파트너’다.
                 우리의 브랜드 보이스는 다음과 같다:
                 "우리는 지식을 가르치지 않습니다. 알게 된 순서를 기록합니다. 이슈를 결론으로 정리하지 않고 생각이 바뀌는 지점을 기록합니다. 상품을 설명하기보다 어떤 선택이 어떤 하루를 만들었는지를 기록합니다. 확신 대신 회고를, 결론 대신 질문을 남깁니다."
 
+                ${urlContext}
                 아래 [사용자 입력]을 바탕으로 6단계 에세이 작법을 적용하여 블로그 초안을 작성하라.
                 단, 단순히 개인적인 에세이에 그치지 않고, 선택된 [콘텐츠 유형]의 비즈니스 목적을 에세이톤으로 달성해야 한다.
                 분량은 공백 포함 한글 기준 약 3,000자 내외로 상세하게 작성하라.
 
                 [사용자 입력]
-                1. 경험/관찰/생각: ${experience}
+                1. 경험/관찰/생각: ${isUrl ? referenceContent : experience}
                 2. 관련된 제품/서비스/이슈: ${context || '없음'}
                 3. 콘텐츠 유형: ${contentType} (정보형 / 커머스형 / 이슈형)
 
@@ -226,7 +278,7 @@ export async function POST(req: Request) {
                     - 판단을 주장하기보다 생각이 바뀌는 지점을 투명하게 기록할 것.
 
                 [출력 형식]
-                반드시 아래 JSON 형식을 지켜라:
+                반드시 아래 JSON 형식을 지켜라. JSON 문자열 내부에 큰따옴표(")가 포함될 경우 반드시 백슬래시(\")로 이스케이프하고, 줄바꿈은 \n으로 표시하여 유효한 JSON 문자열을 생성하라:
                 {
                     "title": "에세이 느낌이면서도 클릭을 유도하는 제목",
                     "content": "마크다운 형식의 본문 전체 (성찰적인 톤 유지, 공백 포함 약 3,000자 분량)",
@@ -234,19 +286,30 @@ export async function POST(req: Request) {
                     "seoTitle": "SEO 제목",
                     "seoDescription": "메타 설명 (160자 내외)"
                 }
+                반환 시에는 마크다운 코드 블록(\`\`\`json) 없이 순수 JSON 문자열만 반환하라.
             `;
 
-            const result = await model.generateContent(prompt);
-            const responseText = result.response.text();
-            const cleanedJson = responseText.replace(/```json|```/g, "").trim();
-            return NextResponse.json(JSON.parse(cleanedJson));
+            const result = await model.generateContent({
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            });
+
+            try {
+                return NextResponse.json(safeParseJson(result.response.text()));
+            } catch (error) {
+                return NextResponse.json({
+                    error: "AI 응답을 처리하는 중 오류가 발생했습니다.",
+                    details: error instanceof Error ? error.message : String(error),
+                    rawResponse: result.response.text()
+                }, { status: 500 });
+            }
         }
 
         if (type === 'full-post-generation') {
             const { sourcePost, plan } = body;
             const prompt = `Based on the following reference blog post, generate a NEW full blog post for the suggested topic.
             
-            REFERENCE POST (Analyze its tone, length, structure, purpose, and target audience):
+            REFERENCE POST(Analyze its tone, length, structure, purpose, and target audience):
             Title: ${sourcePost.title}
             Content: ${sourcePost.content}
             
@@ -254,32 +317,30 @@ export async function POST(req: Request) {
             Title: ${plan.title}
             Description: ${plan.description}
             Rationale: ${plan.reason}
-            
+
             INSTRUCTIONS:
-            1. TONE: Match the exact tone and voice of the reference post (e.g., formal, witty, professional, friendly).
-            2. STRUCTURE: Use a similar logical structure (e.g., introduction, bullet points, subheadings, conclusion).
+            1. TONE: Match the exact tone and voice of the reference post(e.g., formal, witty, professional, friendly).
+            2. STRUCTURE: Use a similar logical structure(e.g., introduction, bullet points, subheadings, conclusion).
             3. LENGTH: The word count should be roughly similar to the reference post.
-            4. LANGUAGE: Must be written in Korean (ko).
-            5. SEO: Ensure the content is SEO-friendly.
-            
-            IMPORTANT: Output only a JSON object:
+            4. LANGUAGE: Must be written in Korean(ko).
+            5. SEO: Ensure the content is SEO - friendly.
+
+                IMPORTANT: Output only a JSON object:
             {
                 "title": "...",
-                "content": "...",
-                "slug": "english-lowercase-hyphenated-slug",
-                "seoTitle": "...",
-                "seoDescription": "..."
+                    "content": "...",
+                        "slug": "english-lowercase-hyphenated-slug",
+                            "seoTitle": "...",
+                                "seoDescription": "..."
             }
             
             Return ONLY the valid JSON object.`;
 
-            const result = await model.generateContent(prompt);
-            const text = result.response.text();
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                return NextResponse.json(JSON.parse(jsonMatch[0]));
-            }
-            return NextResponse.json({ error: "Failed to parse JSON", text }, { status: 500 });
+            const result = await model.generateContent({
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            });
+            return NextResponse.json(safeParseJson(result.response.text()));
         }
 
         return NextResponse.json({ error: "Invalid type" }, { status: 400 });

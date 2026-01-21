@@ -314,10 +314,10 @@ export default function PlanningPage() {
                         </DialogHeader>
                         <div className="space-y-6 p-6">
                             <div className="space-y-2">
-                                <Label htmlFor="experience" className="text-[10px] font-bold uppercase tracking-tight">최근 겪은 경험 / 관찰 / 생각 (한 줄 이상)</Label>
+                                <Label htmlFor="experience" className="text-[10px] font-bold uppercase tracking-tight">최근 겪은 경험 / 관찰 / 생각 또는 레퍼런스 URL (한 줄 이상)</Label>
                                 <Textarea
                                     id="experience"
-                                    placeholder="예: 오늘 아침 카페에서 본 노부부의 뒷모습이 마음에 남았어요."
+                                    placeholder="예: 오늘 아침 카페에서 본 노부부의 뒷모습이 마음에 남았어요. 또는 분석하고 싶은 글의 URL을 입력하세요."
                                     className="min-h-[120px] bg-black/[0.02] border border-black/10 rounded-none resize-none focus-visible:ring-black/10 font-medium text-sm"
                                     value={experienceData.experience}
                                     onChange={(e) => setExperienceData(prev => ({ ...prev, experience: e.target.value }))}

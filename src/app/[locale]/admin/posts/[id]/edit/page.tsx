@@ -276,7 +276,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                 },
                 shortCode: shortCode || null,
                 publishedAt: publishTimestamp,
-                linkedLandingPageId: selectedLandingId === 'none' ? undefined : selectedLandingId
+                linkedLandingPageId: selectedLandingId === 'none' ? null : selectedLandingId
             };
 
             await updatePost(id, updateData);
@@ -318,7 +318,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                         status,
                         viewCount: 0,
                         shortCode: shortCode || null,
-                        linkedLandingPageId: selectedLandingId === 'none' ? undefined : selectedLandingId
+                        linkedLandingPageId: selectedLandingId === 'none' ? null : selectedLandingId
                     };
 
                     if (data.id) {
