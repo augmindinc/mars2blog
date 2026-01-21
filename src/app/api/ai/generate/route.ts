@@ -63,6 +63,27 @@ export async function POST(req: Request) {
             }
         };
 
+        // Standardized Gemini API call with retries
+        const callGemini = async (prompt: string, jsonMode: boolean = false) => {
+            const config = jsonMode ? { responseMimeType: "application/json" } : {};
+            let lastError;
+
+            for (let i = 0; i < 3; i++) {
+                try {
+                    const result = await model.generateContent({
+                        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                        generationConfig: config
+                    });
+                    return result.response.text();
+                } catch (error: any) {
+                    lastError = error;
+                    console.error(`Gemini API Attempt ${i + 1} failed:`, error.message);
+                    if (i < 2) await new Promise(resolve => setTimeout(resolve, i === 0 ? 1000 : 2000));
+                }
+            }
+            throw lastError;
+        };
+
         if (type === 'alt-text') {
             if (!imageUrl) return NextResponse.json({ error: "Image URL required" }, { status: 400 });
 
@@ -80,14 +101,8 @@ export async function POST(req: Request) {
             // If content (title) is provided, use it as context
             const contextualPrompt = content ? `${prompt}\nContext: The blog post title is "${content}"` : prompt;
 
-            // Note: Gemini can't fetch external URLs directly in this way without vision capabilities. 
-            // For now, I'll implement a placeholder or try to use vision if it's a base64.
-            // Since implementing full vision here is complex without the actual bits, 
-            // I'll make it generate a description based on the TITLE if it's all we have, 
-            // or I'll warn the user.
-
-            const result = await model.generateContent(contextualPrompt);
-            return NextResponse.json({ result: result.response.text().trim() });
+            const text = await callGemini(contextualPrompt);
+            return NextResponse.json({ result: text.trim() });
         }
 
         if (type === 'tldr') {
@@ -98,8 +113,8 @@ export async function POST(req: Request) {
             Content:
             ${content}`;
 
-            const result = await model.generateContent(prompt);
-            return NextResponse.json({ result: result.response.text().trim() });
+            const text = await callGemini(prompt);
+            return NextResponse.json({ result: text.trim() });
         }
 
         if (type === 'seo-metadata') {
@@ -116,11 +131,8 @@ export async function POST(req: Request) {
             Content:
             ${content}`;
 
-            const result = await model.generateContent({
-                contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: "application/json" }
-            });
-            return NextResponse.json(safeParseJson(result.response.text()));
+            const text = await callGemini(prompt, true);
+            return NextResponse.json(safeParseJson(text));
         }
 
         if (type === 'translate') {
@@ -140,11 +152,8 @@ export async function POST(req: Request) {
             Title: ${postTitle}
             Content: ${postContent}`;
 
-            const result = await model.generateContent({
-                contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: "application/json" }
-            });
-            return NextResponse.json(safeParseJson(result.response.text()));
+            const text = await callGemini(prompt, true);
+            return NextResponse.json(safeParseJson(text));
         }
 
         if (type === 'translate-landing') {
@@ -174,11 +183,8 @@ export async function POST(req: Request) {
             
             Return ONLY the JSON.`;
 
-            const result = await model.generateContent({
-                contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: "application/json" }
-            });
-            return NextResponse.json(safeParseJson(result.response.text()));
+            const text = await callGemini(prompt, true);
+            return NextResponse.json(safeParseJson(text));
         }
 
         if (type === 'plan') {
@@ -208,11 +214,8 @@ export async function POST(req: Request) {
             
             Return ONLY the valid JSON array.`;
 
-            const result = await model.generateContent({
-                contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: "application/json" }
-            });
-            return NextResponse.json(safeParseJson(result.response.text()));
+            const text = await callGemini(prompt, true);
+            return NextResponse.json(safeParseJson(text));
         }
 
         if (type === 'experience-to-post') {
@@ -305,18 +308,15 @@ export async function POST(req: Request) {
                 반환 시에는 마크다운 코드 블록(\`\`\`json) 없이 순수 JSON 문자열만 반환하라.
             `;
 
-            const result = await model.generateContent({
-                contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: "application/json" }
-            });
+            const text = await callGemini(prompt, true);
 
             try {
-                return NextResponse.json(safeParseJson(result.response.text()));
+                return NextResponse.json(safeParseJson(text));
             } catch (error) {
                 return NextResponse.json({
                     error: "AI 응답을 처리하는 중 오류가 발생했습니다.",
                     details: error instanceof Error ? error.message : String(error),
-                    rawResponse: result.response.text()
+                    rawResponse: text
                 }, { status: 500 });
             }
         }
@@ -352,11 +352,8 @@ export async function POST(req: Request) {
             
             Return ONLY the valid JSON object.`;
 
-            const result = await model.generateContent({
-                contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: "application/json" }
-            });
-            return NextResponse.json(safeParseJson(result.response.text()));
+            const text = await callGemini(prompt, true);
+            return NextResponse.json(safeParseJson(text));
         }
 
         return NextResponse.json({ error: "Invalid type" }, { status: 400 });

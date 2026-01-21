@@ -9,6 +9,7 @@ import { MarkdownEditor } from '@/components/editor/MarkdownEditor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ProofreadingMode } from '@/components/editor/ProofreadingMode';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +19,7 @@ import { storage } from '@/lib/firebase';
 import { useCategories } from '@/hooks/useCategories';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { compressImage } from '@/lib/imageCompression';
-import { Sparkles, Loader2, UploadCloud, Languages, Lock } from 'lucide-react';
+import { Sparkles, Loader2, UploadCloud, Languages, Lock, History } from 'lucide-react';
 import { SocialPreview } from '@/components/admin/SocialPreview';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
@@ -71,6 +72,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     const [isShortCodePermanent, setIsShortCodePermanent] = useState(false);
     const [landingPages, setLandingPages] = useState<LandingPage[]>([]);
     const [selectedLandingId, setSelectedLandingId] = useState<string>('none');
+    const [isProofreading, setIsProofreading] = useState(false);
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
@@ -343,8 +345,26 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
 
     return (
         <div className="container mx-auto px-4 py-8 max-w-5xl">
+            {isProofreading && (
+                <ProofreadingMode
+                    content={content}
+                    onChange={setContent}
+                    onClose={() => setIsProofreading(false)}
+                />
+            )}
             <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold">Edit Post</h1>
+                <div className="flex items-center gap-4">
+                    <h1 className="text-3xl font-bold">Edit Post</h1>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsProofreading(true)}
+                        className="gap-2 rounded-none border-black/20 hover:bg-black hover:text-white transition-colors h-9"
+                    >
+                        <History className="h-4 w-4" />
+                        퇴고 (AI Proofread)
+                    </Button>
+                </div>
                 <Button
                     type="button"
                     variant="outline"

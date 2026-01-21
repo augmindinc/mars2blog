@@ -35,13 +35,26 @@ Return ONLY a JSON object:
 Example: { "paragraphIndex": 2, "selectedCalloutIndex": 1 }
 `;
 
-        const result = await model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            generationConfig: { responseMimeType: "application/json" }
-        });
+        let text = "";
+        let lastError;
+        for (let i = 0; i < 3; i++) {
+            try {
+                const result = await model.generateContent({
+                    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                    generationConfig: { responseMimeType: "application/json" }
+                });
+                text = result.response.text();
+                break;
+            } catch (error: any) {
+                lastError = error;
+                console.error(`Callout placement attempt ${i + 1} failed:`, error.message);
+                if (i < 2) await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
 
-        const response = await result.response;
-        const responseText = response.text();
+        if (!text) throw lastError;
+
+        const responseText = text;
 
         // Helper for robust JSON parsing
         const safeParseJson = (text: string) => {
