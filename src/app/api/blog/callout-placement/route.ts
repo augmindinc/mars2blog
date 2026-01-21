@@ -35,12 +35,31 @@ Return ONLY a JSON object:
 Example: { "paragraphIndex": 2, "selectedCalloutIndex": 1 }
 `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        let text = response.text();
+        const result = await model.generateContent({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: { responseMimeType: "application/json" }
+        });
 
-        text = text.replace(/```json/g, "").replace(/```/g, "").trim();
-        const placement = JSON.parse(text);
+        const response = await result.response;
+        const responseText = response.text();
+
+        // Helper for robust JSON parsing
+        const safeParseJson = (text: string) => {
+            try {
+                let cleaned = text.replace(/```json|```/g, "").trim();
+                const start = cleaned.indexOf('{');
+                const end = cleaned.lastIndexOf('}');
+                if (start !== -1 && end !== -1) {
+                    cleaned = cleaned.substring(start, end + 1);
+                }
+                return JSON.parse(cleaned);
+            } catch (error) {
+                console.error("Callout Placement JSON Parse Error:", error);
+                throw error;
+            }
+        };
+
+        const placement = safeParseJson(responseText);
 
         return NextResponse.json(placement);
     } catch (error) {

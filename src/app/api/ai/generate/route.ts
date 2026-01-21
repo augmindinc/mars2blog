@@ -19,16 +19,32 @@ export async function POST(req: Request) {
                 // Remove markdown code blocks and whitespace
                 let cleaned = text.replace(/```json|```/g, "").trim();
 
-                // Find the first '{' and last '}' to extract the JSON object
-                const start = cleaned.indexOf('{');
-                const end = cleaned.lastIndexOf('}');
+                // Find the first '[' or '{' and last ']' or '}' to extract the JSON content
+                const firstBrace = cleaned.indexOf('{');
+                const firstBracket = cleaned.indexOf('[');
+                let start = -1;
+
+                if (firstBrace !== -1 && firstBracket !== -1) {
+                    start = Math.min(firstBrace, firstBracket);
+                } else {
+                    start = firstBrace !== -1 ? firstBrace : firstBracket;
+                }
+
+                const lastBrace = cleaned.lastIndexOf('}');
+                const lastBracket = cleaned.lastIndexOf(']');
+                let end = -1;
+
+                if (lastBrace !== -1 && lastBracket !== -1) {
+                    end = Math.max(lastBrace, lastBracket);
+                } else {
+                    end = lastBrace !== -1 ? lastBrace : lastBracket;
+                }
 
                 if (start !== -1 && end !== -1) {
                     cleaned = cleaned.substring(start, end + 1);
                 }
 
                 // Repair 1: AI often puts raw newlines/tabs inside JSON strings which is invalid.
-                // Replace raw newlines/tabs within double quotes with escaped versions.
                 let repaired = cleaned.replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/gs, (match) => {
                     return match
                         .replace(/\n/g, "\\n")
