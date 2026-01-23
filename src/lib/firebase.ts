@@ -5,13 +5,13 @@ import { getStorage } from "firebase/storage";
 import { getFunctions } from "firebase/functions";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCOTRL_1ohvqdIT7mcZQtLaJVM8R30tYfg",
-  authDomain: "mars2blog.firebaseapp.com",
-  projectId: "mars2blog",
-  storageBucket: "mars2blog.firebasestorage.app",
-  messagingSenderId: "181828969393",
-  appId: "1:181828969393:web:ed5f94d840037c4142d390",
-  measurementId: "G-PGX6QCE0TP"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase

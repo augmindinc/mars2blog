@@ -29,51 +29,51 @@ export function PostCard({ post, priority = false, fromPostTitle }: PostCardProp
         : (CATEGORY_LABELS[post.category]?.[locale] || post.category);
 
     return (
-        <Card className="rounded-none border-black/10 hover:border-black/20 hover:bg-black/[0.01] transition-all h-full flex flex-col">
-            <div className="relative w-full h-48 bg-muted">
-                {post.thumbnail.url ? (
-                    <Image
-                        src={post.thumbnail.url}
-                        alt={post.thumbnail.alt || post.title}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        priority={priority}
-                        unoptimized
-                    />
-                ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                        No Image
-                    </div>
-                )}
-            </div>
-            <CardHeader className="p-4 pb-2">
-                <div className="flex justify-between items-center mb-2">
-                    <span className="text-[10px] font-bold text-white px-2.5 py-1 bg-black">
-                        {categoryLabel}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                        {/* Handle Timestamp or Date object robustly */}
-                        {post.createdAt?.seconds
-                            ? format(new Date(post.createdAt.seconds * 1000), 'yyyy.MM.dd')
-                            : format(new Date(), 'yyyy.MM.dd')}
-                    </span>
+        <Link href={postHref} className="block h-full group">
+            <Card className="rounded-none border-black/10 group-hover:border-black/20 group-hover:bg-black/[0.01] transition-all h-full flex flex-col">
+                <div className="relative w-full h-48 bg-muted">
+                    {post.thumbnail.url ? (
+                        <Image
+                            src={post.thumbnail.url}
+                            alt={post.thumbnail.alt || post.title}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            priority={priority}
+                            unoptimized
+                        />
+                    ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                            No Image
+                        </div>
+                    )}
                 </div>
-                <h3 className="font-semibold text-lg line-clamp-2 leading-tight">
-                    <Link href={postHref} className="hover:text-black/70 transition-colors">
+                <CardHeader className="p-4 pb-2">
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="text-[10px] font-bold text-white px-2.5 py-1 bg-black">
+                            {categoryLabel}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                            {/* Handle Timestamp or Date object robustly */}
+                            {post.createdAt?.seconds
+                                ? format(new Date(post.createdAt.seconds * 1000), 'yyyy.MM.dd')
+                                : format(new Date(), 'yyyy.MM.dd')}
+                        </span>
+                    </div>
+                    <h3 className="font-semibold text-lg line-clamp-2 leading-tight group-hover:text-black/70 transition-colors">
                         {post.title}
-                    </Link>
-                </h3>
-            </CardHeader>
-            <CardContent className="p-4 pt-2 flex-grow">
-                <p className="text-sm text-muted-foreground line-clamp-3">
-                    {post.excerpt || post.content.substring(0, 100)}...
-                </p>
-            </CardContent>
-            <CardFooter className="p-4 pt-0 text-xs text-muted-foreground flex justify-between items-center">
-                <span>by {post.author.name}</span>
-                <span>View {post.viewCount}</span>
-            </CardFooter>
-        </Card>
+                    </h3>
+                </CardHeader>
+                <CardContent className="p-4 pt-2 flex-grow">
+                    <p className="text-sm text-muted-foreground line-clamp-3">
+                        {post.excerpt || post.content.substring(0, 100)}...
+                    </p>
+                </CardContent>
+                <CardFooter className="p-4 pt-0 text-xs text-muted-foreground flex justify-between items-center">
+                    <span>by {post.author.name}</span>
+                    <span>View {post.viewCount}</span>
+                </CardFooter>
+            </Card>
+        </Link>
     );
 }
