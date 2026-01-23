@@ -1,4 +1,4 @@
-import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 import { PostList } from '@/components/blog/PostList';
 import { Metadata } from 'next';
 import { getPosts, serializePost } from '@/services/blogService';
@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: HomePageProps): Promise<Metad
 
 export default async function HomePage({ params }: HomePageProps) {
     const { locale } = await params;
-    const t = useTranslations('HomePage');
+    const t = await getTranslations('HomePage');
 
     // Pre-fetch posts on the server
     const rawPosts = await getPosts('ALL', locale);
