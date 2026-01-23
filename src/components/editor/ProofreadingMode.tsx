@@ -582,26 +582,27 @@ ${currentContent}`;
                     {/* Suggestions Area (Accordion style) */}
                     {suggestions.length > 0 && (
                         <div className={cn(
-                            "flex flex-col border-t bg-muted/5 transition-all duration-300 ease-in-out",
-                            isSuggestionsExpanded ? "flex-grow" : "h-[45px]"
+                            "flex flex-col border-t bg-muted/20 transition-all duration-300 ease-in-out",
+                            isSuggestionsExpanded ? "flex-grow overflow-hidden" : "h-[60px]"
                         )}>
                             <button
                                 onClick={() => setIsSuggestionsExpanded(!isSuggestionsExpanded)}
-                                className="w-full h-[45px] flex items-center justify-between px-4 hover:bg-black/5 transition-colors border-b border-black/5"
+                                className="w-full h-[60px] flex items-center justify-between px-4 hover:bg-black/5 transition-colors border-b border-black/5 shrink-0"
                             >
                                 <div className="flex items-center gap-2">
-                                    <Edit3 className="w-3.5 h-3.5 text-black/40" />
-                                    <span className="text-[10px] font-bold uppercase tracking-widest text-black/60">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-black/40 animate-pulse" />
+                                    <Edit3 className="w-4 h-4 text-black/60" />
+                                    <span className="text-[11px] font-black uppercase tracking-widest text-black/60">
                                         Actionable Suggestions ({suggestions.length})
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    {isSuggestionsExpanded ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3" />}
+                                    {isSuggestionsExpanded ? <Minimize2 className="w-4 h-4 text-black/40" /> : <Maximize2 className="w-4 h-4 text-black/40" />}
                                 </div>
                             </button>
 
                             <div className={cn(
-                                "flex-grow overflow-y-auto p-4 space-y-3 transition-opacity duration-300",
+                                "flex-grow overflow-y-auto p-4 space-y-3 transition-opacity duration-300 min-h-0",
                                 isSuggestionsExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
                             )}>
                                 {suggestions.map((s) => (

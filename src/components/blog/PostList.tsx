@@ -3,14 +3,18 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getPosts, subscribeToPosts } from '@/services/blogService';
-import { Category } from '@/types/blog';
+import { Post, Category } from '@/types/blog';
 import { CategoryFilter } from './CategoryFilter';
 import { PostCard } from './PostCard';
 import { useLocale, useTranslations } from 'next-intl';
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
-export function PostList() {
+interface PostListProps {
+    initialData?: Post[];
+}
+
+export function PostList({ initialData }: PostListProps) {
     const [category, setCategory] = useState<Category>('ALL');
     const [searchTerm, setSearchTerm] = useState('');
     const locale = useLocale();
@@ -20,6 +24,7 @@ export function PostList() {
     const { data: posts, isLoading, isError } = useQuery({
         queryKey: ['posts', category, locale],
         queryFn: () => getPosts(category, locale),
+        initialData: category === 'ALL' ? initialData : undefined,
     });
 
     useEffect(() => {

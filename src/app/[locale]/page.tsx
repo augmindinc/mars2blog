@@ -1,6 +1,7 @@
 import { useTranslations } from 'next-intl';
 import { PostList } from '@/components/blog/PostList';
 import { Metadata } from 'next';
+import { getPosts, serializePost } from '@/services/blogService';
 
 interface HomePageProps {
     params: Promise<{ locale: string }>;
@@ -24,8 +25,13 @@ export async function generateMetadata({ params }: HomePageProps): Promise<Metad
     };
 }
 
-export default function HomePage() {
+export default async function HomePage({ params }: HomePageProps) {
+    const { locale } = await params;
     const t = useTranslations('HomePage');
+
+    // Pre-fetch posts on the server
+    const rawPosts = await getPosts('ALL', locale);
+    const initialPosts = rawPosts.map(serializePost);
 
     return (
         <main className="min-h-screen bg-background">
@@ -41,7 +47,7 @@ export default function HomePage() {
                     </div>
                 </header>
 
-                <PostList />
+                <PostList initialData={initialPosts} />
             </div>
         </main>
     );
