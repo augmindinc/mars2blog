@@ -40,6 +40,7 @@ export function PostCard({ post, priority = false, fromPostTitle }: PostCardProp
                             className="object-cover"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             priority={priority}
+                            unoptimized
                         />
                     ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -52,7 +53,7 @@ export function PostCard({ post, priority = false, fromPostTitle }: PostCardProp
                         <span className="text-[10px] font-bold text-white px-2.5 py-1 bg-black">
                             {categoryLabel}
                         </span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground" suppressHydrationWarning>
                             {/* Handle Timestamp or Date object robustly */}
                             {post.createdAt?.seconds
                                 ? format(new Date(post.createdAt.seconds * 1000), 'yyyy.MM.dd')
