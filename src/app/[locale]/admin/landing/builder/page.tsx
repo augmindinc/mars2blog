@@ -258,55 +258,66 @@ function BuilderContent() {
     };
 
     const getRandomImageUrl = (type: 'business' | 'avatar' | 'auto', text: string = '', currentLocale: string = 'ko') => {
-        const pools: Record<string, Record<string, string[]>> = {
-            ko: {
-                tech: ['1518770660439-4636190af475', '1550751827-4bd374c3f58b', '1519389950473-47ba0277781c', '1581091226825-a6a2a5aee158'],
-                nature: ['1470071459604-3b5ec3a7fe05', '1441974231531-c6227db76b6e', '1501854191687-d16ad0ad16c5', '1464822759023-fed622ff2c3b'],
-                food: ['1504674900247-0877df9cc836', '1476514525535-07fb3b4ae5f1', '1493770348161-369560ae357d', '1473093226795-af9932fe5856'],
-                travel: ['1469854523086-cc02fe5d8800', '1503220317375-aaad61436b1b', '1476514525535-07fb3b4ae5f1', '1488085061387-422e29b40080'],
-                health: ['1506126613408-eca07ce68773', '1544367567-0f2fcb009e0b', '1571019613454-1cb2f99b2d8b', '1505751172107-1c49b6e82a2b'],
-                art: ['1460662121278-d7c127336ee9', '1513364776144-60967b0f800f', '1541701494587-cb58502866ab', '1515405295579-ba7b456a203e'],
-                minimal: ['1494438639946-1ebd1d20bf85', '1507525428034-b723cf961d3e', '1449247709015-d44b526db1cd', '1486406146926-c627a92ad1ab'],
-                business: ['1460925895917-afdab827c52f', '1497366216548-37526070297c', '1542744173-8e7e53415bb0', '1556761175-5973dc0f32e7'],
-                avatar: ['1507003211169-0a1dd7228f2d', '1494790108377-be9c29b29330', '1539571696357-5a69c17a67c6', '1534528741775-53994a69daeb']
-            },
-            global: {
-                tech: ['1518770660439-4636190af475', '1451187580459-43490279c0fa', '1519389950473-47ba0277781c', '1531206715517-5c0ba1383af0'],
-                nature: ['1470071459604-3b5ec3a7fe05', '1441974231531-c6227db76b6e', '1501854191687-d16ad0ad16c5', '1433085051395-92c482ed123b'],
-                food: ['1504674900247-0877df9cc836', '1476514525535-07fb3b4ae5f1', '1493770348161-369560ae357d', '1512621776951-a57141f2e96a'],
-                travel: ['1469854523086-cc02fe5d8800', '1503220317375-aaad61436b1b', '1528127269322-539801943592', '1476514525535-07fb3b4ae5f1'],
-                health: ['1506126613408-eca07ce68773', '1544367567-0f2fcb009e0b', '1571019613454-1cb2f99b2d8b', '1515372039744-48f0030f1750'],
-                art: ['1460662121278-d7c127336ee9', '1513364776144-60967b0f800f', '1541701494587-cb58502866ab', '1500628555351-011945331f81'],
-                minimal: ['1494438639946-1ebd1d20bf85', '1507525428034-b723cf961d3e', '1449247709015-d44b526db1cd', '1486406146926-c627a92ad1ab'],
-                business: ['1557804506-669a67965ba0', '1451187580459-43490279c0fa', '1522202176988-66273c2fd55f', '1531482615713-2afd69097998'],
-                avatar: ['1531123897727-8f129e1688ce', '1580489944761-15a19d654956', '1500648767791-00dcc994a43e', '1573496359142-b8d87734a5a2']
-            }
+        const IMAGE_POOLS: Record<string, string[]> = {
+            tech: ['1518770660439-4636190af475', '1451187580459-43490279c0fa', '1519389950473-47ba0277781c', '1531206715517-5c0ba1383af0', '1550751827-4bd374c3f58b', '1581091226825-a6a2a5aee158', '1525547710557-80244c67c9d9', '1515378791036-0648a3ef77b2'],
+            nature: ['1470071459604-3b5ec3a7fe05', '1441974231531-c6227db76b6e', '1501854191687-d16ad0ad16c5', '1464822759023-fed622ff2c3b', '1433085051395-92c482ed123b', '1506744038136-46273834b3fb', '1472214103451-9374bd1c798e', '1500382017468-9049fed747ef'],
+            food: ['1504674900247-0877df9cc836', '1476514525535-07fb3b4ae5f1', '1493770348161-369560ae357d', '1473093226795-af9932fe5856', '1512621776951-a57141f2e96a', '1504754663776-5120bd9b03fd', '1567622658625-796fb3d43b6b', '1482049016688-2d3e1b311543'],
+            travel: ['1469854523086-cc02fe5d8800', '1503220317375-aaad61436b1b', '1528127269322-539801943592', '1476514525535-07fb3b4ae5f1', '1488085061387-422e29b40080', '1530789253086-cc02fe5d8800', '1507525428034-b723cf961d3e', '1527631746394-2035359146f2'],
+            health: ['1506126613408-eca07ce68773', '1544367567-0f2fcb009e0b', '1571019613454-1cb2f99b2d8b', '1515372039744-48f0030f1750', '1505751172107-1c49b6e82a2b', '1535914211119-272251762e12', '1576037728596-959199b76144', '1591343393440-629932dad53c'],
+            art: ['1460662121278-d7c127336ee9', '1513364776144-60967b0f800f', '1541701494587-cb58502866ab', '1500628555351-011945331f81', '1515405295579-ba7b456a203e', '1579783902614-a3fb3927b6a5', '1549490349-8643362247b5', '1577083552431-6e5fd01aa342'],
+            fashion: ['1490481651871-ab68ff25d43d', '1445206111151-0730bd08959c', '1469334031218-e382a760f06b', '1485230895905-ec40bd36b6bc', '1515886657613-9f3515b0c78f', '1509319113196-a29626e24be3', '1539106723223-960205829671', '1581067727401-49767676757f'],
+            cafe: ['1495474472287-4d71bcdd2085', '1447933601406-2c130327f311', '1497933190204-a151740268ce', '1459756269019-74a5996b649d', '1501339847302-ac4464b7c156', '1442512595333-10780f7a9f19', '1511923247514-4eb952402928', '1554118811-1752b947118d'],
+            education: ['1503676260728-3c40fd455909', '1434031219322-79111f93028d', '1523050853177-87bfc1925b36', '1524178232583-175c0cd17e2e', '1497633762265-911cb3b324a2', '1491841573562-ddc1e31d4183', '1509062564944-15602022f46d', '1501503069356-3c6b9ee141fd'],
+            architecture: ['1486406146926-c627a92ad1ab', '1497366216548-37526070297c', '1487958449333-2b2413eb44b1', '1512917774597-40c2139bb2ba', '1518005020931-58d17d080c98', '1503387762223-f20387534065', '1494438639946-1ebd1d20bf85', '1500333595703-f155bb912413'],
+            business: ['1557804506-669a67965ba0', '1522202176988-66273c2fd55f', '1531482615713-2afd69097998', '1460925895917-afdab827c52f', '1542744173-8e7e53415bb0', '1556761175-5973dc0f32e7', '1517245386807-bb43f82c33c4', '1552664730-d307ca884978'],
+            minimal: ['1494438639946-1ebd1d20bf85', '1507525428034-b723cf961d3e', '1449247709015-d44b526db1cd', '1486406146926-c627a92ad1ab', '1533038590841-2c6225a8a94b', '1522158625211-1335b546369c', '1518133910393-9c882855140e', '1516962215312-78a0593cc13c'],
+            fitness: ['1517834641475-045313f87a31', '15344383272d6-0a042e2baa3c', '1571019613454-1cb2f99b2d8b', '1534258936113-d4d3e317c6a2', '1532384748853-2646a2974d7c', '1574680093514-40150adb7a16', '1541534741620-1a8008871bd0', '15383803272d6-0a042e2baa3c'],
+            pets: ['1517849845594-3f58eaef823c', '1533738363-25948440011a', '1514880275624-9bb29b53f0fa', '1548199973-c3f5022b0a2a', '1537151108174-8b89a1dd45ad', '1529753232803-35a4d7159774', '1425016629704-df962f9f048d', '1519391056208-12196e023ca0']
+        };
+
+        const AVATAR_POOLS: Record<string, string[]> = {
+            ko: ['1507003211169-0a1dd7228f2d', '1494790108377-be9c29b29330', '1539571696357-5a69c17a67c6', '1534528741775-53994a69daeb', '1438761681033-6461ffad8d80', '1523950334849-01f70d8883e4', '1506155353164-9be9395b058c', '1525227713542-0fbc140409a3'],
+            global: ['1531123897727-8f129e1688ce', '1580489944761-15a19d654956', '1500648767791-00dcc994a43e', '1573496359142-b8d87734a5a2', '1573497019940-1c28c88b4f3e', '1544005320-7c21dce3d3d9', '1542909119-89297341390f', '1546456207-88fd982f9793', '1542157547-d243d66669e2', '1590086782775-470AD011bbca']
         };
 
         const localeKey = currentLocale === 'ko' ? 'ko' : 'global';
-        const localePools = pools[localeKey] || pools['global'];
 
         // Intelligent Category Detection
-        let category = type === 'auto' ? 'minimal' : type;
+        let category = 'minimal';
+        const lowerText = (text + (pageConfig.title || '')).toLowerCase();
 
-        if (type === 'auto' || type === 'business') {
-            const lowerText = text.toLowerCase();
-            if (lowerText.match(/code|tech|ai|software|data|기술|첨단|인공지능/)) category = 'tech';
-            else if (lowerText.match(/food|cooking|recipe|delicious|요리|음식|맛있|식사/)) category = 'food';
-            else if (lowerText.match(/nature|forest|mountain|ocean|green|자연|숲|산|바다/)) category = 'nature';
-            else if (lowerText.match(/travel|trip|hotel|flight|outdoor|여행|관광|해외|항공/)) category = 'travel';
-            else if (lowerText.match(/health|yoga|workout|fitness|medical|건강|요가|운동|의료/)) category = 'health';
-            else if (lowerText.match(/art|design|painting|creative|예술|디자인|창의/)) category = 'art';
-            else if (lowerText.match(/minimal|simple|clean|modern|미니멀|심플|깔끔/)) category = 'minimal';
-            else category = 'business';
+        if (type === 'avatar') {
+            const pool = AVATAR_POOLS[localeKey] || AVATAR_POOLS.global;
+            // Use a combined seed for uniqueness per site/author
+            const seed = (lowerText.length + Math.floor(Math.random() * 1000)) % pool.length;
+            const randomId = pool[seed];
+            return `https://images.unsplash.com/photo-${randomId}?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80`;
         }
 
-        const selectedPool = localePools[category] || localePools['minimal'];
-        const randomId = selectedPool[Math.floor(Math.random() * selectedPool.length)];
+        // Expanded Keyword Matching
+        if (lowerText.match(/code|tech|ai|software|data|기술|첨단|인공지능|컴퓨터/)) category = 'tech';
+        else if (lowerText.match(/food|cooking|recipe|delicious|요리|음식|맛있|식사|카페|커피|coffee/)) category = lowerText.includes('coffee') ? 'cafe' : 'food';
+        else if (lowerText.match(/nature|forest|mountain|ocean|green|자연|숲|산|바다|환경/)) category = 'nature';
+        else if (lowerText.match(/travel|trip|hotel|flight|outdoor|여행|관광|해외|항공/)) category = 'travel';
+        else if (lowerText.match(/health|yoga|workout|fitness|medical|건강|요가|운동|의료|병|피트니스/)) category = lowerText.includes('fitness') ? 'fitness' : 'health';
+        else if (lowerText.match(/art|design|painting|creative|예술|디자인|창의|미술/)) category = 'art';
+        else if (lowerText.match(/fashion|style|clothes|쇼핑|패션|스타일/)) category = 'fashion';
+        else if (lowerText.match(/pet|dog|cat|animal|강아지|고양이|반려/)) category = 'pets';
+        else if (lowerText.match(/architecture|building|interior|house|집|건축|인테리어/)) category = 'architecture';
+        else if (lowerText.match(/education|school|learn|study|교육|학교|공부|학습/)) category = 'education';
+        else if (lowerText.match(/minimal|simple|clean|modern|미니멀|심플|깔끔/)) category = 'minimal';
+        else category = 'business';
 
-        return category === 'avatar'
-            ? `https://images.unsplash.com/photo-${randomId}?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80`
-            : `https://images.unsplash.com/photo-${randomId}?auto=format&fit=crop&q=80&w=1200`;
+        const pool = IMAGE_POOLS[category] || IMAGE_POOLS.minimal;
+
+        // Dynamic Seeding Logic: Ensure Different Sites Get Different Results
+        // We use the page title's unique hash to "offset" the random selection
+        const siteTitleHash = (pageConfig.title || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const sectionTextHash = text.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const uniqueIndex = (siteTitleHash + sectionTextHash + Math.floor(Math.random() * 100)) % pool.length;
+
+        const randomId = pool[uniqueIndex];
+        return `https://images.unsplash.com/photo-${randomId}?auto=format&fit=crop&q=80&w=1200`;
     };
 
     const handleAiRefine = async () => {
