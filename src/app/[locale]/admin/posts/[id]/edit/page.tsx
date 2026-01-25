@@ -19,7 +19,7 @@ import { storage } from '@/lib/firebase';
 import { useCategories } from '@/hooks/useCategories';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { compressImage } from '@/lib/imageCompression';
-import { Sparkles, Loader2, UploadCloud, Languages, Lock, History, Image as ImageIcon, Camera, Palette, Wand2 } from 'lucide-react';
+import { Sparkles, Loader2, UploadCloud, Languages, Lock, History, Image as ImageIcon, Camera, Palette, Wand2, Scissors } from 'lucide-react';
 import { SocialPreview } from '@/components/admin/SocialPreview';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
@@ -73,7 +73,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     const [landingPages, setLandingPages] = useState<LandingPage[]>([]);
     const [selectedLandingId, setSelectedLandingId] = useState<string>('none');
     const [isProofreading, setIsProofreading] = useState(false);
-    const [imageStyle, setImageStyle] = useState<'photo' | 'illustration' | 'minimalism'>('photo');
+    const [imageStyle, setImageStyle] = useState<'photo' | 'illustration' | 'minimalism' | 'paper-cut'>('photo');
     const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
     const [isGeneratingParaImages, setIsGeneratingParaImages] = useState(false);
 
@@ -785,7 +785,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                             <CardContent className="space-y-4 pt-6">
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-bold uppercase tracking-tight">Image Style</Label>
-                                    <div className="grid grid-cols-3 gap-2">
+                                    <div className="grid grid-cols-2 gap-2">
                                         <Button
                                             type="button"
                                             variant={imageStyle === 'photo' ? 'default' : 'outline'}
@@ -812,6 +812,15 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                                             className="h-9 rounded-none text-[9px] uppercase font-bold"
                                         >
                                             <Sparkles className="w-3 h-3 mr-1" /> Minimal
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant={imageStyle === 'paper-cut' ? 'default' : 'outline'}
+                                            size="sm"
+                                            onClick={() => setImageStyle('paper-cut')}
+                                            className="h-9 rounded-none text-[9px] uppercase font-bold"
+                                        >
+                                            <Scissors className="w-3 h-3 mr-1" /> Paper
                                         </Button>
                                     </div>
                                 </div>

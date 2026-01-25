@@ -75,7 +75,8 @@ export async function POST(req: Request) {
             const styleGuides: Record<string, string> = {
                 'photo': 'A realistic, high-quality photograph with cinematic lighting, professional composition, and 8k resolution.',
                 'illustration': 'A cute, colorful digital illustration with soft edges, whimsical characters, and a playful atmosphere.',
-                'minimalism': 'A clean, minimal, warm-toned design with simple shapes, soft shadows, and an elegant, peaceful aesthetic.'
+                'minimalism': 'A clean, minimal, warm-toned design with simple shapes, soft shadows, and an elegant, peaceful aesthetic.',
+                'paper-cut': 'An artistic paper-cut or collage style illustration. It features layers of textured paper, handcrafted edges, subtle 3D-like shadows between layers, and a warm, emotional, tactile aesthetic (Paper Collage Art).'
             };
             const fullPrompt = `Style: ${styleGuides[style] || style}\n\nTask: Generate an image based on the following description:\n${prompt}`;
             const imageModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash-image" });
@@ -169,7 +170,8 @@ export async function POST(req: Request) {
             const styleGuides: Record<string, string> = {
                 'photo': 'realistic photograph, professional lighting, high resolution',
                 'illustration': 'colorful digital illustration, whimsical, soft edges',
-                'minimalism': 'minimal warm design, clean shapes, elegant'
+                'minimalism': 'minimal warm design, clean shapes, elegant',
+                'paper-cut': 'paper-cut collage art, layered paper texture, handcrafted look, soft overlapping shadows, tactile aesthetic'
             };
             const culturalContext: Record<string, string> = {
                 'ko': 'Feature Korean/East Asian people, clean Korean-style business/home environments, and warm modern Korean aesthetics.',

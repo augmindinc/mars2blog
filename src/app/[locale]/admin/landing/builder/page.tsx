@@ -11,7 +11,7 @@ import {
     ChevronUp, ChevronDown, Trash2, Plus, Play, Save, Monitor, Smartphone,
     ArrowLeft, Type, Image as ImageIcon, FormInput as FormIcon, Layout as LayoutIcon,
     Layers, Settings, Eye, EyeOff, CheckCircle2, Sparkles, X, RefreshCw,
-    Languages, Loader2, Wand2, Camera, Palette
+    Languages, Loader2, Wand2, Camera, Palette, Scissors
 } from 'lucide-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
@@ -135,7 +135,7 @@ function BuilderContent() {
     const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
     const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
     const [isGeneratingNano, setIsGeneratingNano] = useState<string | null>(null); // sectionId or itemKey
-    const [imageStyle, setImageStyle] = useState<'photo' | 'illustration' | 'minimalism'>('minimalism');
+    const [imageStyle, setImageStyle] = useState<'photo' | 'illustration' | 'minimalism' | 'paper-cut'>('minimalism');
     const [isAiRefining, setIsAiRefining] = useState(false);
     const [refineGoal, setRefineGoal] = useState('');
     const [showAiPanel, setShowAiPanel] = useState(false);
@@ -1091,14 +1091,14 @@ function BuilderContent() {
                                     <label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                                         <Palette className="w-3 h-3" /> Nano AI Style
                                     </label>
-                                    <div className="flex gap-1">
-                                        {(['photo', 'illustration', 'minimalism'] as const).map((style) => (
+                                    <div className="grid grid-cols-2 gap-1">
+                                        {(['photo', 'illustration', 'minimalism', 'paper-cut'] as const).map((style) => (
                                             <button
                                                 key={style}
                                                 onClick={() => setImageStyle(style)}
                                                 className={`flex-1 py-2 text-[8px] font-black uppercase tracking-tighter border transition-all ${imageStyle === style ? 'bg-black text-white border-black' : 'bg-white text-black/40 border-black/5 hover:border-black/20'}`}
                                             >
-                                                {style === 'photo' ? 'Photo' : style === 'illustration' ? 'Illust' : 'Minimal'}
+                                                {style === 'photo' ? 'Photo' : style === 'illustration' ? 'Illust' : style === 'minimalism' ? 'Minimal' : 'Paper'}
                                             </button>
                                         ))}
                                     </div>
