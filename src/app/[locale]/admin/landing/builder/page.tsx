@@ -285,34 +285,43 @@ function BuilderContent() {
 
         const localeKey = currentLocale === 'ko' ? 'ko' : 'global';
 
-        // Intelligent Category Detection
-        let category = 'lifestyle';
-        const lowerText = (text + (pageConfig.title || '')).toLowerCase();
+        // Advanced Context Matching
+        const lowerText = text.toLowerCase();
 
         if (type === 'avatar') {
             const pool = AVATAR_POOLS[localeKey] || AVATAR_POOLS.global;
-            // Use a combined seed for uniqueness per site/author
             const seed = (lowerText.length + Math.floor(Math.random() * 1000)) % pool.length;
             const randomId = pool[seed];
             return `https://images.unsplash.com/photo-${randomId}?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80`;
         }
 
-        // Expanded Keyword Matching
-        if (lowerText.match(/code|tech|ai|software|data|기술|첨단|인공지능|컴퓨터/)) category = 'tech';
-        else if (lowerText.match(/food|cooking|recipe|delicious|요리|음식|맛있|식사|카페|커피|coffee/)) category = lowerText.includes('coffee') ? 'cafe' : 'food';
-        else if (lowerText.match(/nature|forest|mountain|ocean|green|자연|숲|산|바다|환경/)) category = 'nature';
-        else if (lowerText.match(/travel|trip|hotel|flight|outdoor|여행|관광|해외|항공/)) category = 'travel';
-        else if (lowerText.match(/health|yoga|workout|fitness|medical|건강|요가|운동|의료|병|피트니스/)) category = lowerText.includes('fitness') ? 'fitness' : 'health';
-        else if (lowerText.match(/art|design|painting|creative|예술|디자인|창의|미술/)) category = 'art';
-        else if (lowerText.match(/fashion|style|clothes|쇼핑|패션|스타일/)) category = 'fashion';
-        else if (lowerText.match(/pet|dog|cat|animal|강아지|고양이|반려/)) category = 'pets';
-        else if (lowerText.match(/아이|아기|부모|육아|가족|parent|child|baby|family/)) category = 'family';
-        else if (lowerText.match(/일기|기록|루틴|노트|글쓰기|diary|journal|writing|note|record|routine/)) category = 'writing';
-        else if (lowerText.match(/architecture|building|interior|house|집|건축|인테리어/)) category = 'architecture';
-        else if (lowerText.match(/education|school|learn|study|교육|학교|공부|학습/)) category = 'education';
-        else if (lowerText.match(/minimal|simple|clean|modern|미니멀|심플|깔끔/)) category = 'minimal';
-        else if (lowerText.match(/work|office|business|company|회사|팀|비즈니스/)) category = 'business';
-        else category = 'lifestyle';
+        // Scoring based matching
+        const scores: Record<string, number> = {};
+        Object.keys(IMAGE_POOLS).forEach(cat => scores[cat] = 0);
+
+        const match = (pattern: RegExp, cat: string, weight: number = 1) => {
+            if (lowerText.match(pattern)) scores[cat] += weight;
+        };
+
+        match(/code|tech|ai|software|data|기술|첨단|인공지능|컴퓨터|it|개발/, 'tech', 3);
+        match(/food|cooking|recipe|delicious|요리|음식|맛있|식사|meal|lunch|dinner/, 'food', 3);
+        match(/cafe|coffee|bread|coffee|카페|커피|바리스타/, 'cafe', 4);
+        match(/nature|forest|mountain|ocean|green|자연|숲|산|바다|환경|earth/, 'nature', 3);
+        match(/travel|trip|hotel|flight|outdoor|여행|관광|해외|항공|vacation|tour/, 'travel', 3);
+        match(/health|yoga|workout|fitness|medical|건강|요가|운동|의료|병|피트니스|doctor/, 'health', 3);
+        match(/fitness|gym|workout|exercise|운동|헬스|pt/, 'fitness', 4);
+        match(/art|design|painting|creative|예술|디자인|창의|미술|painter/, 'art', 3);
+        match(/fashion|style|clothes|쇼핑|패션|스타일|model/, 'fashion', 3);
+        match(/pet|dog|cat|animal|강아지|고양이|반려|puppy/, 'pets', 4);
+        match(/아이|아기|부모|육아|가족|parent|child|baby|family|mother|father/, 'family', 5);
+        match(/일기|기록|루틴|노트|글쓰기|diary|journal|writing|note|record|routine|paper|pen/, 'writing', 5);
+        match(/architecture|building|interior|house|집|건축|인테리어|home|living/, 'architecture', 3);
+        match(/education|school|learn|study|교육|학교|공부|학습|student|teacher/, 'education', 3);
+        match(/minimal|simple|clean|modern|미니멀|심플|깔끔/, 'minimal', 2);
+        match(/work|office|business|company|회사|팀|비즈니스|meeting|startup/, 'business', 3);
+
+        let category = Object.entries(scores).reduce((a, b) => a[1] > b[1] ? a : b)[0];
+        if (scores[category] === 0) category = 'lifestyle';
 
         const pool = IMAGE_POOLS[category] || IMAGE_POOLS.lifestyle;
 
@@ -1123,7 +1132,14 @@ function BuilderContent() {
                                                             className="rounded-none border-black/10 text-[10px] h-10 pr-10"
                                                         />
                                                         <button
-                                                            onClick={() => updateSectionContent(activeSection!.id, { imageUrl: getRandomImageUrl('auto', activeSection!.content.title || '', pageConfig.locale) })}
+                                                            onClick={() => {
+                                                                const context = `
+                                                                    ${activeSection!.content.title || ''} 
+                                                                    ${activeSection!.content.subtitle || ''} 
+                                                                    ${activeSection!.content.imageKeywords || ''}
+                                                                `;
+                                                                updateSectionContent(activeSection!.id, { imageUrl: getRandomImageUrl('auto', context, pageConfig.locale) });
+                                                            }}
                                                             className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-black/40 hover:text-black hover:bg-black/5 transition-colors"
                                                             title="Shuffle Image"
                                                         >
@@ -1197,7 +1213,7 @@ function BuilderContent() {
                                                     <button
                                                         onClick={() => {
                                                             const newItems = [...activeSection.content.items];
-                                                            newItems[i] = { ...item, imageUrl: getRandomImageUrl('auto', item.title || '', pageConfig.locale) };
+                                                            newItems[i] = { ...item, imageUrl: getRandomImageUrl('auto', `${item.title || ''} ${item.description || ''} ${item.imageKeywords || ''}`, pageConfig.locale) };
                                                             updateSectionContent(activeSection.id, { items: newItems });
                                                         }}
                                                         className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
@@ -1363,7 +1379,7 @@ function BuilderContent() {
                                                     <button
                                                         onClick={() => {
                                                             const newItems = [...activeSection.content.items];
-                                                            newItems[i] = { ...item, imageUrl: getRandomImageUrl('auto', item.title || '', pageConfig.locale) };
+                                                            newItems[i] = { ...item, imageUrl: getRandomImageUrl('auto', `${item.title || ''} ${item.description || ''} ${item.imageKeywords || ''}`, pageConfig.locale) };
                                                             updateSectionContent(activeSection.id, { items: newItems });
                                                         }}
                                                         className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"

@@ -59,16 +59,17 @@ The response MUST be a valid JSON object:
 **'suggestedSlug' must be in URL-friendly English (lowercase, dashes).**
 
 Type-specific content structures (STRICTLY FOLLOW THESE KEYS):
-- hero: { "title": string, "subtitle": string, "badge": string, "buttonText": string, "imageUrl": string }
-- problem: { "title": string, "subtitle": string, "points": string[], "imageUrl": string }
-- solution: { "title": string, "subtitle": string, "items": [{ "title": string, "description": string, "imageUrl": string }] }
-- features: { "items": [{ "title": string, "description": string, "imageUrl": string }] }
+- hero: { "title": string, "subtitle": string, "badge": string, "buttonText": string, "imageUrl": string, "imageKeywords": string }
+- problem: { "title": string, "subtitle": string, "points": string[], "imageUrl": string, "imageKeywords": string }
+- solution: { "title": string, "subtitle": string, "items": [{ "title": string, "description": string, "imageUrl": string, "imageKeywords": string }] }
+- features: { "items": [{ "title": string, "description": string, "imageUrl": string, "imageKeywords": string }] }
 - process: { "title": string, "steps": [{ "title": string, "description": string }] }
-- social_proof: { "testimonials": [{ "text": string, "author": string, "role": string, "avatarUrl": string }] }
+- social_proof: { "testimonials": [{ "text": string, "author": string, "role": string, "avatarUrl": string, "imageKeywords": string }] }
 - cta_form: { "title": string, "subtitle": string, "buttonText": string, "fields": [{ "id": string, "type": "text" | "email", "label": string, "placeholder": string, "required": boolean }] }
 
 **IMAGE GUIDELINES:**
 For 'imageUrl' and 'avatarUrl', use high-quality placeholder URLs from Unsplash (e.g., https://images.unsplash.com/photo-...).
+**IMPORTANT**: For every section WITH an image, you MUST provide 'imageKeywords' (3-5 English keywords describing the ideal visual context, e.g., "minimalist diary, cozy desk, morning light").
 Choose images that match the persona and the professional/luxury tone of the blog.
 
 Mapping Instructions:
