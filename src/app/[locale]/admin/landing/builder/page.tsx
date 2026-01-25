@@ -272,7 +272,10 @@ function BuilderContent() {
             business: ['1557804506-669a67965ba0', '1522202176988-66273c2fd55f', '1531482615713-2afd69097998', '1460925895917-afdab827c52f', '1542744173-8e7e53415bb0', '1556761175-5973dc0f32e7', '1517245386807-bb43f82c33c4', '1552664730-d307ca884978'],
             minimal: ['1494438639946-1ebd1d20bf85', '1507525428034-b723cf961d3e', '1449247709015-d44b526db1cd', '1486406146926-c627a92ad1ab', '1533038590841-2c6225a8a94b', '1522158625211-1335b546369c', '1518133910393-9c882855140e', '1516962215312-78a0593cc13c'],
             fitness: ['1517834641475-045313f87a31', '15344383272d6-0a042e2baa3c', '1571019613454-1cb2f99b2d8b', '1534258936113-d4d3e317c6a2', '1532384748853-2646a2974d7c', '1574680093514-40150adb7a16', '1541534741620-1a8008871bd0', '15383803272d6-0a042e2baa3c'],
-            pets: ['1517849845594-3f58eaef823c', '1533738363-25948440011a', '1514880275624-9bb29b53f0fa', '1548199973-c3f5022b0a2a', '1537151108174-8b89a1dd45ad', '1529753232803-35a4d7159774', '1425016629704-df962f9f048d', '1519391056208-12196e023ca0']
+            pets: ['1517849845594-3f58eaef823c', '1533738363-25948440011a', '1514880275624-9bb29b53f0fa', '1548199973-c3f5022b0a2a', '1537151108174-8b89a1dd45ad', '1529753232803-35a4d7159774', '1425016629704-df962f9f048d', '1519391056208-12196e023ca0'],
+            family: ['1512108701349-eb6542aba4a2', '1502086223506-048a392a54b0', '1484062860159-c96608457330', '1516733725897-1973efc66e8c', '1475871304547-443b79729900', '1531545514256-b1400bc00f31', '1554151228-14d9def656e4'],
+            writing: ['1455390582268-91afc922b9c7', '1517842635326-c10f81c6a70c', '1506784983817-57ff490c000c', '1488190211464-84175ec1f2bf', '1491841573562-ddc1e31d4183', '1501503069356-3c6b9ee141fd'],
+            lifestyle: ['1499209974450-f29914b0f338', '1513694203601-2b99b671420b', '1445116572660-c99adc997c27', '1520191262815-f2a830460014', '1515405295579-ba7b456a203e', '1516733944004-2bd232fc652b']
         };
 
         const AVATAR_POOLS: Record<string, string[]> = {
@@ -283,7 +286,7 @@ function BuilderContent() {
         const localeKey = currentLocale === 'ko' ? 'ko' : 'global';
 
         // Intelligent Category Detection
-        let category = 'minimal';
+        let category = 'lifestyle';
         const lowerText = (text + (pageConfig.title || '')).toLowerCase();
 
         if (type === 'avatar') {
@@ -303,12 +306,15 @@ function BuilderContent() {
         else if (lowerText.match(/art|design|painting|creative|예술|디자인|창의|미술/)) category = 'art';
         else if (lowerText.match(/fashion|style|clothes|쇼핑|패션|스타일/)) category = 'fashion';
         else if (lowerText.match(/pet|dog|cat|animal|강아지|고양이|반려/)) category = 'pets';
+        else if (lowerText.match(/아이|아기|부모|육아|가족|parent|child|baby|family/)) category = 'family';
+        else if (lowerText.match(/일기|기록|루틴|노트|글쓰기|diary|journal|writing|note|record|routine/)) category = 'writing';
         else if (lowerText.match(/architecture|building|interior|house|집|건축|인테리어/)) category = 'architecture';
         else if (lowerText.match(/education|school|learn|study|교육|학교|공부|학습/)) category = 'education';
         else if (lowerText.match(/minimal|simple|clean|modern|미니멀|심플|깔끔/)) category = 'minimal';
-        else category = 'business';
+        else if (lowerText.match(/work|office|business|company|회사|팀|비즈니스/)) category = 'business';
+        else category = 'lifestyle';
 
-        const pool = IMAGE_POOLS[category] || IMAGE_POOLS.minimal;
+        const pool = IMAGE_POOLS[category] || IMAGE_POOLS.lifestyle;
 
         // Dynamic Seeding Logic: Ensure Different Sites Get Different Results
         // We use the page title's unique hash to "offset" the random selection
