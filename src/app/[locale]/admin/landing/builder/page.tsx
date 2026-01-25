@@ -11,7 +11,7 @@ import {
     ChevronUp, ChevronDown, Trash2, Plus, Play, Save, Monitor, Smartphone,
     ArrowLeft, Type, Image as ImageIcon, FormInput as FormIcon, Layout as LayoutIcon,
     Layers, Settings, Eye, EyeOff, CheckCircle2, Sparkles, X, RefreshCw,
-    Languages, Loader2
+    Languages, Loader2, Shuffle
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
@@ -255,6 +255,11 @@ function BuilderContent() {
             ...prev,
             content: prev.content?.map(s => s.id === id ? { ...s, content: { ...s.content, ...newContent } } : s)
         }));
+    };
+
+    const getRandomImageUrl = (keyword: string) => {
+        const cleanKeyword = keyword.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'business';
+        return `https://source.unsplash.com/featured/1200x800/?${cleanKeyword}&sig=${Math.random().toString(36).substr(2, 9)}`;
     };
 
     const handleAiRefine = async () => {
@@ -1046,12 +1051,21 @@ function BuilderContent() {
                                             <div className="space-y-2">
                                                 <label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Image URL</label>
                                                 <div className="flex gap-2">
-                                                    <Input
-                                                        value={activeSection?.content.imageUrl || ''}
-                                                        onChange={e => updateSectionContent(activeSection!.id, { imageUrl: e.target.value })}
-                                                        placeholder="https://images.unsplash.com/..."
-                                                        className="rounded-none border-black/10 text-[10px] h-10"
-                                                    />
+                                                    <div className="relative flex-1">
+                                                        <Input
+                                                            value={activeSection?.content.imageUrl || ''}
+                                                            onChange={e => updateSectionContent(activeSection!.id, { imageUrl: e.target.value })}
+                                                            placeholder="https://images.unsplash.com/..."
+                                                            className="rounded-none border-black/10 text-[10px] h-10 pr-10"
+                                                        />
+                                                        <button
+                                                            onClick={() => updateSectionContent(activeSection!.id, { imageUrl: getRandomImageUrl(activeSection!.content.title) })}
+                                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-black/40 hover:text-black hover:bg-black/5 transition-colors"
+                                                            title="Shuffle Image"
+                                                        >
+                                                            <Shuffle className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
                                                     <div className="w-10 h-10 bg-black/[0.05] flex items-center justify-center shrink-0 border border-black/5">
                                                         {activeSection?.content.imageUrl ? <img src={activeSection.content.imageUrl} className="w-full h-full object-cover" /> : <ImageIcon className="w-4 h-4 text-black/20" />}
                                                     </div>
@@ -1105,16 +1119,28 @@ function BuilderContent() {
                                                     }}
                                                     className="rounded-none border-black/10 text-[10px] font-bold h-8"
                                                 />
-                                                <Input
-                                                    value={item.imageUrl || ''}
-                                                    placeholder="Image URL"
-                                                    onChange={e => {
-                                                        const newItems = [...activeSection.content.items];
-                                                        newItems[i] = { ...item, imageUrl: e.target.value };
-                                                        updateSectionContent(activeSection.id, { items: newItems });
-                                                    }}
-                                                    className="rounded-none border-black/10 text-[9px] h-8"
-                                                />
+                                                <div className="relative">
+                                                    <Input
+                                                        value={item.imageUrl || ''}
+                                                        placeholder="Image URL"
+                                                        onChange={e => {
+                                                            const newItems = [...activeSection.content.items];
+                                                            newItems[i] = { ...item, imageUrl: e.target.value };
+                                                            updateSectionContent(activeSection.id, { items: newItems });
+                                                        }}
+                                                        className="rounded-none border-black/10 text-[9px] h-8 pr-8"
+                                                    />
+                                                    <button
+                                                        onClick={() => {
+                                                            const newItems = [...activeSection.content.items];
+                                                            newItems[i] = { ...item, imageUrl: getRandomImageUrl(item.title) };
+                                                            updateSectionContent(activeSection.id, { items: newItems });
+                                                        }}
+                                                        className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
+                                                    >
+                                                        <Shuffle className="w-3 h-3" />
+                                                    </button>
+                                                </div>
                                                 <textarea
                                                     value={item.description || ''}
                                                     placeholder="Description"
@@ -1259,16 +1285,28 @@ function BuilderContent() {
                                                     }}
                                                     className="rounded-none border-black/10 text-[10px] font-bold h-8"
                                                 />
-                                                <Input
-                                                    value={item.imageUrl || ''}
-                                                    placeholder="Solution Image URL"
-                                                    onChange={e => {
-                                                        const newItems = [...activeSection.content.items];
-                                                        newItems[i] = { ...item, imageUrl: e.target.value };
-                                                        updateSectionContent(activeSection.id, { items: newItems });
-                                                    }}
-                                                    className="rounded-none border-black/10 text-[9px] h-8"
-                                                />
+                                                <div className="relative">
+                                                    <Input
+                                                        value={item.imageUrl || ''}
+                                                        placeholder="Solution Image URL"
+                                                        onChange={e => {
+                                                            const newItems = [...activeSection.content.items];
+                                                            newItems[i] = { ...item, imageUrl: e.target.value };
+                                                            updateSectionContent(activeSection.id, { items: newItems });
+                                                        }}
+                                                        className="rounded-none border-black/10 text-[9px] h-8 pr-8"
+                                                    />
+                                                    <button
+                                                        onClick={() => {
+                                                            const newItems = [...activeSection.content.items];
+                                                            newItems[i] = { ...item, imageUrl: getRandomImageUrl(item.title) };
+                                                            updateSectionContent(activeSection.id, { items: newItems });
+                                                        }}
+                                                        className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
+                                                    >
+                                                        <Shuffle className="w-3 h-3" />
+                                                    </button>
+                                                </div>
                                                 <textarea
                                                     value={item.description || ''}
                                                     placeholder="Benefit/Description"
@@ -1381,16 +1419,28 @@ function BuilderContent() {
                                                             className="rounded-none border-black/10 text-[9px] h-8"
                                                         />
                                                     </div>
-                                                    <Input
-                                                        value={t.avatarUrl || ''}
-                                                        placeholder="Avatar Image URL"
-                                                        onChange={e => {
-                                                            const newTestimonials = [...activeSection.content.testimonials];
-                                                            newTestimonials[i] = { ...t, avatarUrl: e.target.value };
-                                                            updateSectionContent(activeSection.id, { testimonials: newTestimonials });
-                                                        }}
-                                                        className="rounded-none border-black/10 text-[8px] h-7"
-                                                    />
+                                                    <div className="relative">
+                                                        <Input
+                                                            value={t.avatarUrl || ''}
+                                                            placeholder="Avatar Image URL"
+                                                            onChange={e => {
+                                                                const newTestimonials = [...activeSection.content.testimonials];
+                                                                newTestimonials[i] = { ...t, avatarUrl: e.target.value };
+                                                                updateSectionContent(activeSection.id, { testimonials: newTestimonials });
+                                                            }}
+                                                            className="rounded-none border-black/10 text-[8px] h-7 pr-7"
+                                                        />
+                                                        <button
+                                                            onClick={() => {
+                                                                const newTestimonials = [...activeSection.content.testimonials];
+                                                                newTestimonials[i] = { ...t, avatarUrl: `https://i.pravatar.cc/150?u=${Math.random()}` };
+                                                                updateSectionContent(activeSection.id, { testimonials: newTestimonials });
+                                                            }}
+                                                            className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
+                                                        >
+                                                            <Shuffle className="w-2.5 h-2.5" />
+                                                        </button>
+                                                    </div>
                                                     <button onClick={() => {
                                                         const newTestimonials = activeSection.content.testimonials.filter((_: any, idx: number) => idx !== i);
                                                         updateSectionContent(activeSection.id, { testimonials: newTestimonials });
