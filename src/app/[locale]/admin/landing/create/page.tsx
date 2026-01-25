@@ -8,9 +8,19 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LandingPageType, LandingPageTemplate } from '@/types/landing';
-import { ArrowLeft, Check, Sparkles, Layout, Target, MousePointerClick, Download, Plus } from 'lucide-react';
+import { ArrowLeft, Check, Sparkles, Layout, Target, MousePointerClick, Download, Plus, BookOpen } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { useLocale } from 'next-intl';
+import { getAllPublishedPosts } from '@/services/blogService';
+import { Post } from '@/types/blog';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { useEffect } from 'react';
 
 const GOAL_TYPES: { id: LandingPageType; label: string; description: string; icon: any }[] = [
     {
@@ -78,6 +88,25 @@ export default function CreateLandingPage() {
     const [aiGoal, setAiGoal] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [title, setTitle] = useState('');
+    const [posts, setPosts] = useState<Post[]>([]);
+    const [selectedPostId, setSelectedPostId] = useState<string>('');
+
+    useEffect(() => {
+        const fetchPosts = async () => {
+            const data = await getAllPublishedPosts();
+            setPosts(data);
+        };
+        fetchPosts();
+    }, []);
+
+    const handlePostSelect = (postId: string) => {
+        const post = posts.find(p => p.id === postId);
+        if (post) {
+            setSelectedPostId(postId);
+            setTitle(`LP: ${post.title}`);
+            setAiGoal(`[SOURCE BLOG CONTENT]\n---\nTITLE: ${post.title}\nCONTENT: ${post.content}\n---`);
+        }
+    };
 
     const handleGoalSelect = (goal: LandingPageType) => {
         setSelectedGoal(goal);
@@ -176,6 +205,24 @@ export default function CreateLandingPage() {
                             </div>
 
                             <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-white/40 flex items-center gap-2">
+                                        <BookOpen className="w-3 h-3" />
+                                        Select Source Blog Content (Optional)
+                                    </label>
+                                    <Select onValueChange={handlePostSelect} value={selectedPostId}>
+                                        <SelectTrigger className="bg-transparent border-white/20 text-white rounded-none h-12 uppercase font-bold text-xs ring-offset-black">
+                                            <SelectValue placeholder="CHOOSE A BLOG POST TO ANALYZE" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-black border-white/20 text-white rounded-none">
+                                            {posts.map(post => (
+                                                <SelectItem key={post.id} value={post.id} className="focus:bg-white focus:text-black uppercase text-[10px] font-bold">
+                                                    {post.title}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                                 <div className="space-y-2">
                                     <label className="text-[9px] font-black uppercase tracking-widest text-white/40">Operation Name (Title)</label>
                                     <Input
