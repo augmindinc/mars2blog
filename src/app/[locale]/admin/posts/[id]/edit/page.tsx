@@ -255,7 +255,20 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                 return;
             }
 
-            const targetParas = paragraphs.slice(0, 2); // Limit to 2 for speed
+            // Distribute images evenly across the content
+            const maxImages = 4;
+            const targetCount = Math.min(maxImages, Math.ceil(paragraphs.length / 3));
+            const targetParas: string[] = [];
+
+            if (paragraphs.length <= maxImages) {
+                targetParas.push(...paragraphs);
+            } else {
+                for (let i = 0; i < targetCount; i++) {
+                    const idx = Math.floor(i * (paragraphs.length / targetCount));
+                    targetParas.push(paragraphs[idx]);
+                }
+            }
+
             let newContent = content;
 
             for (const para of targetParas) {

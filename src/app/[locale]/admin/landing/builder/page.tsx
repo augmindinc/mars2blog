@@ -11,7 +11,7 @@ import {
     ChevronUp, ChevronDown, Trash2, Plus, Play, Save, Monitor, Smartphone,
     ArrowLeft, Type, Image as ImageIcon, FormInput as FormIcon, Layout as LayoutIcon,
     Layers, Settings, Eye, EyeOff, CheckCircle2, Sparkles, X, RefreshCw,
-    Languages, Loader2, Shuffle, Wand2, Camera, Palette
+    Languages, Loader2, Wand2, Camera, Palette
 } from 'lucide-react';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
@@ -45,13 +45,13 @@ const SECTION_TEMPLATES: Record<string, any> = {
         title: 'REVOLUTIONIZE YOUR WORKFLOW',
         subtitle: 'The ultimate minimalist engine for modern creators and visionary digital architects.',
         buttonText: 'GET STARTED NOW',
-        imageUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=2426',
+        imageUrl: '',
         badge: 'NEW ERA OF PRODUCTIVITY',
     },
     problem: {
         title: 'STOP WASTING RESOURCES',
         subtitle: 'Traditional systems are slowing you down. Here is why:',
-        imageUrl: 'https://images.unsplash.com/photo-1454165833767-1330084bc6f9?auto=format&fit=crop&q=80&w=2070',
+        imageUrl: '',
         points: [
             'Inefficient resource allocation',
             'Fragmented communication channels',
@@ -62,15 +62,15 @@ const SECTION_TEMPLATES: Record<string, any> = {
         title: 'THE PROTOCOL SOLUTION',
         subtitle: 'A unified field theory for your business operations.',
         items: [
-            { title: 'Unified Core', description: 'Everything in one high-performance terminal.', imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=2070' },
-            { title: 'Auto-Scaling', description: 'Growth without the infrastructure headache.', imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=2072' }
+            { title: 'Unified Core', description: 'Everything in one high-performance terminal.', imageUrl: '' },
+            { title: 'Auto-Scaling', description: 'Growth without the infrastructure headache.', imageUrl: '' }
         ]
     },
     features: {
         items: [
-            { title: 'Sharp Design', description: 'Zero rounded corners for maximum professional impact.', imageUrl: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80&w=2070' },
-            { title: 'Infinite Scale', description: 'Built on top of elite cloud infrastructure.', imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=2070' },
-            { title: 'AI Driven', description: 'Smart content generation at your fingertips.', imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=2070' },
+            { title: 'Sharp Design', description: 'Zero rounded corners for maximum professional impact.', imageUrl: '' },
+            { title: 'Infinite Scale', description: 'Built on top of elite cloud infrastructure.', imageUrl: '' },
+            { title: 'AI Driven', description: 'Smart content generation at your fingertips.', imageUrl: '' },
         ]
     },
     process: {
@@ -85,7 +85,7 @@ const SECTION_TEMPLATES: Record<string, any> = {
         title: 'TRUSTED BY LEADERS',
         logos: ['LOGIC', 'MATRIX', 'ORBIT', 'KINETIC'],
         testimonials: [
-            { author: 'Jane Doe', role: 'CEO, Matrix', text: 'The efficiency gained is unprecedented.', avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200' }
+            { author: 'Jane Doe', role: 'CEO, Matrix', text: 'The efficiency gained is unprecedented.', avatarUrl: '' }
         ]
     },
     pricing: {
@@ -135,6 +135,7 @@ function BuilderContent() {
     const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
     const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
     const [isGeneratingNano, setIsGeneratingNano] = useState<string | null>(null); // sectionId or itemKey
+    const [imageStyle, setImageStyle] = useState<'photo' | 'illustration' | 'minimalism'>('minimalism');
     const [isAiRefining, setIsAiRefining] = useState(false);
     const [refineGoal, setRefineGoal] = useState('');
     const [showAiPanel, setShowAiPanel] = useState(false);
@@ -261,83 +262,6 @@ function BuilderContent() {
         }));
     };
 
-    const getRandomImageUrl = (type: 'business' | 'avatar' | 'auto', text: string = '', currentLocale: string = 'ko') => {
-        const IMAGE_POOLS: Record<string, string[]> = {
-            tech: ['1518770660439-4636190af475', '1451187580459-43490279c0fa', '1519389950473-47ba0277781c', '1531206715517-5c0ba1383af0', '1550751827-4bd374c3f58b', '1581091226825-a6a2a5aee158', '1525547710557-80244c67c9d9', '1515378791036-0648a3ef77b2'],
-            nature: ['1470071459604-3b5ec3a7fe05', '1441974231531-c6227db76b6e', '1501854191687-d16ad0ad16c5', '1464822759023-fed622ff2c3b', '1433085051395-92c482ed123b', '1506744038136-46273834b3fb', '1472214103451-9374bd1c798e', '1500382017468-9049fed747ef'],
-            food: ['1504674900247-0877df9cc836', '1476514525535-07fb3b4ae5f1', '1493770348161-369560ae357d', '1473093226795-af9932fe5856', '1512621776951-a57141f2e96a', '1504754663776-5120bd9b03fd', '1567622658625-796fb3d43b6b', '1482049016688-2d3e1b311543'],
-            travel: ['1469854523086-cc02fe5d8800', '1503220317375-aaad61436b1b', '1528127269322-539801943592', '1476514525535-07fb3b4ae5f1', '1488085061387-422e29b40080', '1530789253086-cc02fe5d8800', '1507525428034-b723cf961d3e', '1527631746394-2035359146f2'],
-            health: ['1506126613408-eca07ce68773', '1544367567-0f2fcb009e0b', '1571019613454-1cb2f99b2d8b', '1515372039744-48f0030f1750', '1505751172107-1c49b6e82a2b', '1535914211119-272251762e12', '1576037728596-959199b76144', '1591343393440-629932dad53c'],
-            art: ['1460662121278-d7c127336ee9', '1513364776144-60967b0f800f', '1541701494587-cb58502866ab', '1500628555351-011945331f81', '1515405295579-ba7b456a203e', '1579783902614-a3fb3927b6a5', '1549490349-8643362247b5', '1577083552431-6e5fd01aa342'],
-            fashion: ['1490481651871-ab68ff25d43d', '1445206111151-0730bd08959c', '1469334031218-e382a760f06b', '1485230895905-ec40bd36b6bc', '1515886657613-9f3515b0c78f', '1509319113196-a29626e24be3', '1539106723223-960205829671', '1581067727401-49767676757f'],
-            cafe: ['1495474472287-4d71bcdd2085', '1447933601406-2c130327f311', '1497933190204-a151740268ce', '1459756269019-74a5996b649d', '1501339847302-ac4464b7c156', '1442512595333-10780f7a9f19', '1511923247514-4eb952402928', '1554118811-1752b947118d'],
-            education: ['1503676260728-3c40fd455909', '1434031219322-79111f93028d', '1523050853177-87bfc1925b36', '1524178232583-175c0cd17e2e', '1497633762265-911cb3b324a2', '1491841573562-ddc1e31d4183', '1509062564944-15602022f46d', '1501503069356-3c6b9ee141fd'],
-            architecture: ['1486406146926-c627a92ad1ab', '1497366216548-37526070297c', '1487958449333-2b2413eb44b1', '1512917774597-40c2139bb2ba', '1518005020931-58d17d080c98', '1503387762223-f20387534065', '1494438639946-1ebd1d20bf85', '1500333595703-f155bb912413'],
-            business: ['1557804506-669a67965ba0', '1522202176988-66273c2fd55f', '1531482615713-2afd69097998', '1460925895917-afdab827c52f', '1542744173-8e7e53415bb0', '1556761175-5973dc0f32e7', '1517245386807-bb43f82c33c4', '1552664730-d307ca884978'],
-            minimal: ['1494438639946-1ebd1d20bf85', '1507525428034-b723cf961d3e', '1449247709015-d44b526db1cd', '1486406146926-c627a92ad1ab', '1533038590841-2c6225a8a94b', '1522158625211-1335b546369c', '1518133910393-9c882855140e', '1516962215312-78a0593cc13c'],
-            fitness: ['1517834641475-045313f87a31', '15344383272d6-0a042e2baa3c', '1571019613454-1cb2f99b2d8b', '1534258936113-d4d3e317c6a2', '1532384748853-2646a2974d7c', '1574680093514-40150adb7a16', '1541534741620-1a8008871bd0', '15383803272d6-0a042e2baa3c'],
-            pets: ['1517849845594-3f58eaef823c', '1533738363-25948440011a', '1514880275624-9bb29b53f0fa', '1548199973-c3f5022b0a2a', '1537151108174-8b89a1dd45ad', '1529753232803-35a4d7159774', '1425016629704-df962f9f048d', '1519391056208-12196e023ca0'],
-            family: ['1512108701349-eb6542aba4a2', '1502086223506-048a392a54b0', '1484062860159-c96608457330', '1516733725897-1973efc66e8c', '1475871304547-443b79729900', '1531545514256-b1400bc00f31', '1554151228-14d9def656e4'],
-            writing: ['1455390582268-91afc922b9c7', '1517842635326-c10f81c6a70c', '1506784983817-57ff490c000c', '1488190211464-84175ec1f2bf', '1491841573562-ddc1e31d4183', '1501503069356-3c6b9ee141fd'],
-            lifestyle: ['1499209974450-f29914b0f338', '1513694203601-2b99b671420b', '1445116572660-c99adc997c27', '1520191262815-f2a830460014', '1515405295579-ba7b456a203e', '1516733944004-2bd232fc652b']
-        };
-
-        const AVATAR_POOLS: Record<string, string[]> = {
-            ko: ['1507003211169-0a1dd7228f2d', '1494790108377-be9c29b29330', '1539571696357-5a69c17a67c6', '1534528741775-53994a69daeb', '1438761681033-6461ffad8d80', '1523950334849-01f70d8883e4', '1506155353164-9be9395b058c', '1525227713542-0fbc140409a3'],
-            global: ['1531123897727-8f129e1688ce', '1580489944761-15a19d654956', '1500648767791-00dcc994a43e', '1573496359142-b8d87734a5a2', '1573497019940-1c28c88b4f3e', '1544005320-7c21dce3d3d9', '1542909119-89297341390f', '1546456207-88fd982f9793', '1542157547-d243d66669e2', '1590086782775-470AD011bbca']
-        };
-
-        const localeKey = currentLocale === 'ko' ? 'ko' : 'global';
-
-        // Advanced Context Matching
-        const lowerText = text.toLowerCase();
-
-        if (type === 'avatar') {
-            const pool = AVATAR_POOLS[localeKey] || AVATAR_POOLS.global;
-            const seed = (lowerText.length + Math.floor(Math.random() * 1000)) % pool.length;
-            const randomId = pool[seed];
-            return `https://images.unsplash.com/photo-${randomId}?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80`;
-        }
-
-        // Scoring based matching
-        const scores: Record<string, number> = {};
-        Object.keys(IMAGE_POOLS).forEach(cat => scores[cat] = 0);
-
-        const match = (pattern: RegExp, cat: string, weight: number = 1) => {
-            if (lowerText.match(pattern)) scores[cat] += weight;
-        };
-
-        match(/code|tech|ai|software|data|기술|첨단|인공지능|컴퓨터|it|개발/, 'tech', 3);
-        match(/food|cooking|recipe|delicious|요리|음식|맛있|식사|meal|lunch|dinner/, 'food', 3);
-        match(/cafe|coffee|bread|coffee|카페|커피|바리스타/, 'cafe', 4);
-        match(/nature|forest|mountain|ocean|green|자연|숲|산|바다|환경|earth/, 'nature', 3);
-        match(/travel|trip|hotel|flight|outdoor|여행|관광|해외|항공|vacation|tour/, 'travel', 3);
-        match(/health|yoga|workout|fitness|medical|건강|요가|운동|의료|병|피트니스|doctor/, 'health', 3);
-        match(/fitness|gym|workout|exercise|운동|헬스|pt/, 'fitness', 4);
-        match(/art|design|painting|creative|예술|디자인|창의|미술|painter/, 'art', 3);
-        match(/fashion|style|clothes|쇼핑|패션|스타일|model/, 'fashion', 3);
-        match(/pet|dog|cat|animal|강아지|고양이|반려|puppy/, 'pets', 4);
-        match(/아이|아기|부모|육아|가족|parent|child|baby|family|mother|father/, 'family', 5);
-        match(/일기|기록|루틴|노트|글쓰기|diary|journal|writing|note|record|routine|paper|pen/, 'writing', 5);
-        match(/architecture|building|interior|house|집|건축|인테리어|home|living/, 'architecture', 3);
-        match(/education|school|learn|study|교육|학교|공부|학습|student|teacher/, 'education', 3);
-        match(/minimal|simple|clean|modern|미니멀|심플|깔끔/, 'minimal', 2);
-        match(/work|office|business|company|회사|팀|비즈니스|meeting|startup/, 'business', 3);
-
-        let category = Object.entries(scores).reduce((a, b) => a[1] > b[1] ? a : b)[0];
-        if (scores[category] === 0) category = 'lifestyle';
-
-        const pool = IMAGE_POOLS[category] || IMAGE_POOLS.lifestyle;
-
-        // Dynamic Seeding Logic: Ensure Different Sites Get Different Results
-        // We use the page title's unique hash to "offset" the random selection
-        const siteTitleHash = (pageConfig.title || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        const sectionTextHash = text.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        const uniqueIndex = (siteTitleHash + sectionTextHash + Math.floor(Math.random() * 100)) % pool.length;
-
-        const randomId = pool[uniqueIndex];
-        return `https://images.unsplash.com/photo-${randomId}?auto=format&fit=crop&q=80&w=1200`;
-    };
 
     const base64ToBlob = (base64: string, mimeType: string) => {
         const byteCharacters = atob(base64);
@@ -369,7 +293,7 @@ function BuilderContent() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     type: 'image-prompt',
-                    style: 'minimalism', // Default for landing pages
+                    style: imageStyle,
                     locale: locale,
                     content: textContext,
                     context: `Landing Page Section: ${activeSection?.type}`
@@ -384,7 +308,7 @@ function BuilderContent() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         type: 'nano-banana-image',
-                        style: 'minimalism',
+                        style: imageStyle,
                         prompt: promptData.result
                     }),
                 });
@@ -1156,9 +1080,29 @@ function BuilderContent() {
                             <button onClick={() => setActiveSectionId(null)} className="text-black/40 hover:text-black px-2 py-1"><CheckCircle2 className="w-4 h-4" /></button>
                         </div>
                         <div className="p-6 space-y-8 overflow-y-auto h-[calc(100vh-120px)]">
-                            <div className="space-y-2">
-                                <Badge className="rounded-none bg-black/[0.03] text-black border border-black/5 font-bold text-[8px] uppercase tracking-widest px-2">{activeSection?.type}</Badge>
-                                <h4 className="text-[10px] font-black uppercase tracking-widest">Variable Injection</h4>
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Badge className="rounded-none bg-black/[0.03] text-black border border-black/5 font-bold text-[8px] uppercase tracking-widest px-2">{activeSection?.type}</Badge>
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest">Variable Injection</h4>
+                                </div>
+
+                                {/* IMAGE STYLE SELECTOR */}
+                                <div className="space-y-2 pt-2 border-t border-black/5">
+                                    <label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                                        <Palette className="w-3 h-3" /> Nano AI Style
+                                    </label>
+                                    <div className="flex gap-1">
+                                        {(['photo', 'illustration', 'minimalism'] as const).map((style) => (
+                                            <button
+                                                key={style}
+                                                onClick={() => setImageStyle(style)}
+                                                className={`flex-1 py-2 text-[8px] font-black uppercase tracking-tighter border transition-all ${imageStyle === style ? 'bg-black text-white border-black' : 'bg-white text-black/40 border-black/5 hover:border-black/20'}`}
+                                            >
+                                                {style === 'photo' ? 'Photo' : style === 'illustration' ? 'Illust' : 'Minimal'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="space-y-6 pb-20">
@@ -1214,17 +1158,6 @@ function BuilderContent() {
                                                             placeholder="https://images.unsplash.com/..."
                                                             className="rounded-none border-black/10 text-[10px] h-10 pr-10"
                                                         />
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.preventDefault();
-                                                                const contextText = `${activeSection!.content.title || ''} ${activeSection!.content.subtitle || ''}`;
-                                                                updateSectionContent(activeSection!.id, { imageUrl: getRandomImageUrl('auto', contextText, pageConfig.locale) });
-                                                            }}
-                                                            className="absolute right-8 top-1/2 -translate-y-1/2 p-1.5 text-black/40 hover:text-black hover:bg-black/5 transition-colors"
-                                                            title="Shuffle Unsplash Image"
-                                                        >
-                                                            <Shuffle className="w-3.5 h-3.5" />
-                                                        </button>
                                                         <button
                                                             onClick={(e) => {
                                                                 e.preventDefault();
@@ -1301,17 +1234,6 @@ function BuilderContent() {
                                                         }}
                                                         className="rounded-none border-black/10 text-[9px] h-8 pr-8"
                                                     />
-                                                    <button
-                                                        onClick={() => {
-                                                            const newItems = [...activeSection.content.items];
-                                                            newItems[i] = { ...item, imageUrl: getRandomImageUrl('auto', `${item.title || ''} ${item.description || ''}`, pageConfig.locale) };
-                                                            updateSectionContent(activeSection.id, { items: newItems });
-                                                        }}
-                                                        className="absolute right-7 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
-                                                        title="Shuffle Unsplash Image"
-                                                    >
-                                                        <Shuffle className="w-3 h-3" />
-                                                    </button>
                                                     <button
                                                         onClick={() => handleGenerateNanoImage(activeSection.id, activeSection.content, 'imageUrl', i)}
                                                         disabled={isGeneratingNano === `${activeSection.id}-imageUrl-${i}`}
@@ -1477,17 +1399,6 @@ function BuilderContent() {
                                                         className="rounded-none border-black/10 text-[9px] h-8 pr-14"
                                                     />
                                                     <button
-                                                        onClick={() => {
-                                                            const newItems = [...activeSection.content.items];
-                                                            newItems[i] = { ...item, imageUrl: getRandomImageUrl('auto', `${item.title || ''} ${item.description || ''} ${item.imageKeywords || ''}`, pageConfig.locale) };
-                                                            updateSectionContent(activeSection.id, { items: newItems });
-                                                        }}
-                                                        className="absolute right-7 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
-                                                        title="Shuffle Unsplash Image"
-                                                    >
-                                                        <Shuffle className="w-3 h-3" />
-                                                    </button>
-                                                    <button
                                                         onClick={() => handleGenerateNanoImage(activeSection.id, activeSection.content, 'imageUrl', i)}
                                                         disabled={isGeneratingNano === `${activeSection.id}-imageUrl-${i}`}
                                                         className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-yellow-600 hover:text-yellow-700 disabled:opacity-50"
@@ -1621,18 +1532,6 @@ function BuilderContent() {
                                                         />
                                                         <button
                                                             onClick={() => {
-                                                                const newTestimonials = [...activeSection.content.testimonials];
-                                                                newTestimonials[i] = { ...t, avatarUrl: getRandomImageUrl('avatar', pageConfig.locale) };
-                                                                updateSectionContent(activeSection.id, { testimonials: newTestimonials });
-                                                            }}
-                                                            className="absolute right-7 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
-                                                            title="Shuffle Unsplash Avatar"
-                                                        >
-                                                            <Shuffle className="w-2.5 h-2.5" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                // For avatars, specify style 'photo' or 'illustration' if needed
                                                                 handleGenerateNanoImage(activeSection.id, { items: activeSection.content.testimonials }, 'avatarUrl', i);
                                                             }}
                                                             disabled={isGeneratingNano === `${activeSection.id}-avatarUrl-${i}`}

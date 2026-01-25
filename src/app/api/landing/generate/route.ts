@@ -68,9 +68,10 @@ Type-specific content structures (STRICTLY FOLLOW THESE KEYS):
 - cta_form: { "title": string, "subtitle": string, "buttonText": string, "fields": [{ "id": string, "type": "text" | "email", "label": string, "placeholder": string, "required": boolean }] }
 
 **IMAGE GUIDELINES:**
-For 'imageUrl' and 'avatarUrl', use high-quality placeholder URLs from Unsplash (e.g., https://images.unsplash.com/photo-...).
-**IMPORTANT**: For every section WITH an image, you MUST provide 'imageKeywords' (3-5 English keywords describing the ideal visual context, e.g., "minimalist diary, cozy desk, morning light").
-Choose images that match the persona and the professional/luxury tone of the blog.
+- For every section that requires a visual (Hero, Problem, Solution, Features), you MUST provide descriptive 'imageKeywords' in English (3-5 specific keywords, e.g., "minimalist workspace, coffee, professional mood").
+- These keywords will be used by our Nano Banana AI engine to generate culturally appropriate and high-quality visuals.
+- DO NOT provide actual URLs for 'imageUrl' or 'avatarUrl'; leave them as empty strings if you are not sure, or use descriptive placeholders that the system will replace.
+- Focus on visuals that match the target persona and the professional/luxury tone of the blog.
 
 Mapping Instructions:
 - Section [1] -> type: "hero" (badge: context continuity)
