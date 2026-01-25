@@ -300,7 +300,8 @@ function BuilderContent() {
         };
 
         const localeKey = currentLocale === 'ko' ? 'ko' : 'global';
-        const selectedPool = pools[localeKey][type];
+        const localePool = pools[localeKey] || pools['global'];
+        const selectedPool = localePool[type] || localePool['business'];
         const randomId = selectedPool[Math.floor(Math.random() * selectedPool.length)];
 
         return type === 'avatar'
@@ -1179,7 +1180,7 @@ function BuilderContent() {
                                                     <button
                                                         onClick={() => {
                                                             const newItems = [...activeSection.content.items];
-                                                            newItems[i] = { ...item, imageUrl: getRandomImageUrl(item.title) };
+                                                            newItems[i] = { ...item, imageUrl: getRandomImageUrl('business', pageConfig.locale) };
                                                             updateSectionContent(activeSection.id, { items: newItems });
                                                         }}
                                                         className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
@@ -1345,7 +1346,7 @@ function BuilderContent() {
                                                     <button
                                                         onClick={() => {
                                                             const newItems = [...activeSection.content.items];
-                                                            newItems[i] = { ...item, imageUrl: getRandomImageUrl(item.title) };
+                                                            newItems[i] = { ...item, imageUrl: getRandomImageUrl('business', pageConfig.locale) };
                                                             updateSectionContent(activeSection.id, { items: newItems });
                                                         }}
                                                         className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
