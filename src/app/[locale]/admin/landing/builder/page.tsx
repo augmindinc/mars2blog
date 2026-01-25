@@ -258,8 +258,27 @@ function BuilderContent() {
     };
 
     const getRandomImageUrl = (keyword: string) => {
-        const cleanKeyword = keyword.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'business';
-        return `https://source.unsplash.com/featured/1200x800/?${cleanKeyword}&sig=${Math.random().toString(36).substr(2, 9)}`;
+        // High-quality, verified Unsplash IDs for landing pages
+        const pools = [
+            '1460925895917-afdab827c52f', // Business/Analytics
+            '1518770660439-4636190af475', // Technology/Hardware
+            '1522202176988-66273c2fd55f', // Team/Workspace
+            '1556761175-5973dc0f32e7', // Professional/Success
+            '1497366216548-37526070297c', // Modern/Architecture
+            '1557804506-669a67965ba0', // Abstract/Business
+            '1542744173-8e7e53415bb0', // Consulting/Meeting
+            '1551288049-bebda4e38f71', // Data/Dashboard
+            '1454165833767-1330084bc6f9', // Planning/Strategy
+            '1451187580459-43490279c0fa', // Network/Cloud
+            '1504384308090-c894fdcc538d', // Tech/Office
+            '1499951360447-b19be8fe80f5', // Design/MacBook
+            '1531482615713-2afd69097998', // Team/Collab
+            '1520607162513-77705c0f0d4a', // Finance/Laptop
+            '1517245386807-bb43f82c33c4', // Innovation/Meeting
+        ];
+
+        const randomId = pools[Math.floor(Math.random() * pools.length)];
+        return `https://images.unsplash.com/photo-${randomId}?auto=format&fit=crop&q=80&w=1200`;
     };
 
     const handleAiRefine = async () => {
@@ -1433,7 +1452,10 @@ function BuilderContent() {
                                                         <button
                                                             onClick={() => {
                                                                 const newTestimonials = [...activeSection.content.testimonials];
-                                                                newTestimonials[i] = { ...t, avatarUrl: `https://i.pravatar.cc/150?u=${Math.random()}` };
+                                                                const avatarSeeds = ['men', 'women'];
+                                                                const randomSeed = avatarSeeds[Math.floor(Math.random() * avatarSeeds.length)];
+                                                                const randomNumber = Math.floor(Math.random() * 70);
+                                                                newTestimonials[i] = { ...t, avatarUrl: `https://randomuser.me/api/portraits/${randomSeed}/${randomNumber}.jpg` };
                                                                 updateSectionContent(activeSection.id, { testimonials: newTestimonials });
                                                             }}
                                                             className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
