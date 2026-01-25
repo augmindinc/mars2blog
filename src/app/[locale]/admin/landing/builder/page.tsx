@@ -257,50 +257,54 @@ function BuilderContent() {
         }));
     };
 
-    const getRandomImageUrl = (type: 'business' | 'avatar', currentLocale: string = 'ko') => {
-        // High-quality Unsplash IDs categorized by locale
-        const pools = {
+    const getRandomImageUrl = (type: 'business' | 'avatar' | 'auto', text: string = '', currentLocale: string = 'ko') => {
+        const pools: Record<string, Record<string, string[]>> = {
             ko: {
-                business: [
-                    '1517245386807-bb43f82c33c4', '1497366216548-37526070297c', '1542744173-8e7e53417bb0',
-                    '1556761175-5973dc0f32e7', '1460925895917-afdab827c52f', '1553877522-43269d4ea984',
-                    '1531206715517-5c0ba1383af0', '1521737711867-e3b97375f902', '1552664730-d307ca884978',
-                    '1486312338219-ce68d2c6f44d', '1516321318423-f06f85e504b3', '1600880292203-757bb62b4baf',
-                    '1504384308090-c894fdcc538d', '1491975474562-1f4e30bc9468', '1497215728101-856f4ea42174',
-                    '1519389950473-47ba0277781c', '1521737604893-d14cc237f11d', '1531545514256-b1400bc00f31'
-                ],
-                avatar: [
-                    '1507003211169-0a1dd7228f2d', '1494790108377-be9c29b29330', '1539571696357-5a69c17a67c6',
-                    '1534528741775-53994a69daeb', '1438761681033-6461ffad8d80', '1629429408209-1f912961dbd8',
-                    '1607990281513-2c110a25bb91', '1573497019940-1c28c88b4f3e', '1558203728-00f45181dd84',
-                    '1544005320-7c21dce3d3d9', '1542909119-89297341390f', '1546456207-88fd982f9793',
-                    '1554151228-14d9def656e4', '1597223557154-721c1ceaf47a', '1506794778202-cad84cf45f1d'
-                ]
+                tech: ['1518770660439-4636190af475', '1550751827-4bd374c3f58b', '1519389950473-47ba0277781c', '1581091226825-a6a2a5aee158'],
+                nature: ['1470071459604-3b5ec3a7fe05', '1441974231531-c6227db76b6e', '1501854191687-d16ad0ad16c5', '1464822759023-fed622ff2c3b'],
+                food: ['1504674900247-0877df9cc836', '1476514525535-07fb3b4ae5f1', '1493770348161-369560ae357d', '1473093226795-af9932fe5856'],
+                travel: ['1469854523086-cc02fe5d8800', '1503220317375-aaad61436b1b', '1476514525535-07fb3b4ae5f1', '1488085061387-422e29b40080'],
+                health: ['1506126613408-eca07ce68773', '1544367567-0f2fcb009e0b', '1571019613454-1cb2f99b2d8b', '1505751172107-1c49b6e82a2b'],
+                art: ['1460662121278-d7c127336ee9', '1513364776144-60967b0f800f', '1541701494587-cb58502866ab', '1515405295579-ba7b456a203e'],
+                minimal: ['1494438639946-1ebd1d20bf85', '1507525428034-b723cf961d3e', '1449247709015-d44b526db1cd', '1486406146926-c627a92ad1ab'],
+                business: ['1460925895917-afdab827c52f', '1497366216548-37526070297c', '1542744173-8e7e53415bb0', '1556761175-5973dc0f32e7'],
+                avatar: ['1507003211169-0a1dd7228f2d', '1494790108377-be9c29b29330', '1539571696357-5a69c17a67c6', '1534528741775-53994a69daeb']
             },
             global: {
-                business: [
-                    '1557804506-669a67965ba0', '1451187580459-43490279c0fa', '1504384308090-c894fdcc538d',
-                    '1522202176988-66273c2fd55f', '1531482615713-2afd69097998', '1497339100210-f191b7d309ee',
-                    '1521737604893-d14cc237f11d', '1460925895917-afdab827c52f', '1552664730-d307ca884978',
-                    '1517245386807-bb43f82c33c4', '1573164713988-8b2c4c3d8231', '1486406146926-c627a92ad1ab',
-                    '1454165833767-1330084bc6f9', '1530124566582-4418644d9f8e', '1556761175-5973dc0f32e7'
-                ],
-                avatar: [
-                    '1531123897727-8f129e1688ce', '1580489944761-15a19d654956', '1500648767791-00dcc994a43e',
-                    '1573496359142-b8d87734a5a2', '1573497019940-1c28c88b4f3e', '1544005320-7c21dce3d3d9',
-                    '1542909119-89297341390f', '1546456207-88fd982f9793', '1542157547-d243d66669e2',
-                    '1590086782775-470AD011bbca', '1567532939-5a183e7b9352', '1544168191-02e03f628278',
-                    '1519085360753-af0119f7cbe7', '1541577141-83e93236e4f0', '1506794778202-cad84cf45f1d'
-                ]
+                tech: ['1518770660439-4636190af475', '1451187580459-43490279c0fa', '1519389950473-47ba0277781c', '1531206715517-5c0ba1383af0'],
+                nature: ['1470071459604-3b5ec3a7fe05', '1441974231531-c6227db76b6e', '1501854191687-d16ad0ad16c5', '1433085051395-92c482ed123b'],
+                food: ['1504674900247-0877df9cc836', '1476514525535-07fb3b4ae5f1', '1493770348161-369560ae357d', '1512621776951-a57141f2e96a'],
+                travel: ['1469854523086-cc02fe5d8800', '1503220317375-aaad61436b1b', '1528127269322-539801943592', '1476514525535-07fb3b4ae5f1'],
+                health: ['1506126613408-eca07ce68773', '1544367567-0f2fcb009e0b', '1571019613454-1cb2f99b2d8b', '1515372039744-48f0030f1750'],
+                art: ['1460662121278-d7c127336ee9', '1513364776144-60967b0f800f', '1541701494587-cb58502866ab', '1500628555351-011945331f81'],
+                minimal: ['1494438639946-1ebd1d20bf85', '1507525428034-b723cf961d3e', '1449247709015-d44b526db1cd', '1486406146926-c627a92ad1ab'],
+                business: ['1557804506-669a67965ba0', '1451187580459-43490279c0fa', '1522202176988-66273c2fd55f', '1531482615713-2afd69097998'],
+                avatar: ['1531123897727-8f129e1688ce', '1580489944761-15a19d654956', '1500648767791-00dcc994a43e', '1573496359142-b8d87734a5a2']
             }
         };
 
         const localeKey = currentLocale === 'ko' ? 'ko' : 'global';
-        const localePool = pools[localeKey] || pools['global'];
-        const selectedPool = localePool[type] || localePool['business'];
+        const localePools = pools[localeKey] || pools['global'];
+
+        // Intelligent Category Detection
+        let category = type === 'auto' ? 'minimal' : type;
+
+        if (type === 'auto' || type === 'business') {
+            const lowerText = text.toLowerCase();
+            if (lowerText.match(/code|tech|ai|software|data|기술|첨단|인공지능/)) category = 'tech';
+            else if (lowerText.match(/food|cooking|recipe|delicious|요리|음식|맛있|식사/)) category = 'food';
+            else if (lowerText.match(/nature|forest|mountain|ocean|green|자연|숲|산|바다/)) category = 'nature';
+            else if (lowerText.match(/travel|trip|hotel|flight|outdoor|여행|관광|해외|항공/)) category = 'travel';
+            else if (lowerText.match(/health|yoga|workout|fitness|medical|건강|요가|운동|의료/)) category = 'health';
+            else if (lowerText.match(/art|design|painting|creative|예술|디자인|창의/)) category = 'art';
+            else if (lowerText.match(/minimal|simple|clean|modern|미니멀|심플|깔끔/)) category = 'minimal';
+            else category = 'business';
+        }
+
+        const selectedPool = localePools[category] || localePools['minimal'];
         const randomId = selectedPool[Math.floor(Math.random() * selectedPool.length)];
 
-        return type === 'avatar'
+        return category === 'avatar'
             ? `https://images.unsplash.com/photo-${randomId}?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80`
             : `https://images.unsplash.com/photo-${randomId}?auto=format&fit=crop&q=80&w=1200`;
     };
@@ -1102,7 +1106,7 @@ function BuilderContent() {
                                                             className="rounded-none border-black/10 text-[10px] h-10 pr-10"
                                                         />
                                                         <button
-                                                            onClick={() => updateSectionContent(activeSection!.id, { imageUrl: getRandomImageUrl('business', pageConfig.locale) })}
+                                                            onClick={() => updateSectionContent(activeSection!.id, { imageUrl: getRandomImageUrl('auto', activeSection!.content.title || '', pageConfig.locale) })}
                                                             className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-black/40 hover:text-black hover:bg-black/5 transition-colors"
                                                             title="Shuffle Image"
                                                         >
@@ -1176,7 +1180,7 @@ function BuilderContent() {
                                                     <button
                                                         onClick={() => {
                                                             const newItems = [...activeSection.content.items];
-                                                            newItems[i] = { ...item, imageUrl: getRandomImageUrl('business', pageConfig.locale) };
+                                                            newItems[i] = { ...item, imageUrl: getRandomImageUrl('auto', item.title || '', pageConfig.locale) };
                                                             updateSectionContent(activeSection.id, { items: newItems });
                                                         }}
                                                         className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
@@ -1342,7 +1346,7 @@ function BuilderContent() {
                                                     <button
                                                         onClick={() => {
                                                             const newItems = [...activeSection.content.items];
-                                                            newItems[i] = { ...item, imageUrl: getRandomImageUrl('business', pageConfig.locale) };
+                                                            newItems[i] = { ...item, imageUrl: getRandomImageUrl('auto', item.title || '', pageConfig.locale) };
                                                             updateSectionContent(activeSection.id, { items: newItems });
                                                         }}
                                                         className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
