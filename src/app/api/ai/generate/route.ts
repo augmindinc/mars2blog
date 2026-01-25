@@ -175,6 +175,11 @@ export async function POST(req: Request) {
                 }
             }
             
+            LOCALIZATION STRATEGY:
+            - Content: Translate all text naturally for ${targetLocale}.
+            - Images: If an image URL or avatar URL is present, look at the context. If the target locale is Asian (like Korean, Japanese, Chinese), and the image/avatar seems to represent a person or a local business setting, you MAY suggest a more culturally appropriate Unsplash ID if you are confident. If not, keep the original. 
+            - IMPORTANT: Focus on making the page feel like it was built for a native of ${targetLocale}.
+            
             INPUT DATA:
             Title: ${title}
             Content: ${JSON.stringify(content)}

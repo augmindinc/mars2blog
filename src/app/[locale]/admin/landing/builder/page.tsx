@@ -257,28 +257,55 @@ function BuilderContent() {
         }));
     };
 
-    const getRandomImageUrl = (keyword: string) => {
-        // High-quality, verified Unsplash IDs for landing pages
-        const pools = [
-            '1460925895917-afdab827c52f', // Business/Analytics
-            '1518770660439-4636190af475', // Technology/Hardware
-            '1522202176988-66273c2fd55f', // Team/Workspace
-            '1556761175-5973dc0f32e7', // Professional/Success
-            '1497366216548-37526070297c', // Modern/Architecture
-            '1557804506-669a67965ba0', // Abstract/Business
-            '1542744173-8e7e53415bb0', // Consulting/Meeting
-            '1551288049-bebda4e38f71', // Data/Dashboard
-            '1454165833767-1330084bc6f9', // Planning/Strategy
-            '1451187580459-43490279c0fa', // Network/Cloud
-            '1504384308090-c894fdcc538d', // Tech/Office
-            '1499951360447-b19be8fe80f5', // Design/MacBook
-            '1531482615713-2afd69097998', // Team/Collab
-            '1520607162513-77705c0f0d4a', // Finance/Laptop
-            '1517245386807-bb43f82c33c4', // Innovation/Meeting
-        ];
+    const getRandomImageUrl = (type: 'business' | 'avatar', currentLocale: string = 'ko') => {
+        // High-quality Unsplash IDs categorized by locale
+        const pools = {
+            ko: {
+                business: [
+                    '1517245386807-bb43f82c33c4', // Minimal Work
+                    '1497366216548-37526070297c', // Modern Office
+                    '1542744173-8e7e53417bb0', // Consulting
+                    '1556761175-5973dc0f32e7', // Professional
+                    '1460925895917-afdab827c52f', // Dashboard
+                ],
+                avatar: [
+                    '1507003211169-0a1dd7228f2d', // Asian Male
+                    '1494790108377-be9c29b29330', // Asian Female
+                    '1539571696357-5a69c17a67c6', // Asian Portrait
+                    '1534528741775-53994a69daeb', // Asian Female Prof
+                    '1438761681033-6461ffad8d80', // Asian Portrait 2
+                ]
+            },
+            global: {
+                business: [
+                    '1557804506-669a67965ba0', // Global Business
+                    '1451187580459-43490279c0fa', // Network
+                    '1504384308090-c894fdcc538d', // Office
+                    '1522202176988-66273c2fd55f', // Global Team
+                    '1531482615713-2afd69097998', // Lab/Tech
+                ],
+                avatar: [
+                    '1531123897727-8f129e1688ce', // Global Professional
+                    '1580489944761-15a19d654956', // Global Professional
+                    '1500648767791-00dcc994a43e', // Global Professional
+                    '1573496359142-b8d87734a5a2', // Global Professional
+                    '1573497019940-1c28c88b4f3e', // Global Professional
+                    '1544005320-7c21dce3d3d9', // Professional Male
+                    '1542909119-89297341390f', // Professional Female
+                    '1546456207-88fd982f9793', // Diverse Professional
+                    '1542157547-d243d66669e2', // Young Professional
+                    '1542157547-d243d66669e2', // Another Professional
+                ]
+            }
+        };
 
-        const randomId = pools[Math.floor(Math.random() * pools.length)];
-        return `https://images.unsplash.com/photo-${randomId}?auto=format&fit=crop&q=80&w=1200`;
+        const localeKey = currentLocale === 'ko' ? 'ko' : 'global';
+        const selectedPool = pools[localeKey][type];
+        const randomId = selectedPool[Math.floor(Math.random() * selectedPool.length)];
+
+        return type === 'avatar'
+            ? `https://images.unsplash.com/photo-${randomId}?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80`
+            : `https://images.unsplash.com/photo-${randomId}?auto=format&fit=crop&q=80&w=1200`;
     };
 
     const handleAiRefine = async () => {
@@ -1078,7 +1105,7 @@ function BuilderContent() {
                                                             className="rounded-none border-black/10 text-[10px] h-10 pr-10"
                                                         />
                                                         <button
-                                                            onClick={() => updateSectionContent(activeSection!.id, { imageUrl: getRandomImageUrl(activeSection!.content.title) })}
+                                                            onClick={() => updateSectionContent(activeSection!.id, { imageUrl: getRandomImageUrl('business', pageConfig.locale) })}
                                                             className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-black/40 hover:text-black hover:bg-black/5 transition-colors"
                                                             title="Shuffle Image"
                                                         >
@@ -1452,10 +1479,7 @@ function BuilderContent() {
                                                         <button
                                                             onClick={() => {
                                                                 const newTestimonials = [...activeSection.content.testimonials];
-                                                                const avatarSeeds = ['men', 'women'];
-                                                                const randomSeed = avatarSeeds[Math.floor(Math.random() * avatarSeeds.length)];
-                                                                const randomNumber = Math.floor(Math.random() * 70);
-                                                                newTestimonials[i] = { ...t, avatarUrl: `https://randomuser.me/api/portraits/${randomSeed}/${randomNumber}.jpg` };
+                                                                newTestimonials[i] = { ...t, avatarUrl: getRandomImageUrl('avatar', pageConfig.locale) };
                                                                 updateSectionContent(activeSection.id, { testimonials: newTestimonials });
                                                             }}
                                                             className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
