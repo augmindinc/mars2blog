@@ -20,6 +20,7 @@ ${type}
 
 ### MISSION
 Create a landing page that converts 100 micro-targeted users who just finished reading the blog content.
+**ALL OUTPUT CONTENT MUST BE IN KOREAN.**
 
 ### LANDING PAGE GENERATION RULES
 
@@ -42,13 +43,20 @@ Create a landing page that converts 100 micro-targeted users who just finished r
 - "I decided this," not "I was persuaded."
 
 ### OUTPUT FORMAT
-The response MUST be a valid JSON array of section objects. 
-Each section object must strictly follow this structure:
+The response MUST be a valid JSON object:
 {
-  "id": "random_string",
-  "type": "hero" | "problem" | "solution" | "features" | "process" | "social_proof" | "pricing" | "faq" | "cta_form" | "footer",
-  "content": { ... type-specific content ... }
+  "suggestedSlug": "url-friendly-english-slug",
+  "sections": [
+    {
+      "id": "random_string",
+      "type": "hero" | "problem" | "solution" | "features" | "process" | "social_proof" | "pricing" | "faq" | "cta_form" | "footer",
+      "content": { ... type-specific content ... }
+    }
+  ]
 }
+
+**CRITICAL: ALL content within 'sections' must be in KOREAN.**
+**'suggestedSlug' must be in URL-friendly English (lowercase, dashes).**
 
 Type-specific content structures (STRICTLY FOLLOW THESE KEYS):
 - hero: { "title": string, "subtitle": string, "badge": string, "buttonText": string }
@@ -78,9 +86,11 @@ Return ONLY the JSON array. No markdown, no extra text.
     // Clean up markdown code blocks if AI included them
     text = text.replace(/```json/g, "").replace(/```/g, "").trim();
 
-    const sections = JSON.parse(text);
+    const data = JSON.parse(text);
+    const sections = data.sections || [];
+    const suggestedSlug = data.suggestedSlug || "";
 
-    return NextResponse.json({ sections });
+    return NextResponse.json({ sections, suggestedSlug });
   } catch (error) {
     console.error("AI Generation Error:", error);
     return NextResponse.json({ error: "Failed to generate landing page" }, { status: 500 });

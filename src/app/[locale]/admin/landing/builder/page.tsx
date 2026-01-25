@@ -205,7 +205,9 @@ function BuilderContent() {
                             ...s,
                             order: idx
                         })),
-                        slug: slugify(aiData.title || '', { lower: true }) + '-' + Date.now().toString().slice(-4)
+                        slug: aiData.suggestedSlug ||
+                            (aiData.title ? slugify(aiData.title.replace(/^LP:\s*/i, ''), { lower: true, strict: true }) : '') ||
+                            `lp-${Date.now().toString().slice(-4)}`
                     }));
                     // Clean up
                     localStorage.removeItem('ai_generated_config');
@@ -267,7 +269,8 @@ function BuilderContent() {
             if (data.sections) {
                 setPageConfig(prev => ({
                     ...prev,
-                    content: data.sections.map((s: any, idx: number) => ({ ...s, order: idx }))
+                    content: data.sections.map((s: any, idx: number) => ({ ...s, order: idx })),
+                    slug: data.suggestedSlug || prev.slug
                 }));
                 setShowAiPanel(false);
                 setRefineGoal('');

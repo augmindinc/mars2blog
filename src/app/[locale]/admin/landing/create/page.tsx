@@ -136,6 +136,7 @@ export default function CreateLandingPage() {
                     title,
                     type: selectedGoal,
                     content: data.sections,
+                    suggestedSlug: data.suggestedSlug,
                     locale,
                     groupId: `lp-group-${Date.now()}`
                 }));
