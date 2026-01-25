@@ -19,7 +19,7 @@ import { storage } from '@/lib/firebase';
 import { useCategories } from '@/hooks/useCategories';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { compressImage } from '@/lib/imageCompression';
-import { Sparkles, Loader2, UploadCloud, Languages, Lock, History } from 'lucide-react';
+import { Sparkles, Loader2, UploadCloud, Languages, Lock, History, Image as ImageIcon, Camera, Palette, Wand2 } from 'lucide-react';
 import { SocialPreview } from '@/components/admin/SocialPreview';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
@@ -73,6 +73,9 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     const [landingPages, setLandingPages] = useState<LandingPage[]>([]);
     const [selectedLandingId, setSelectedLandingId] = useState<string>('none');
     const [isProofreading, setIsProofreading] = useState(false);
+    const [imageStyle, setImageStyle] = useState<'photo' | 'illustration' | 'minimalism'>('photo');
+    const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
+    const [isGeneratingParaImages, setIsGeneratingParaImages] = useState(false);
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
@@ -145,6 +148,21 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         fetchPost();
     }, [id, router, locale]);
 
+    const base64ToBlob = (base64: string, mimeType: string) => {
+        const byteCharacters = atob(base64);
+        const byteArrays = [];
+        for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+            const slice = byteCharacters.slice(offset, offset + 512);
+            const byteNumbers = new Array(slice.length);
+            for (let i = 0; i < slice.length; i++) {
+                byteNumbers[i] = slice.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            byteArrays.push(byteArray);
+        }
+        return new Blob(byteArrays, { type: mimeType });
+    };
+
     const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -171,6 +189,124 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
             alert("Thumbnail upload failed");
         } finally {
             setIsUploadingThumbnail(false);
+        }
+    };
+
+    const handleGenerateNanoThumbnail = async () => {
+        if (!title && !content) return;
+        setIsGeneratingThumbnail(true);
+        try {
+            // 1. Generate descriptive prompt first (using existing logic but keeping it internal)
+            const promptRes = await fetch('/api/ai/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'image-prompt',
+                    style: imageStyle,
+                    locale, // Pass current locale for cultural optimization
+                    content: `Title: ${title}\n\nContent: ${content.substring(0, 500)}`
+                }),
+            });
+            const promptData = await promptRes.json();
+
+            if (promptData.result) {
+                // 2. Call Nano Banana for actual image generation
+                const imageRes = await fetch('/api/ai/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'nano-banana-image',
+                        style: imageStyle,
+                        prompt: promptData.result
+                    }),
+                });
+                const imageData = await imageRes.json();
+
+                if (imageData.base64) {
+                    // 3. Convert to Blob -> File -> Compress -> Upload
+                    const blob = base64ToBlob(imageData.base64, imageData.mimeType);
+                    const file = new File([blob], 'nano-thumbnail.png', { type: imageData.mimeType || 'image/png' });
+                    const compressedFile = await compressImage(file);
+
+                    const storageRef = ref(storage, `thumbnails/${Date.now()}-nano-banana.png`);
+                    await uploadBytes(storageRef, compressedFile);
+                    const url = await getDownloadURL(storageRef);
+
+                    setThumbnailUrl(url);
+                    setThumbnailAlt(title);
+                }
+            }
+        } catch (error) {
+            console.error("Nano Banana generation failed", error);
+            alert("Nano Banana generation failed. Please try again.");
+        } finally {
+            setIsGeneratingThumbnail(false);
+        }
+    };
+
+    const handleGenerateParaImages = async () => {
+        if (!content) return;
+        setIsGeneratingParaImages(true);
+        try {
+            const paragraphs = content.split('\n\n').filter(p => p.trim().length > 50 && !p.trim().startsWith('#') && !p.trim().startsWith('!'));
+
+            if (paragraphs.length === 0) {
+                alert("No suitable paragraphs found for image generation.");
+                return;
+            }
+
+            const targetParas = paragraphs.slice(0, 2); // Limit to 2 for speed
+            let newContent = content;
+
+            for (const para of targetParas) {
+                // 1. Generate Prompt
+                const promptRes = await fetch('/api/ai/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'image-prompt',
+                        style: imageStyle,
+                        locale, // Pass current locale
+                        content: para,
+                        context: `Post Title: ${title}`
+                    }),
+                });
+                const promptData = await promptRes.json();
+
+                if (promptData.result) {
+                    // 2. Generate Image
+                    const imageRes = await fetch('/api/ai/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            type: 'nano-banana-image',
+                            style: imageStyle,
+                            prompt: promptData.result
+                        }),
+                    });
+                    const imageData = await imageRes.json();
+
+                    if (imageData.base64) {
+                        // 3. Convert to Blob -> File -> Compress -> Upload
+                        const blob = base64ToBlob(imageData.base64, imageData.mimeType);
+                        const file = new File([blob], 'para-image.png', { type: imageData.mimeType || 'image/png' });
+                        const compressedFile = await compressImage(file);
+
+                        const storageRef = ref(storage, `content-images/${Date.now()}-para.png`);
+                        await uploadBytes(storageRef, compressedFile);
+                        const url = await getDownloadURL(storageRef);
+
+                        const imageMarkdown = `\n\n![${para.substring(0, 30)}...](${url})\n\n`;
+                        newContent = newContent.replace(para, `${para}${imageMarkdown}`);
+                    }
+                }
+            }
+            setContent(newContent);
+            alert("Nano Banana images generated and inserted!");
+        } catch (error) {
+            console.error("Para image generation failed", error);
+        } finally {
+            setIsGeneratingParaImages(false);
         }
     };
     const handleGenerateAI = async () => {
@@ -212,7 +348,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         type: 'translate',
-                        targetLocale: lang === 'en' ? 'English' : lang === 'ja' ? 'Japanese' : 'Chinese',
+                        targetLocale: lang === 'en' ? 'English' : lang === 'ja' ? 'Japanese' : lang === 'zh' ? 'Chinese' : 'Korean',
                         title,
                         content
                     }),
@@ -623,6 +759,76 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                                         className="rounded-none border-black/10 text-sm"
                                     />
                                 </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="rounded-none border-black/10 shadow-none bg-yellow-50/50">
+                            <CardHeader className="border-b border-black/5 bg-yellow-500/10 py-4 px-6">
+                                <CardTitle className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-yellow-700">
+                                    <Wand2 className="w-3.5 h-3.5" />
+                                    Nano Banana AI
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4 pt-6">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-bold uppercase tracking-tight">Image Style</Label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <Button
+                                            type="button"
+                                            variant={imageStyle === 'photo' ? 'default' : 'outline'}
+                                            size="sm"
+                                            onClick={() => setImageStyle('photo')}
+                                            className="h-9 rounded-none text-[9px] uppercase font-bold"
+                                        >
+                                            <Camera className="w-3 h-3 mr-1" /> Photo
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant={imageStyle === 'illustration' ? 'default' : 'outline'}
+                                            size="sm"
+                                            onClick={() => setImageStyle('illustration')}
+                                            className="h-9 rounded-none text-[9px] uppercase font-bold"
+                                        >
+                                            <Palette className="w-3 h-3 mr-1" /> Illust
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant={imageStyle === 'minimalism' ? 'default' : 'outline'}
+                                            size="sm"
+                                            onClick={() => setImageStyle('minimalism')}
+                                            className="h-9 rounded-none text-[9px] uppercase font-bold"
+                                        >
+                                            <Sparkles className="w-3 h-3 mr-1" /> Minimal
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 pt-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full h-10 rounded-none border-yellow-200 bg-white hover:bg-yellow-50 text-yellow-700 font-bold text-[10px] uppercase tracking-tight"
+                                        onClick={handleGenerateNanoThumbnail}
+                                        disabled={isGeneratingThumbnail || (!title && !content)}
+                                    >
+                                        {isGeneratingThumbnail ? <Loader2 className="h-3.5 h-3.5 animate-spin mr-2" /> : <ImageIcon className="w-3.5 h-3.5 mr-2" />}
+                                        Generate Thumbnail
+                                    </Button>
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full h-10 rounded-none border-yellow-200 bg-white hover:bg-yellow-50 text-yellow-700 font-bold text-[10px] uppercase tracking-tight"
+                                        onClick={handleGenerateParaImages}
+                                        disabled={isGeneratingParaImages || !content}
+                                    >
+                                        {isGeneratingParaImages ? <Loader2 className="h-3.5 h-3.5 animate-spin mr-2" /> : <Wand2 className="w-3.5 h-3.5 mr-2" />}
+                                        Generate Paragraph Images
+                                    </Button>
+                                </div>
+                                <p className="text-[9px] text-yellow-600/70 font-medium uppercase tracking-tight text-center">
+                                    Nano Banana generates custom visuals based on your content.
+                                </p>
                             </CardContent>
                         </Card>
 

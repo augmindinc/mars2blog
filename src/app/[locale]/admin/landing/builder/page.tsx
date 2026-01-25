@@ -11,8 +11,10 @@ import {
     ChevronUp, ChevronDown, Trash2, Plus, Play, Save, Monitor, Smartphone,
     ArrowLeft, Type, Image as ImageIcon, FormInput as FormIcon, Layout as LayoutIcon,
     Layers, Settings, Eye, EyeOff, CheckCircle2, Sparkles, X, RefreshCw,
-    Languages, Loader2, Shuffle
+    Languages, Loader2, Shuffle, Wand2, Camera, Palette
 } from 'lucide-react';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/lib/firebase';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Link } from '@/i18n/routing';
 import { useLocale } from 'next-intl';
+import { compressImage } from '@/lib/imageCompression';
 import { createLandingPage, updateLandingPage, getLandingPage, getLandingPageTranslations } from '@/services/landingService';
 import { Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -131,6 +134,7 @@ function BuilderContent() {
     const [isSaving, setIsSaving] = useState(false);
     const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
     const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+    const [isGeneratingNano, setIsGeneratingNano] = useState<string | null>(null); // sectionId or itemKey
     const [isAiRefining, setIsAiRefining] = useState(false);
     const [refineGoal, setRefineGoal] = useState('');
     const [showAiPanel, setShowAiPanel] = useState(false);
@@ -333,6 +337,85 @@ function BuilderContent() {
 
         const randomId = pool[uniqueIndex];
         return `https://images.unsplash.com/photo-${randomId}?auto=format&fit=crop&q=80&w=1200`;
+    };
+
+    const base64ToBlob = (base64: string, mimeType: string) => {
+        const byteCharacters = atob(base64);
+        const byteArrays = [];
+        for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+            const slice = byteCharacters.slice(offset, offset + 512);
+            const byteNumbers = new Array(slice.length);
+            for (let i = 0; i < slice.length; i++) {
+                byteNumbers[i] = slice.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            byteArrays.push(byteArray);
+        }
+        return new Blob(byteArrays, { type: mimeType });
+    };
+
+    const handleGenerateNanoImage = async (id: string, currentContent: any, fieldName: string, itemIdx?: number) => {
+        const textContext = itemIdx !== undefined
+            ? `${currentContent.items?.[itemIdx]?.title} ${currentContent.items?.[itemIdx]?.description}`
+            : `${currentContent.title} ${currentContent.subtitle || ''}`;
+
+        const key = itemIdx !== undefined ? `${id}-${fieldName}-${itemIdx}` : `${id}-${fieldName}`;
+        setIsGeneratingNano(key);
+
+        try {
+            // 1. Generate descriptive prompt
+            const promptRes = await fetch('/api/ai/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'image-prompt',
+                    style: 'minimalism', // Default for landing pages
+                    locale: locale,
+                    content: textContext,
+                    context: `Landing Page Section: ${activeSection?.type}`
+                }),
+            });
+            const promptData = await promptRes.json();
+
+            if (promptData.result) {
+                // 2. Generate Image with Nano Banana
+                const imageRes = await fetch('/api/ai/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'nano-banana-image',
+                        style: 'minimalism',
+                        prompt: promptData.result
+                    }),
+                });
+                const imageData = await imageRes.json();
+
+                if (imageData.base64) {
+                    // 3. Convert to Blob -> File -> Compress -> Upload
+                    const blob = base64ToBlob(imageData.base64, imageData.mimeType);
+                    const file = new File([blob], 'nano-landing.png', { type: imageData.mimeType || 'image/png' });
+                    const compressedFile = await compressImage(file);
+
+                    const storageRef = ref(storage, `landing/${Date.now()}-nano.png`);
+                    await uploadBytes(storageRef, compressedFile);
+                    const url = await getDownloadURL(storageRef);
+
+                    // 4. Update State
+                    if (itemIdx !== undefined) {
+                        const newItems = [...currentContent.items];
+                        newItems[itemIdx] = { ...newItems[itemIdx], [fieldName]: url };
+                        updateSectionContent(id, { items: newItems });
+                    } else {
+                        updateSectionContent(id, { [fieldName]: url });
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Nano Banana Error:", error);
+            alert("NANO GEN FAILED.");
+        } finally {
+            setIsGeneratingNano(null);
+        }
     };
 
     const handleAiRefine = async () => {
@@ -1132,18 +1215,26 @@ function BuilderContent() {
                                                             className="rounded-none border-black/10 text-[10px] h-10 pr-10"
                                                         />
                                                         <button
-                                                            onClick={() => {
-                                                                const context = `
-                                                                    ${activeSection!.content.title || ''} 
-                                                                    ${activeSection!.content.subtitle || ''} 
-                                                                    ${activeSection!.content.imageKeywords || ''}
-                                                                `;
-                                                                updateSectionContent(activeSection!.id, { imageUrl: getRandomImageUrl('auto', context, pageConfig.locale) });
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                const contextText = `${activeSection!.content.title || ''} ${activeSection!.content.subtitle || ''}`;
+                                                                updateSectionContent(activeSection!.id, { imageUrl: getRandomImageUrl('auto', contextText, pageConfig.locale) });
                                                             }}
-                                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-black/40 hover:text-black hover:bg-black/5 transition-colors"
-                                                            title="Shuffle Image"
+                                                            className="absolute right-8 top-1/2 -translate-y-1/2 p-1.5 text-black/40 hover:text-black hover:bg-black/5 transition-colors"
+                                                            title="Shuffle Unsplash Image"
                                                         >
                                                             <Shuffle className="w-3.5 h-3.5" />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                handleGenerateNanoImage(activeSection!.id, activeSection!.content, 'imageUrl');
+                                                            }}
+                                                            disabled={isGeneratingNano === `${activeSection!.id}-imageUrl`}
+                                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 transition-colors disabled:opacity-50"
+                                                            title="Generate Nano Banana AI Image"
+                                                        >
+                                                            {isGeneratingNano === `${activeSection!.id}-imageUrl` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
                                                         </button>
                                                     </div>
                                                     <div className="w-10 h-10 bg-black/[0.05] flex items-center justify-center shrink-0 border border-black/5">
@@ -1213,12 +1304,21 @@ function BuilderContent() {
                                                     <button
                                                         onClick={() => {
                                                             const newItems = [...activeSection.content.items];
-                                                            newItems[i] = { ...item, imageUrl: getRandomImageUrl('auto', `${item.title || ''} ${item.description || ''} ${item.imageKeywords || ''}`, pageConfig.locale) };
+                                                            newItems[i] = { ...item, imageUrl: getRandomImageUrl('auto', `${item.title || ''} ${item.description || ''}`, pageConfig.locale) };
                                                             updateSectionContent(activeSection.id, { items: newItems });
                                                         }}
-                                                        className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
+                                                        className="absolute right-7 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
+                                                        title="Shuffle Unsplash Image"
                                                     >
                                                         <Shuffle className="w-3 h-3" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleGenerateNanoImage(activeSection.id, activeSection.content, 'imageUrl', i)}
+                                                        disabled={isGeneratingNano === `${activeSection.id}-imageUrl-${i}`}
+                                                        className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-yellow-600 hover:text-yellow-700 disabled:opacity-50"
+                                                        title="Generate Nano Banana AI Image"
+                                                    >
+                                                        {isGeneratingNano === `${activeSection.id}-imageUrl-${i}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
                                                     </button>
                                                 </div>
                                                 <textarea
@@ -1374,7 +1474,7 @@ function BuilderContent() {
                                                             newItems[i] = { ...item, imageUrl: e.target.value };
                                                             updateSectionContent(activeSection.id, { items: newItems });
                                                         }}
-                                                        className="rounded-none border-black/10 text-[9px] h-8 pr-8"
+                                                        className="rounded-none border-black/10 text-[9px] h-8 pr-14"
                                                     />
                                                     <button
                                                         onClick={() => {
@@ -1382,9 +1482,18 @@ function BuilderContent() {
                                                             newItems[i] = { ...item, imageUrl: getRandomImageUrl('auto', `${item.title || ''} ${item.description || ''} ${item.imageKeywords || ''}`, pageConfig.locale) };
                                                             updateSectionContent(activeSection.id, { items: newItems });
                                                         }}
-                                                        className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
+                                                        className="absolute right-7 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
+                                                        title="Shuffle Unsplash Image"
                                                     >
                                                         <Shuffle className="w-3 h-3" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleGenerateNanoImage(activeSection.id, activeSection.content, 'imageUrl', i)}
+                                                        disabled={isGeneratingNano === `${activeSection.id}-imageUrl-${i}`}
+                                                        className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-yellow-600 hover:text-yellow-700 disabled:opacity-50"
+                                                        title="Generate Nano Banana AI Image"
+                                                    >
+                                                        {isGeneratingNano === `${activeSection.id}-imageUrl-${i}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
                                                     </button>
                                                 </div>
                                                 <textarea
@@ -1508,7 +1617,7 @@ function BuilderContent() {
                                                                 newTestimonials[i] = { ...t, avatarUrl: e.target.value };
                                                                 updateSectionContent(activeSection.id, { testimonials: newTestimonials });
                                                             }}
-                                                            className="rounded-none border-black/10 text-[8px] h-7 pr-7"
+                                                            className="rounded-none border-black/10 text-[8px] h-7 pr-14"
                                                         />
                                                         <button
                                                             onClick={() => {
@@ -1516,9 +1625,21 @@ function BuilderContent() {
                                                                 newTestimonials[i] = { ...t, avatarUrl: getRandomImageUrl('avatar', pageConfig.locale) };
                                                                 updateSectionContent(activeSection.id, { testimonials: newTestimonials });
                                                             }}
-                                                            className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
+                                                            className="absolute right-7 top-1/2 -translate-y-1/2 p-1 text-black/40 hover:text-black"
+                                                            title="Shuffle Unsplash Avatar"
                                                         >
                                                             <Shuffle className="w-2.5 h-2.5" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                // For avatars, specify style 'photo' or 'illustration' if needed
+                                                                handleGenerateNanoImage(activeSection.id, { items: activeSection.content.testimonials }, 'avatarUrl', i);
+                                                            }}
+                                                            disabled={isGeneratingNano === `${activeSection.id}-avatarUrl-${i}`}
+                                                            className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-yellow-600 hover:text-yellow-700 disabled:opacity-50"
+                                                            title="Generate Nano Banana AI Avatar"
+                                                        >
+                                                            {isGeneratingNano === `${activeSection.id}-avatarUrl-${i}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
                                                         </button>
                                                     </div>
                                                     <button onClick={() => {
