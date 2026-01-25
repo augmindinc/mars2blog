@@ -42,12 +42,13 @@ const SECTION_TEMPLATES: Record<string, any> = {
         title: 'REVOLUTIONIZE YOUR WORKFLOW',
         subtitle: 'The ultimate minimalist engine for modern creators and visionary digital architects.',
         buttonText: 'GET STARTED NOW',
-        imageUrl: '',
+        imageUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=2426',
         badge: 'NEW ERA OF PRODUCTIVITY',
     },
     problem: {
         title: 'STOP WASTING RESOURCES',
         subtitle: 'Traditional systems are slowing you down. Here is why:',
+        imageUrl: 'https://images.unsplash.com/photo-1454165833767-1330084bc6f9?auto=format&fit=crop&q=80&w=2070',
         points: [
             'Inefficient resource allocation',
             'Fragmented communication channels',
@@ -58,15 +59,15 @@ const SECTION_TEMPLATES: Record<string, any> = {
         title: 'THE PROTOCOL SOLUTION',
         subtitle: 'A unified field theory for your business operations.',
         items: [
-            { title: 'Unified Core', description: 'Everything in one high-performance terminal.' },
-            { title: 'Auto-Scaling', description: 'Growth without the infrastructure headache.' }
+            { title: 'Unified Core', description: 'Everything in one high-performance terminal.', imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=2070' },
+            { title: 'Auto-Scaling', description: 'Growth without the infrastructure headache.', imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&q=80&w=2072' }
         ]
     },
     features: {
         items: [
-            { title: 'Sharp Design', description: 'Zero rounded corners for maximum professional impact.' },
-            { title: 'Infinite Scale', description: 'Built on top of elite cloud infrastructure.' },
-            { title: 'AI Driven', description: 'Smart content generation at your fingertips.' },
+            { title: 'Sharp Design', description: 'Zero rounded corners for maximum professional impact.', imageUrl: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80&w=2070' },
+            { title: 'Infinite Scale', description: 'Built on top of elite cloud infrastructure.', imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=2070' },
+            { title: 'AI Driven', description: 'Smart content generation at your fingertips.', imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=2070' },
         ]
     },
     process: {
@@ -81,7 +82,7 @@ const SECTION_TEMPLATES: Record<string, any> = {
         title: 'TRUSTED BY LEADERS',
         logos: ['LOGIC', 'MATRIX', 'ORBIT', 'KINETIC'],
         testimonials: [
-            { author: 'Jane Doe', role: 'CEO, Matrix', text: 'The efficiency gained is unprecedented.' }
+            { author: 'Jane Doe', role: 'CEO, Matrix', text: 'The efficiency gained is unprecedented.', avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200' }
         ]
     },
     pricing: {
@@ -699,33 +700,59 @@ function BuilderContent() {
 
                                     {/* RENDER LOGIC PER TYPE */}
                                     {section.type === 'hero' && (
-                                        <div className="py-16 md:py-24 px-6 md:px-12 text-center border-b border-black/5 bg-white space-y-6 overflow-hidden">
-                                            {section.content.badge && <span className="inline-block px-3 py-1 bg-black text-white text-[10px] font-black uppercase tracking-widest">{section.content.badge}</span>}
-                                            <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter leading-none break-words max-w-full">{section.content.title}</h2>
-                                            <p className="max-w-xl mx-auto text-[11px] md:text-sm font-medium text-muted-foreground uppercase tracking-tight leading-relaxed break-words">
-                                                {section.content.subtitle}
-                                            </p>
-                                            <div className="pt-4">
-                                                <Button className="bg-black text-white rounded-none px-10 h-12 font-black text-xs uppercase tracking-widest shadow-none">
-                                                    {section.content.buttonText}
-                                                </Button>
+                                        <div className="border-b border-black/5 bg-white overflow-hidden">
+                                            <div className={`flex flex-col md:flex-row items-center ${section.content.imageUrl ? 'text-left' : 'text-center'}`}>
+                                                <div className={`flex-1 py-16 md:py-24 px-6 md:px-12 space-y-6 ${section.content.imageUrl ? 'md:pr-6' : 'max-w-4xl mx-auto'}`}>
+                                                    {section.content.badge && <span className="inline-block px-3 py-1 bg-black text-white text-[10px] font-black uppercase tracking-widest">{section.content.badge}</span>}
+                                                    <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter leading-none break-words">{section.content.title}</h2>
+                                                    <p className="text-[11px] md:text-sm font-medium text-muted-foreground uppercase tracking-tight leading-relaxed break-words">
+                                                        {section.content.subtitle}
+                                                    </p>
+                                                    <div className="pt-4">
+                                                        <Button className="bg-black text-white rounded-none px-10 h-12 font-black text-xs uppercase tracking-widest shadow-none">
+                                                            {section.content.buttonText}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                                {section.content.imageUrl && (
+                                                    <div className="flex-1 w-full aspect-square md:aspect-auto self-stretch">
+                                                        <img
+                                                            src={section.content.imageUrl}
+                                                            alt="Hero"
+                                                            className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700"
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     )}
 
                                     {section.type === 'problem' && (
-                                        <div className="py-16 md:py-20 px-6 md:px-12 border-b border-black/5 bg-black text-white space-y-12 overflow-hidden">
-                                            <div className="space-y-4 text-center md:text-left max-w-2xl">
-                                                <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter break-words leading-tight">{section.content.title}</h2>
-                                                <p className="text-[10px] md:text-xs font-medium text-white/40 uppercase tracking-tight break-words">{section.content.subtitle}</p>
-                                            </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 w-full">
-                                                {section.content.points?.map((p: string, i: number) => (
-                                                    <div key={i} className="flex flex-col gap-2 border-l border-white/20 pl-6 py-2 text-left w-full min-w-0 group hover:border-white transition-colors">
-                                                        <span className="text-[8px] font-black tabular-nums opacity-30 tracking-[0.2em]">VARIABLE 0{i + 1}</span>
-                                                        <span className="text-[12px] md:text-sm font-bold uppercase tracking-normal md:tracking-widest break-all leading-normal flex-1">{p}</span>
+                                        <div className="border-b border-black/5 bg-black text-white overflow-hidden">
+                                            <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-white/10">
+                                                {section.content.imageUrl && (
+                                                    <div className="flex-1 w-full aspect-video md:aspect-auto">
+                                                        <img
+                                                            src={section.content.imageUrl}
+                                                            alt="Problem context"
+                                                            className="w-full h-full object-cover opacity-50 contrast-125"
+                                                        />
                                                     </div>
-                                                ))}
+                                                )}
+                                                <div className="flex-1 py-16 md:py-20 px-6 md:px-12 space-y-12">
+                                                    <div className="space-y-4">
+                                                        <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter break-words leading-tight">{section.content.title}</h2>
+                                                        <p className="text-[10px] md:text-xs font-medium text-white/40 uppercase tracking-tight break-words">{section.content.subtitle}</p>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 gap-y-8 w-full">
+                                                        {section.content.points?.map((p: string, i: number) => (
+                                                            <div key={i} className="flex flex-col gap-2 border-l border-white/20 pl-6 py-2 group hover:border-white transition-colors">
+                                                                <span className="text-[8px] font-black tabular-nums opacity-30 tracking-[0.2em]">VARIABLE 0{i + 1}</span>
+                                                                <span className="text-[12px] md:text-sm font-bold uppercase tracking-normal break-all leading-normal flex-1">{p}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
@@ -738,9 +765,20 @@ function BuilderContent() {
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 w-full">
                                                 {section.content.items?.map((item: any, i: number) => (
-                                                    <div key={i} className="p-6 md:p-8 border border-black/5 bg-black/[0.01] w-full min-w-0">
-                                                        <h3 className="text-lg md:text-xl font-black uppercase tracking-tighter mb-4 break-words">{item.title}</h3>
-                                                        <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-tight break-words">{item.description}</p>
+                                                    <div key={i} className="group border border-black/5 bg-black/[0.01] overflow-hidden flex flex-col">
+                                                        {item.imageUrl && (
+                                                            <div className="w-full aspect-video overflow-hidden">
+                                                                <img
+                                                                    src={item.imageUrl}
+                                                                    alt={item.title}
+                                                                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500 scale-100 group-hover:scale-105"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                        <div className="p-6 md:p-8 text-left space-y-2">
+                                                            <h3 className="text-lg md:text-xl font-black uppercase tracking-tighter break-words">{item.title}</h3>
+                                                            <p className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-tight break-words leading-relaxed">{item.description}</p>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
@@ -750,10 +788,21 @@ function BuilderContent() {
                                     {section.type === 'features' && (
                                         <div className="py-16 md:py-20 px-6 md:px-12 grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-8 border-b border-black/5 bg-white">
                                             {section.content.items?.map((item: any, i: number) => (
-                                                <div key={i} className="space-y-3">
-                                                    <div className="text-[10px] font-bold text-black border-l-2 border-black pl-3 uppercase tracking-widest">0{i + 1} / Module</div>
-                                                    <h3 className="text-base md:text-lg font-black uppercase tracking-tighter">{item.title}</h3>
-                                                    <p className="text-[10px] md:text-xs text-muted-foreground font-medium uppercase tracking-tight leading-relaxed">{item.description}</p>
+                                                <div key={i} className="space-y-4 group">
+                                                    {item.imageUrl && (
+                                                        <div className="w-full aspect-[4/3] bg-black/[0.02] overflow-hidden">
+                                                            <img
+                                                                src={item.imageUrl}
+                                                                alt={item.title}
+                                                                className="w-full h-full object-cover grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    <div className="space-y-2">
+                                                        <div className="text-[10px] font-bold text-black border-l-2 border-black pl-3 uppercase tracking-widest">0{i + 1} / Module</div>
+                                                        <h3 className="text-base md:text-lg font-black uppercase tracking-tighter">{item.title}</h3>
+                                                        <p className="text-[10px] md:text-xs text-muted-foreground font-medium uppercase tracking-tight leading-relaxed">{item.description}</p>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -781,10 +830,19 @@ function BuilderContent() {
                                             </div>
                                             <div className="max-w-3xl mx-auto space-y-12">
                                                 {section.content.testimonials?.map((t: any, idx: number) => (
-                                                    <div key={idx} className={`text-center italic ${idx !== 0 ? 'pt-8 md:pt-12 border-t border-black/5' : ''}`}>
-                                                        <p className="text-base md:text-lg font-medium uppercase tracking-tight mb-6">"{t.text}"</p>
-                                                        <div className="text-[10px] font-black uppercase tracking-widest">
-                                                            {t.author} / <span className="text-muted-foreground">{t.role}</span>
+                                                    <div key={idx} className={`text-center space-y-6 ${idx !== 0 ? 'pt-8 md:pt-12 border-t border-black/5' : ''}`}>
+                                                        <p className="text-base md:text-lg font-medium uppercase tracking-tight italic text-black/80">"{t.text}"</p>
+                                                        <div className="flex flex-col items-center gap-3">
+                                                            {t.avatarUrl && (
+                                                                <img
+                                                                    src={t.avatarUrl}
+                                                                    alt={t.author}
+                                                                    className="w-12 h-12 rounded-none grayscale border border-black/10"
+                                                                />
+                                                            )}
+                                                            <div className="text-[10px] font-black uppercase tracking-widest">
+                                                                {t.author} / <span className="text-muted-foreground">{t.role}</span>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -984,6 +1042,22 @@ function BuilderContent() {
                                                 />
                                             </div>
                                         )}
+                                        {['hero', 'problem'].includes(activeSection?.type || '') && (
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Image URL</label>
+                                                <div className="flex gap-2">
+                                                    <Input
+                                                        value={activeSection?.content.imageUrl || ''}
+                                                        onChange={e => updateSectionContent(activeSection!.id, { imageUrl: e.target.value })}
+                                                        placeholder="https://images.unsplash.com/..."
+                                                        className="rounded-none border-black/10 text-[10px] h-10"
+                                                    />
+                                                    <div className="w-10 h-10 bg-black/[0.05] flex items-center justify-center shrink-0 border border-black/5">
+                                                        {activeSection?.content.imageUrl ? <img src={activeSection.content.imageUrl} className="w-full h-full object-cover" /> : <ImageIcon className="w-4 h-4 text-black/20" />}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
@@ -1030,6 +1104,16 @@ function BuilderContent() {
                                                         updateSectionContent(activeSection.id, { items: newItems });
                                                     }}
                                                     className="rounded-none border-black/10 text-[10px] font-bold h-8"
+                                                />
+                                                <Input
+                                                    value={item.imageUrl || ''}
+                                                    placeholder="Image URL"
+                                                    onChange={e => {
+                                                        const newItems = [...activeSection.content.items];
+                                                        newItems[i] = { ...item, imageUrl: e.target.value };
+                                                        updateSectionContent(activeSection.id, { items: newItems });
+                                                    }}
+                                                    className="rounded-none border-black/10 text-[9px] h-8"
                                                 />
                                                 <textarea
                                                     value={item.description || ''}
@@ -1175,6 +1259,16 @@ function BuilderContent() {
                                                     }}
                                                     className="rounded-none border-black/10 text-[10px] font-bold h-8"
                                                 />
+                                                <Input
+                                                    value={item.imageUrl || ''}
+                                                    placeholder="Solution Image URL"
+                                                    onChange={e => {
+                                                        const newItems = [...activeSection.content.items];
+                                                        newItems[i] = { ...item, imageUrl: e.target.value };
+                                                        updateSectionContent(activeSection.id, { items: newItems });
+                                                    }}
+                                                    className="rounded-none border-black/10 text-[9px] h-8"
+                                                />
                                                 <textarea
                                                     value={item.description || ''}
                                                     placeholder="Benefit/Description"
@@ -1287,6 +1381,16 @@ function BuilderContent() {
                                                             className="rounded-none border-black/10 text-[9px] h-8"
                                                         />
                                                     </div>
+                                                    <Input
+                                                        value={t.avatarUrl || ''}
+                                                        placeholder="Avatar Image URL"
+                                                        onChange={e => {
+                                                            const newTestimonials = [...activeSection.content.testimonials];
+                                                            newTestimonials[i] = { ...t, avatarUrl: e.target.value };
+                                                            updateSectionContent(activeSection.id, { testimonials: newTestimonials });
+                                                        }}
+                                                        className="rounded-none border-black/10 text-[8px] h-7"
+                                                    />
                                                     <button onClick={() => {
                                                         const newTestimonials = activeSection.content.testimonials.filter((_: any, idx: number) => idx !== i);
                                                         updateSectionContent(activeSection.id, { testimonials: newTestimonials });
