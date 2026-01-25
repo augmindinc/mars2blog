@@ -279,11 +279,17 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                     body: JSON.stringify({
                         type: 'image-prompt',
                         style: imageStyle,
-                        locale, // Pass current locale
+                        locale,
                         content: para,
                         context: `Post Title: ${title}`
                     }),
                 });
+
+                if (!promptRes.ok) {
+                    const errorText = await promptRes.text();
+                    console.error(`Prompt API failed status: ${promptRes.status}`, errorText);
+                    continue; // Skip this paragraph if prompt generation fails
+                }
                 const promptData = await promptRes.json();
 
                 if (promptData.result) {
@@ -297,6 +303,12 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                             prompt: promptData.result
                         }),
                     });
+
+                    if (!imageRes.ok) {
+                        const errorData = await imageRes.json().catch(() => ({ error: "Unknown API error" }));
+                        console.error(`Image API failed status: ${imageRes.status}`, errorData);
+                        continue; // Skip if image generation fails
+                    }
                     const imageData = await imageRes.json();
 
                     if (imageData.base64) {

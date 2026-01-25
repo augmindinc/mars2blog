@@ -80,22 +80,29 @@ export async function POST(req: Request) {
             };
             const fullPrompt = `Style: ${styleGuides[style] || style}\n\nTask: Generate an image based on the following description:\n${prompt}`;
             const imageModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash-image" });
-            try {
-                const result = await imageModel.generateContent(fullPrompt);
-                const response = await result.response;
-                const candidate = response.candidates?.[0];
-                const imagePart = candidate?.content?.parts?.find(p => p.inlineData);
-                if (imagePart?.inlineData) {
-                    return NextResponse.json({
-                        base64: imagePart.inlineData.data,
-                        mimeType: imagePart.inlineData.mimeType || 'image/png'
-                    });
+
+            let lastError;
+            for (let i = 0; i < 3; i++) {
+                try {
+                    const result = await imageModel.generateContent(fullPrompt);
+                    const response = await result.response;
+                    const candidate = response.candidates?.[0];
+                    const imagePart = candidate?.content?.parts?.find(p => p.inlineData);
+
+                    if (imagePart?.inlineData) {
+                        return NextResponse.json({
+                            base64: imagePart.inlineData.data,
+                            mimeType: imagePart.inlineData.mimeType || 'image/png'
+                        });
+                    }
+                    throw new Error("No image data returned from Nano Banana");
+                } catch (error: any) {
+                    lastError = error;
+                    console.error(`Nano Banana Attempt ${i + 1} failed:`, error.message);
+                    if (i < 2) await new Promise(resolve => setTimeout(resolve, 1500 * (i + 1))); // Incremental backoff
                 }
-                throw new Error("No image data returned from Nano Banana");
-            } catch (error: any) {
-                console.error("Nano Banana Error:", error);
-                return NextResponse.json({ error: "Nano Banana generation failed", details: error.message }, { status: 500 });
             }
+            return NextResponse.json({ error: "Nano Banana generation failed after retries", details: String(lastError) }, { status: 500 });
         }
 
         if (type === 'alt-text') {
