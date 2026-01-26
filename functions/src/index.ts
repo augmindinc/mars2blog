@@ -149,3 +149,37 @@ export const manualIndexUrl = onCall({ region: "us-central1", cors: true }, asyn
         throw new HttpsError("internal", (error as Error).message);
     }
 });
+
+// 3. Cleanup Temporary Storage (Daily)
+export const cleanupTempStorage = onSchedule("every 24 hours", async (event) => {
+    const bucket = admin.storage().bucket();
+    try {
+        const [files] = await bucket.getFiles({ prefix: "temp/" });
+        const now = Date.now();
+        const expirationTime = 48 * 60 * 60 * 1000; // 48 hours in milliseconds
+
+        let deletedCount = 0;
+        const deletePromises = [];
+
+        for (const file of files) {
+            const [metadata] = await file.getMetadata();
+            const timeCreated = metadata.timeCreated ? new Date(metadata.timeCreated).getTime() : 0;
+
+            if (now - timeCreated > expirationTime) {
+                deletePromises.push(
+                    file.delete().then(() => {
+                        deletedCount++;
+                    }).catch(err => {
+                        console.error(`Failed to delete file ${file.name}:`, err);
+                    })
+                );
+            }
+        }
+
+        await Promise.all(deletePromises);
+        console.log(`Successfully cleaned up ${deletedCount} temporary files.`);
+    } catch (error) {
+        console.error("Error during temp storage cleanup:", error);
+    }
+});
+
