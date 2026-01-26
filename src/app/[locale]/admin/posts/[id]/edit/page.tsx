@@ -22,6 +22,7 @@ import { compressImage } from '@/lib/imageCompression';
 import { removeImageBackground } from '@/lib/bgRemoval';
 import { enhanceImage } from '@/lib/imageEnhance';
 import { ensureCompatibleImage } from '@/lib/imageUtils';
+import { finalizeContentImages, finalizeSingleImage } from '@/lib/storageFinalizer';
 import { Sparkles, Loader2, UploadCloud, Languages, Lock, History, Image as ImageIcon, Camera, Palette, Wand2, Scissors, ShoppingBag, Scan, Check, AlertCircle, Trash, Sun } from 'lucide-react';
 import { SocialPreview } from '@/components/admin/SocialPreview';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -54,6 +55,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
     const [content, setContent] = useState('');
     const [category, setCategory] = useState<string>('PLANNING');
     const [summary, setSummary] = useState('');
+    const [slug, setSlug] = useState('');
     const [thumbnailUrl, setThumbnailUrl] = useState('');
     const [thumbnailAlt, setThumbnailAlt] = useState('');
     const [seoTitle, setSeoTitle] = useState('');
@@ -105,6 +107,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                 setTitle(post.title || '');
                 setContent(post.content || '');
                 setCategory(post.category);
+                setSlug(post.slug);
                 setSummary(post.excerpt || '');
                 setThumbnailUrl(post.thumbnail?.url || '');
                 setThumbnailAlt(post.thumbnail?.alt || '');
@@ -178,7 +181,8 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         setIsUploadingThumbnail(true);
         try {
             const compressedFile = await compressImage(file);
-            const storageRef = ref(storage, `thumbnails/${Date.now()}-${file.name}`);
+            const dateStr = new Date().toISOString().split('T')[0];
+            const storageRef = ref(storage, `temp/${dateStr}/thumb-${Date.now()}-${file.name}`);
             await uploadBytes(storageRef, compressedFile);
             const url = await getDownloadURL(storageRef);
             setThumbnailUrl(url);
@@ -377,7 +381,8 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
 
                 // 3. Upload to Firebase
                 setTrialProgress({ current: i + 1, total: files.length, status: `Uploading: ${file.name}` });
-                const storageRef = ref(storage, `trial-images/${Date.now()}-${i}.png`);
+                const dateStr = new Date().toISOString().split('T')[0];
+                const storageRef = ref(storage, `temp/${dateStr}/trial-${Date.now()}-${i}.png`);
                 await uploadBytes(storageRef, compressedFile);
                 const url = await getDownloadURL(storageRef);
 
@@ -476,18 +481,35 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
 
         setIsSubmitting(true);
         try {
+            // 0. Finalize Images (Move from temp to permanent)
+            const postDateStr = new Date().toISOString().split('T')[0];
+            const permanentBasePath = `posts/${postDateStr}/${slug || id}`;
+
+            const [finalContent, finalThumbnailUrl] = await Promise.all([
+                finalizeContentImages(content, `${permanentBasePath}/content`),
+                finalizeSingleImage(thumbnailUrl, `${permanentBasePath}/thumbnail`)
+            ]);
+
+            // Also finalize translations if enabled
+            const finalTranslations = { ...translations };
+            await Promise.all(Object.entries(finalTranslations).map(async ([lang, data]) => {
+                if (data.enabled && data.content) {
+                    data.content = await finalizeContentImages(data.content, `${permanentBasePath}/content/${lang}`);
+                }
+            }));
+
             const currentGroupId = groupId || `group-${Date.now()}`;
             const publishTimestamp = publishedAt ? Timestamp.fromDate(new Date(publishedAt)) : Timestamp.now();
 
             const updateData: Partial<Post> = {
                 groupId: currentGroupId,
                 title,
-                content,
+                content: finalContent,
                 excerpt: tldr || summary,
                 category,
                 status,
                 thumbnail: {
-                    url: thumbnailUrl,
+                    url: finalThumbnailUrl || '',
                     alt: thumbnailAlt || title
                 },
                 seo: {
@@ -508,7 +530,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
             await updatePost(id, updateData);
 
             // Handle translations
-            await Promise.all(Object.entries(translations).map(async ([lang, data]) => {
+            await Promise.all(Object.entries(finalTranslations).map(async ([lang, data]) => {
                 if (data.enabled && data.title && data.content) {
                     const transDoc: Omit<Post, 'id'> = {
                         groupId: currentGroupId,
@@ -525,7 +547,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                             photoUrl: null
                         },
                         thumbnail: {
-                            url: thumbnailUrl,
+                            url: finalThumbnailUrl || '',
                             alt: data.title
                         },
                         seo: {

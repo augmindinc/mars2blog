@@ -90,7 +90,8 @@ export function MarkdownEditor({ content, onChange }: MarkdownEditorProps) {
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 const compressedFile = await compressImage(file);
-                const storageRef = ref(storage, `posts/images/${Date.now()}-${file.name}`);
+                const dateStr = new Date().toISOString().split('T')[0];
+                const storageRef = ref(storage, `temp/${dateStr}/${Date.now()}-${file.name}`);
                 await uploadBytes(storageRef, compressedFile);
                 const url = await getDownloadURL(storageRef);
                 insertText(`![${file.name}](${url})`, '');

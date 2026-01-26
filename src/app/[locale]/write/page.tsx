@@ -12,6 +12,7 @@ import { compressImage } from '@/lib/imageCompression';
 import { removeImageBackground } from '@/lib/bgRemoval';
 import { enhanceImage } from '@/lib/imageEnhance';
 import { ensureCompatibleImage } from '@/lib/imageUtils';
+import { finalizeContentImages, finalizeSingleImage } from '@/lib/storageFinalizer';
 import { MarkdownEditor } from '@/components/editor/MarkdownEditor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -159,7 +160,8 @@ export default function WritePage() {
                 const compressedFile = await compressImage(processedFile);
 
                 setTrialProgress({ current: i + 1, total: files.length, status: `Uploading: ${file.name}` });
-                const storageRef = ref(storage, `trial-images/${Date.now()}-${i}.png`);
+                const dateStr = new Date().toISOString().split('T')[0];
+                const storageRef = ref(storage, `temp/${dateStr}/trial-${Date.now()}-${i}.png`);
                 await uploadBytes(storageRef, compressedFile);
                 const url = await getDownloadURL(storageRef);
 
@@ -279,7 +281,8 @@ export default function WritePage() {
         setIsUploadingThumbnail(true);
         try {
             const compressedFile = await compressImage(file);
-            const storageRef = ref(storage, `thumbnails/${Date.now()}-${file.name}`);
+            const dateStr = new Date().toISOString().split('T')[0];
+            const storageRef = ref(storage, `temp/${dateStr}/thumb-${Date.now()}-${file.name}`);
             await uploadBytes(storageRef, compressedFile);
             const url = await getDownloadURL(storageRef);
             setThumbnailUrl(url);
@@ -307,6 +310,23 @@ export default function WritePage() {
 
         setIsSubmitting(true);
         try {
+            // 0. Finalize Images (Move from temp to permanent)
+            const postDateStr = new Date().toISOString().split('T')[0];
+            const permanentBasePath = `posts/${postDateStr}/${slug || Date.now()}`;
+
+            const [finalContent, finalThumbnailUrl] = await Promise.all([
+                finalizeContentImages(content, `${permanentBasePath}/content`),
+                finalizeSingleImage(thumbnailUrl, `${permanentBasePath}/thumbnail`)
+            ]);
+
+            // Also finalize translations content if enabled
+            const finalTranslations = { ...translations };
+            await Promise.all(Object.entries(finalTranslations).map(async ([lang, data]) => {
+                if (data.enabled && data.content) {
+                    data.content = await finalizeContentImages(data.content, `${permanentBasePath}/content/${lang}`);
+                }
+            }));
+
             const groupId = `group-${Date.now()}`;
             const publishTimestamp = publishedAt ? Timestamp.fromDate(new Date(publishedAt)) : Timestamp.now();
             let initialStatus: 'published' | 'scheduled' = 'published';
@@ -319,7 +339,7 @@ export default function WritePage() {
                 groupId,
                 locale,
                 title,
-                content,
+                content: finalContent,
                 excerpt: tldr || summary || seoDescription.substring(0, 160),
                 slug: slug || `post-${Date.now()}`,
                 category,
@@ -330,7 +350,7 @@ export default function WritePage() {
                     photoUrl: user?.photoURL ?? null
                 },
                 thumbnail: {
-                    url: thumbnailUrl,
+                    url: finalThumbnailUrl || '',
                     alt: thumbnailAlt || title
                 },
                 seo: {
@@ -359,7 +379,7 @@ export default function WritePage() {
             const postsToSave = [originalPost];
 
             // 2. Prepare Translations
-            Object.entries(translations).forEach(([lang, data]) => {
+            Object.entries(finalTranslations).forEach(([lang, data]) => {
                 if (data.enabled && data.title && data.content) {
                     postsToSave.push({
                         ...originalPost,
