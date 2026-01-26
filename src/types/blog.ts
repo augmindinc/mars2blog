@@ -17,7 +17,8 @@ export const CATEGORY_LABELS: Record<string, Record<string, string>> = {
     COOKING: { ko: '요리', en: 'Cooking', ja: '料理', zh: '烹饪' },
     TRAVEL: { ko: '여행', en: 'Travel', ja: '旅行', zh: '旅行' },
     ISSUE: { ko: '이슈', en: 'Issue', ja: '話題', zh: '热점' },
-    ESSAY: { ko: '에세이', en: 'Essay', ja: 'エッセイ', zh: '散文' },
+    ESSAY: { ko: '에세이', en: 'Essay', ja: 'エッセ이', zh: '散文' },
+    TRIAL: { ko: '체험단', en: 'Trial', ja: '体験団', zh: '体验团' },
 };
 
 export interface Post {

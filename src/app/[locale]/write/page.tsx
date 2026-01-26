@@ -9,6 +9,9 @@ import { db, storage } from '@/lib/firebase';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { compressImage } from '@/lib/imageCompression';
+import { removeImageBackground } from '@/lib/bgRemoval';
+import { enhanceImage } from '@/lib/imageEnhance';
+import { ensureCompatibleImage } from '@/lib/imageUtils';
 import { MarkdownEditor } from '@/components/editor/MarkdownEditor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLocale } from 'next-intl';
-import { UploadCloud, Loader2, Sparkles, Languages } from 'lucide-react';
+import { UploadCloud, Loader2, Sparkles, Languages, ShoppingBag, Scan, Check, Sun } from 'lucide-react';
 import slugify from 'slugify';
 import { SocialPreview } from '@/components/admin/SocialPreview';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -63,7 +66,12 @@ export default function WritePage() {
     const [isTranslating, setIsTranslating] = useState(false);
     const [landingPages, setLandingPages] = useState<LandingPage[]>([]);
     const [selectedLandingId, setSelectedLandingId] = useState<string>('none');
+    const [isProcessingTrial, setIsProcessingTrial] = useState(false);
+    const [trialMode, setTrialMode] = useState<'bg-remove' | 'enhance'>('bg-remove');
+    const [isAutoEnhance, setIsAutoEnhance] = useState(true);
+    const [trialProgress, setTrialProgress] = useState<{ current: number, total: number, status: string }>({ current: 0, total: 0, status: '' });
     const thumbnailInputRef = useRef<HTMLInputElement>(null);
+    const trialInputRef = useRef<HTMLInputElement>(null);
 
     const [translations, setTranslations] = useState<Record<string, translationData>>({
         en: { enabled: false, title: '', content: '', slug: '', seoTitle: '', seoDescription: '', excerpt: '' },
@@ -115,6 +123,59 @@ export default function WritePage() {
             console.error("AI Generation failed", error);
         } finally {
             setIsGeneratingAI(false);
+        }
+    };
+
+    const handleTrialImages = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []).slice(0, 10);
+        if (files.length === 0) return;
+
+        setIsProcessingTrial(true);
+        setTrialProgress({ current: 0, total: files.length, status: 'Initializing...' });
+
+        let injectedMarkdown = '\n\n### 📸 체험단 상세 리뷰 이미지\n\n<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 24px 0;">\n';
+
+        try {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                setTrialProgress({ current: i + 1, total: files.length, status: trialMode === 'bg-remove' ? `Removing Background: ${file.name}` : `Enhancing Color: ${file.name}` });
+
+                // 1. Convert for Compatibility (e.g., HEIC -> JPG)
+                const compatibleFile = await ensureCompatibleImage(file);
+
+                // 2. Process Image
+                let processedBlob = trialMode === 'bg-remove'
+                    ? await removeImageBackground(compatibleFile)
+                    : await enhanceImage(compatibleFile);
+
+                // 2.5 Optional Auto-Enhance for BG removal
+                if (trialMode === 'bg-remove' && isAutoEnhance) {
+                    setTrialProgress(prev => ({ ...prev, status: `Brightening Subject: ${file.name}` }));
+                    processedBlob = await enhanceImage(processedBlob);
+                }
+
+                // 3. Compress
+                const processedFile = new File([processedBlob], `trial-${Date.now()}-${i}.png`, { type: trialMode === 'bg-remove' ? 'image/png' : 'image/jpeg' });
+                const compressedFile = await compressImage(processedFile);
+
+                setTrialProgress({ current: i + 1, total: files.length, status: `Uploading: ${file.name}` });
+                const storageRef = ref(storage, `trial-images/${Date.now()}-${i}.png`);
+                await uploadBytes(storageRef, compressedFile);
+                const url = await getDownloadURL(storageRef);
+
+                injectedMarkdown += `  <img src="${url}" alt="${file.name}" style="width: 100%; aspect-ratio: 1; object-fit: contain; background: #f9f9f9; border: 1px solid #eee;" />\n`;
+            }
+
+            injectedMarkdown += '</div>\n\n';
+            setContent(prev => prev + injectedMarkdown);
+            alert(`Succesfully processed and injected ${files.length} images!`);
+        } catch (error) {
+            console.error("Trial image processing failed", error);
+            alert("Some images failed to process. Please check console.");
+        } finally {
+            setIsProcessingTrial(false);
+            setTrialProgress({ current: 0, total: 0, status: '' });
+            if (trialInputRef.current) trialInputRef.current.value = '';
         }
     };
     const copyToClipboard = (text: string) => {
@@ -578,6 +639,91 @@ export default function WritePage() {
                                         onChange={(e) => setPublishedAt(e.target.value)}
                                         className="accent-primary"
                                     />
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-blue-100 bg-blue-50/30">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="flex items-center gap-2 text-sm font-bold text-blue-700">
+                                    <ShoppingBag className="w-4 h-4" />
+                                    Trial Toolkit
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-blue-800">Batch Photo Processor</label>
+                                    <div className="flex gap-1 bg-white border border-blue-100 p-0.5 mb-2 rounded-md">
+                                        <button
+                                            type="button"
+                                            onClick={() => setTrialMode('bg-remove')}
+                                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[8px] font-bold uppercase tracking-widest transition-all rounded-sm ${trialMode === 'bg-remove' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-600/40 hover:text-blue-600'}`}
+                                        >
+                                            <Scan className="w-3 h-3" /> BG Remove
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setTrialMode('enhance')}
+                                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[8px] font-bold uppercase tracking-widest transition-all rounded-sm ${trialMode === 'enhance' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-600/40 hover:text-blue-600'}`}
+                                        >
+                                            <Sun className="w-3 h-3" /> Magic Enhance
+                                        </button>
+                                    </div>
+                                    <p className="text-[10px] text-blue-600/80 leading-relaxed font-medium">
+                                        {trialMode === 'bg-remove'
+                                            ? "Upload to automatically remove backgrounds and insert as transparent PNGs."
+                                            : "Upload to auto-adjust brightness, contrast, and saturation for a vivid look."}
+                                    </p>
+                                </div>
+
+                                {trialMode === 'bg-remove' && (
+                                    <div className="flex items-center justify-between px-3 py-2 bg-white border border-blue-100 rounded-md">
+                                        <div className="flex items-center gap-2">
+                                            <Sun className="w-3.5 h-3.5 text-blue-500" />
+                                            <span className="text-[10px] font-bold text-blue-800 uppercase tracking-tight">Auto-Brighten Subject</span>
+                                        </div>
+                                        <Switch
+                                            checked={isAutoEnhance}
+                                            onCheckedChange={setIsAutoEnhance}
+                                            className="scale-90 data-[state=checked]:bg-blue-600"
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="space-y-3">
+                                    <input
+                                        type="file"
+                                        ref={trialInputRef}
+                                        className="hidden"
+                                        accept="image/*"
+                                        multiple
+                                        onChange={handleTrialImages}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full h-11 border-blue-200 bg-white hover:bg-blue-100 text-blue-700 font-bold text-xs"
+                                        onClick={() => trialInputRef.current?.click()}
+                                        disabled={isProcessingTrial}
+                                    >
+                                        {isProcessingTrial ? (
+                                            <div className="flex flex-col items-center">
+                                                <Loader2 className="w-4 h-4 animate-spin mb-1" />
+                                                <span className="text-[8px] font-normal">{trialProgress.status} ({trialProgress.current}/{trialProgress.total})</span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2">
+                                                {trialMode === 'bg-remove' ? <Scan className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                                                Start Batch Process
+                                            </div>
+                                        )}
+                                    </Button>
+                                </div>
+                                <div className="flex items-center gap-2 px-3 py-2 bg-blue-500/5 border border-blue-100/50 rounded-md">
+                                    <Check className="w-3 h-3 text-blue-600" />
+                                    <span className="text-[9px] font-bold text-blue-800 uppercase tracking-tight italic">
+                                        {trialMode === 'bg-remove' ? 'Auto-Transparency PNGs' : 'Vivid Color Correction'}
+                                    </span>
                                 </div>
                             </CardContent>
                         </Card>

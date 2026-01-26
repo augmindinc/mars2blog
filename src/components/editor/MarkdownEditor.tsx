@@ -12,6 +12,8 @@ import { storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { compressImage } from '@/lib/imageCompression';
 import { cn } from '@/lib/utils';
+import { ImageLightbox } from '@/components/blog/ImageLightbox';
+import { useEffect, useCallback } from 'react';
 
 interface MarkdownEditorProps {
     content: string;
@@ -23,6 +25,42 @@ export function MarkdownEditor({ content, onChange }: MarkdownEditorProps) {
     const [isUploading, setIsUploading] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const previewRef = useRef<HTMLDivElement>(null);
+    const [lightboxData, setLightboxData] = useState<{ isOpen: boolean; index: number }>({ isOpen: false, index: 0 });
+    const [extractedImages, setExtractedImages] = useState<{ url: string; alt: string }[]>([]);
+
+    // Scan for images in preview mode
+    useEffect(() => {
+        if (view !== 'preview' || !previewRef.current) return;
+
+        const imgs = previewRef.current.querySelectorAll('img');
+        const imageList: { url: string; alt: string }[] = [];
+
+        imgs.forEach((img) => {
+            const src = img.getAttribute('src');
+            if (src && !src.includes('profile') && !src.includes('avatar')) {
+                imageList.push({
+                    url: src,
+                    alt: img.getAttribute('alt') || 'Preview image'
+                });
+
+                img.style.cursor = 'zoom-in';
+                const currentIdx = imageList.length - 1;
+                img.onclick = (e) => {
+                    e.preventDefault();
+                    setLightboxData({ isOpen: true, index: currentIdx });
+                };
+            }
+        });
+
+        setExtractedImages(imageList);
+
+        return () => {
+            imgs.forEach(img => {
+                img.onclick = null;
+            });
+        };
+    }, [view, content]);
 
     const insertText = (before: string, after: string = '') => {
         const textarea = textareaRef.current;
@@ -152,13 +190,21 @@ export function MarkdownEditor({ content, onChange }: MarkdownEditorProps) {
                         placeholder="Write your story in markdown..."
                     />
                 ) : (
-                    <div className="p-4 prose prose-sm dark:prose-invert max-w-none min-h-[400px]">
+                    <div ref={previewRef} className="p-4 prose prose-sm dark:prose-invert max-w-none min-h-[400px]">
                         <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
                             rehypePlugins={[rehypeRaw]}
                         >
                             {content || '*No content to preview*'}
                         </ReactMarkdown>
+
+                        <ImageLightbox
+                            images={extractedImages}
+                            currentIndex={lightboxData.index}
+                            isOpen={lightboxData.isOpen}
+                            onClose={() => setLightboxData(prev => ({ ...prev, isOpen: false }))}
+                            onNavigate={(index) => setLightboxData(prev => ({ ...prev, index }))}
+                        />
                     </div>
                 )}
                 {isUploading && (

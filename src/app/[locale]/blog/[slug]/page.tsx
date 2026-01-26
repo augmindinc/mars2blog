@@ -10,6 +10,7 @@ import { TranslationManager } from '@/components/blog/TranslationManager';
 import { ViewCounter } from '@/components/blog/ViewCounter';
 import { RelatedPosts } from '@/components/blog/RelatedPosts';
 import { AiLandingCallout } from '@/components/blog/AiLandingCallout';
+import { ArticleContent } from '@/components/blog/ArticleContent';
 
 const getPost = cache(async (slug: string, locale: string) => {
     return await getPostBySlug(slug, locale);
@@ -22,9 +23,6 @@ interface BlogPostPageProps {
     }>;
 }
 
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeRaw from 'rehype-raw';
 
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
     const { slug, locale } = await params;
@@ -171,18 +169,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 </div>
             )}
 
-            <div className="prose prose-lg dark:prose-invert max-w-none">
-                {serializedPost.linkedLandingPageId ? (
-                    <AiLandingCallout
-                        landingPageId={serializedPost.linkedLandingPageId}
-                        content={serializedPost.content}
-                    />
-                ) : (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
-                        {serializedPost.content}
-                    </ReactMarkdown>
-                )}
-            </div>
+            <ArticleContent post={post} serializedPost={serializedPost} />
 
             <RelatedPosts currentPost={serializedPost} />
         </article>
