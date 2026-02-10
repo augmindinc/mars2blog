@@ -51,8 +51,12 @@ export default async function LocaleLayout({
         <html lang={locale} suppressHydrationWarning>
             <head>
                 <meta name="google-adsense-account" content="ca-pub-7171708184619536" />
-                <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7171708184619536"
-                    crossOrigin="anonymous"></script>
+                <Script
+                    async
+                    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7171708184619536"
+                    crossOrigin="anonymous"
+                    strategy="afterInteractive"
+                />
             </head>
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
                 {/* Google Analytics */}
