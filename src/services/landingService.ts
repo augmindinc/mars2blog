@@ -43,25 +43,40 @@ export const deleteLandingPage = async (id: string): Promise<void> => {
 };
 
 export const getLandingPageBySlug = async (slug: string, locale?: string): Promise<LandingPage | null> => {
-    const q = query(collection(db, COLLECTION_NAME), where('slug', '==', slug));
-    const querySnapshot = await getDocs(q);
+    // 1. Initial search by slug (any locale)
+    const slugQuery = query(collection(db, COLLECTION_NAME), where('slug', '==', slug));
+    const slugSnapshot = await getDocs(slugQuery);
 
-    if (querySnapshot.empty) return null;
+    if (slugSnapshot.empty) return null;
 
-    const docs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LandingPage));
+    const initialDocs = slugSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LandingPage));
 
-    // 1. Try to find precise match for requested locale
+    // 2. Prioritize precise slug + locale match
     if (locale) {
-        const match = docs.find(d => d.locale === locale);
-        if (match) return match;
+        const preciseMatch = initialDocs.find(d => d.locale === locale);
+        if (preciseMatch) return preciseMatch;
     }
 
-    // 2. Fallback to 'ko' or legacy documents (without locale field)
-    const fallbackMatch = docs.find(d => d.locale === 'ko' || !d.locale);
-    if (fallbackMatch) return fallbackMatch;
+    // 3. Robust Translation lookup via groupId
+    // If the slug exists but doesn't match the locale, find related translations in the same group
+    const referenceDoc = initialDocs[0];
+    if (locale && referenceDoc.groupId) {
+        const groupQuery = query(collection(db, COLLECTION_NAME), where('groupId', '==', referenceDoc.groupId));
+        const groupSnapshot = await getDocs(groupQuery);
+        const groupDocs = groupSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LandingPage));
 
-    // 3. Last resort: return the first matching slug document
-    return docs[0];
+        // Find the translation for the requested locale within the group
+        const groupMatch = groupDocs.find(d => d.locale === locale);
+        if (groupMatch) return groupMatch;
+
+        // Fallback within the group to 'ko' (default) or anything available
+        const groupFallback = groupDocs.find(d => d.locale === 'ko' || !d.locale) || groupDocs[0];
+        return groupFallback;
+    }
+
+    // 4. Final Fallbacks for matches with no groupId or no requested locale
+    const finalFallback = initialDocs.find(d => d.locale === 'ko' || !d.locale) || initialDocs[0];
+    return finalFallback;
 };
 
 export const getLandingPageTranslations = async (groupId: string): Promise<LandingPage[]> => {
