@@ -52,18 +52,19 @@ export default async function LocaleLayout({
         <html lang={locale} suppressHydrationWarning>
             <head>
                 <meta name="google-adsense-account" content="ca-pub-7171708184619536" />
+            </head>
+            <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
                 {/* 
                     Standard script tag is used for AdSense instead of next/script 
                     to prevent the "data-nscript" attribute which AdSense flags as a warning/error 
                     when placed in the head or during specific vignette states.
+                    Placed here in body to avoid React Hydration Error #418.
                 */}
                 <script
                     async
                     src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7171708184619536"
                     crossOrigin="anonymous"
                 ></script>
-            </head>
-            <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
                 <AriaHiddenCleanup />
                 {/* Google Analytics */}
 
