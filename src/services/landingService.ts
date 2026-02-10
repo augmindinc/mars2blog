@@ -43,21 +43,25 @@ export const deleteLandingPage = async (id: string): Promise<void> => {
 };
 
 export const getLandingPageBySlug = async (slug: string, locale?: string): Promise<LandingPage | null> => {
-    let q = query(collection(db, COLLECTION_NAME), where('slug', '==', slug));
-
-    if (locale) {
-        q = query(collection(db, COLLECTION_NAME),
-            where('slug', '==', slug),
-            where('locale', '==', locale)
-        );
-    }
-
+    const q = query(collection(db, COLLECTION_NAME), where('slug', '==', slug));
     const querySnapshot = await getDocs(q);
-    if (!querySnapshot.empty) {
-        const doc = querySnapshot.docs[0];
-        return { id: doc.id, ...doc.data() } as LandingPage;
+
+    if (querySnapshot.empty) return null;
+
+    const docs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LandingPage));
+
+    // 1. Try to find precise match for requested locale
+    if (locale) {
+        const match = docs.find(d => d.locale === locale);
+        if (match) return match;
     }
-    return null;
+
+    // 2. Fallback to 'ko' or legacy documents (without locale field)
+    const fallbackMatch = docs.find(d => d.locale === 'ko' || !d.locale);
+    if (fallbackMatch) return fallbackMatch;
+
+    // 3. Last resort: return the first matching slug document
+    return docs[0];
 };
 
 export const getLandingPageTranslations = async (groupId: string): Promise<LandingPage[]> => {
