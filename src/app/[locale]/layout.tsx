@@ -20,6 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 import { Navbar } from '@/components/layout/Navbar';
+import { AriaHiddenCleanup } from '@/components/layout/AriaHiddenCleanup';
 
 export default async function LocaleLayout({
     children,
@@ -53,11 +54,11 @@ export default async function LocaleLayout({
                 <meta name="google-adsense-account" content="ca-pub-7171708184619536" />
             </head>
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+                <AriaHiddenCleanup />
                 <Script
-                    async
                     src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7171708184619536"
                     crossOrigin="anonymous"
-                    strategy="afterInteractive"
+                    strategy="lazyOnload"
                 />
                 {/* Google Analytics */}
                 <Script
