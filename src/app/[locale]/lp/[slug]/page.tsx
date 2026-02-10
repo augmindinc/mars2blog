@@ -13,6 +13,7 @@ import { LandingViewCounter } from '@/components/landing/LandingViewCounter';
 export default function LandingViewPage() {
     const params = useParams();
     const slug = params.slug as string;
+    const locale = params.locale as string;
     const [page, setPage] = useState<LandingPage | null>(null);
     const [loading, setLoading] = useState(true);
     const [formData, setFormData] = useState<Record<string, any>>({});
@@ -32,7 +33,7 @@ export default function LandingViewPage() {
         window.scrollTo(0, 0);
         const loadPage = async () => {
             try {
-                const data = await getLandingPageBySlug(slug);
+                const data = await getLandingPageBySlug(slug, locale);
                 if (data) {
                     setPage(data);
                 }

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.manualIndexUrl = exports.onPostUpdated = exports.onPostCreated = exports.publishScheduledPosts = void 0;
+exports.cleanupTempStorage = exports.manualIndexUrl = exports.onPostUpdated = exports.onPostCreated = exports.publishScheduledPosts = void 0;
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const firestore_1 = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
@@ -135,6 +135,33 @@ exports.manualIndexUrl = (0, https_1.onCall)({ region: "us-central1", cors: true
     }
     catch (error) {
         throw new https_1.HttpsError("internal", error.message);
+    }
+});
+// 3. Cleanup Temporary Storage (Daily)
+exports.cleanupTempStorage = (0, scheduler_1.onSchedule)("every 24 hours", async (event) => {
+    const bucket = admin.storage().bucket();
+    try {
+        const [files] = await bucket.getFiles({ prefix: "temp/" });
+        const now = Date.now();
+        const expirationTime = 48 * 60 * 60 * 1000; // 48 hours in milliseconds
+        let deletedCount = 0;
+        const deletePromises = [];
+        for (const file of files) {
+            const [metadata] = await file.getMetadata();
+            const timeCreated = metadata.timeCreated ? new Date(metadata.timeCreated).getTime() : 0;
+            if (now - timeCreated > expirationTime) {
+                deletePromises.push(file.delete().then(() => {
+                    deletedCount++;
+                }).catch(err => {
+                    console.error(`Failed to delete file ${file.name}:`, err);
+                }));
+            }
+        }
+        await Promise.all(deletePromises);
+        console.log(`Successfully cleaned up ${deletedCount} temporary files.`);
+    }
+    catch (error) {
+        console.error("Error during temp storage cleanup:", error);
     }
 });
 //# sourceMappingURL=index.js.map

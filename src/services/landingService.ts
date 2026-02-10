@@ -42,8 +42,16 @@ export const deleteLandingPage = async (id: string): Promise<void> => {
     await deleteDoc(doc(db, COLLECTION_NAME, id));
 };
 
-export const getLandingPageBySlug = async (slug: string): Promise<LandingPage | null> => {
-    const q = query(collection(db, COLLECTION_NAME), where('slug', '==', slug));
+export const getLandingPageBySlug = async (slug: string, locale?: string): Promise<LandingPage | null> => {
+    let q = query(collection(db, COLLECTION_NAME), where('slug', '==', slug));
+
+    if (locale) {
+        q = query(collection(db, COLLECTION_NAME),
+            where('slug', '==', slug),
+            where('locale', '==', locale)
+        );
+    }
+
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {
         const doc = querySnapshot.docs[0];
