@@ -37,7 +37,7 @@ Example: { "paragraphIndex": 2, "selectedCalloutIndex": 1 }
 
         let text = "";
         let lastError;
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 2; i++) {
             try {
                 const result = await model.generateContent({
                     contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -47,12 +47,15 @@ Example: { "paragraphIndex": 2, "selectedCalloutIndex": 1 }
                 break;
             } catch (error: any) {
                 lastError = error;
-                console.error(`Callout placement attempt ${i + 1} failed:`, error.message);
-                if (i < 2) await new Promise(resolve => setTimeout(resolve, 1000));
+                console.error(`AI Placement attempt ${i + 1} failed:`, error.message);
+                if (i < 1) await new Promise(resolve => setTimeout(resolve, 500));
             }
         }
 
-        if (!text) throw lastError;
+        if (!text) {
+            console.error("AI Placement fully failed after retries.");
+            throw lastError || new Error("AI failed to generate placement data");
+        }
 
         const responseText = text;
 

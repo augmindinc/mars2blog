@@ -53,14 +53,37 @@ export function AiLandingCallout({ landingPageId, content }: AiLandingCalloutPro
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ content, callouts: lp.callouts })
                     });
-                    const data = await res.json();
-                    if (data.paragraphIndex !== undefined) {
-                        setPlacement(data);
-                        sessionStorage.setItem(cacheKey, JSON.stringify(data));
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.paragraphIndex !== undefined) {
+                            setPlacement(data);
+                            sessionStorage.setItem(cacheKey, JSON.stringify(data));
+                            return;
+                        }
                     }
+
+                    // Heuristic Fallback Strategy if API fails or returns invalid data
+                    const paragraphs = content.trim().split(/\n\n+/);
+                    let fallbackIndex = 1; // Default to after 1st paragraph
+
+                    if (paragraphs.length >= 6) {
+                        fallbackIndex = Math.floor(paragraphs.length / 2); // Middle of post
+                    } else if (paragraphs.length >= 3) {
+                        fallbackIndex = 2; // After 2nd paragraph
+                    }
+
+                    const fallbackPlacement = {
+                        paragraphIndex: Math.min(fallbackIndex, paragraphs.length - 1),
+                        selectedCalloutIndex: 0 // Use first callout
+                    };
+                    setPlacement(fallbackPlacement);
+                    console.warn("Using heuristic fallback for callout placement due to API error.");
                 }
             } catch (error) {
-                console.error("Failed callout placement:", error);
+                console.error("Failed callout placement, utilizing fallback:", error);
+                // Last ditch fallback if even the above fails
+                setPlacement({ paragraphIndex: 1, selectedCalloutIndex: 0 });
             } finally {
                 setLoading(false);
             }
