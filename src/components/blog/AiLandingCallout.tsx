@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { LandingPage } from '@/types/landing';
-import { getLandingPage } from '@/services/landingService';
+import { getLandingPage, getLandingPageTranslations } from '@/services/landingService';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import ReactMarkdown from 'react-markdown';
@@ -15,6 +16,8 @@ interface AiLandingCalloutProps {
 }
 
 export function AiLandingCallout({ landingPageId, content }: AiLandingCalloutProps) {
+    const params = useParams();
+    const locale = params.locale as string;
     const [placement, setPlacement] = useState<{ paragraphIndex: number; selectedCalloutIndex: number } | null>(null);
     const [landingPage, setLandingPage] = useState<LandingPage | null>(null);
     const [loading, setLoading] = useState(true);
@@ -22,7 +25,17 @@ export function AiLandingCallout({ landingPageId, content }: AiLandingCalloutPro
     useEffect(() => {
         const loadAndPlace = async () => {
             try {
-                const lp = await getLandingPage(landingPageId);
+                let lp = await getLandingPage(landingPageId);
+
+                // If the landing page locale doesn't match current locale, try to find a translation
+                if (lp && lp.locale !== locale && lp.groupId) {
+                    const translations = await getLandingPageTranslations(lp.groupId);
+                    const matchedTranslation = translations.find(t => t.locale === locale);
+                    if (matchedTranslation) {
+                        lp = matchedTranslation;
+                    }
+                }
+
                 if (!lp || !lp.callouts || lp.callouts.length === 0) {
                     setLoading(false);
                     return;
