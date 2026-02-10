@@ -8,11 +8,10 @@ import { AiLandingCallout } from '@/components/blog/AiLandingCallout';
 import { ImageLightbox } from './ImageLightbox';
 
 interface ArticleContentProps {
-    post: any;
     serializedPost: any;
 }
 
-export function ArticleContent({ post, serializedPost }: ArticleContentProps) {
+export function ArticleContent({ serializedPost }: ArticleContentProps) {
     const [lightboxData, setLightboxData] = useState<{ isOpen: boolean; index: number }>({ isOpen: false, index: 0 });
     const [extractedImages, setExtractedImages] = useState<{ url: string; alt: string }[]>([]);
     const contentRef = useRef<HTMLDivElement>(null);

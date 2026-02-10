@@ -169,7 +169,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 </div>
             )}
 
-            <ArticleContent post={post} serializedPost={serializedPost} />
+            <ArticleContent serializedPost={serializedPost} />
 
             <RelatedPosts currentPost={serializedPost} />
         </article>
