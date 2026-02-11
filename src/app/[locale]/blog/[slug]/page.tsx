@@ -117,7 +117,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     });
 
     return (
-        <article className="container mx-auto px-4 py-8 max-w-3xl">
+        <article className="container mx-auto px-4 py-8 max-w-3xl" suppressHydrationWarning>
             <TranslationManager translations={translationMap} />
             <ViewCounter postId={serializedPost.id} postTitle={serializedPost.title} />
             <script

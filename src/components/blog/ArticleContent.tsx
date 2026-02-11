@@ -53,7 +53,7 @@ export function ArticleContent({ serializedPost }: ArticleContentProps) {
     }, [serializedPost.content, serializedPost.linkedLandingPageId]);
 
     return (
-        <div ref={contentRef} className="prose prose-lg dark:prose-invert max-w-none">
+        <div ref={contentRef} className="prose prose-lg dark:prose-invert max-w-none" suppressHydrationWarning>
             {serializedPost.linkedLandingPageId ? (
                 <AiLandingCallout
                     landingPageId={serializedPost.linkedLandingPageId}

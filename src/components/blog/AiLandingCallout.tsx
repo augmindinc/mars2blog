@@ -94,9 +94,11 @@ export function AiLandingCallout({ landingPageId, content }: AiLandingCalloutPro
 
     if (loading || !placement || !landingPage || !landingPage.callouts) {
         return (
-            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
-                {content}
-            </ReactMarkdown>
+            <div suppressHydrationWarning>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                    {content}
+                </ReactMarkdown>
+            </div>
         );
     }
 
@@ -111,9 +113,9 @@ export function AiLandingCallout({ landingPageId, content }: AiLandingCalloutPro
     const targetParagraphIndex = Math.min(Math.max(0, placement.paragraphIndex), paragraphs.length - 1);
 
     return (
-        <div className="space-y-0">
+        <div className="space-y-0" suppressHydrationWarning>
             {paragraphs.map((paragraphsText, idx) => (
-                <div key={idx}>
+                <div key={idx} suppressHydrationWarning>
                     <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
                         {paragraphsText}
                     </ReactMarkdown>
