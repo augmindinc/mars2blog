@@ -21,6 +21,7 @@ const geistMono = Geist_Mono({
 
 import { Navbar } from '@/components/layout/Navbar';
 import { AriaHiddenCleanup } from '@/components/layout/AriaHiddenCleanup';
+import { LogVisit } from '@/components/layout/LogVisit';
 
 export default async function LocaleLayout({
     children,
@@ -31,13 +32,10 @@ export default async function LocaleLayout({
 }) {
     const { locale } = await params;
 
-    // Server-side bot detection
+    // Server-side context extraction
     const headerList = await headers();
     const userAgent = headerList.get('user-agent') || '';
     const ip = headerList.get('x-forwarded-for')?.split(',')[0] || '';
-
-    // Non-blocking log
-    detectAndLogBot(userAgent, `/${locale}`, ip).catch(console.error);
 
     // Ensure that the incoming `locale` is valid
     if (!routing.locales.includes(locale as any)) {
@@ -54,6 +52,7 @@ export default async function LocaleLayout({
                 <meta name="google-adsense-account" content="ca-pub-7171708184619536" />
             </head>
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
+                <LogVisit userAgent={userAgent} ip={ip} />
                 {/* 
                     Standard script tag is used for AdSense instead of next/script 
                     to prevent the "data-nscript" attribute which AdSense flags as a warning/error 

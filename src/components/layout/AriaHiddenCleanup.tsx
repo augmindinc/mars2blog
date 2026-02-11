@@ -9,23 +9,12 @@ import { useEffect } from 'react';
  */
 export function AriaHiddenCleanup() {
     useEffect(() => {
-        // 1. Proactive Interception: Override setAttribute to ignore aria-hidden="true" on body
-        const originalSetAttribute = document.body.setAttribute;
-
-        document.body.setAttribute = function (name: string, value: string) {
-            if (name === 'aria-hidden' && value === 'true') {
-                // Ignore attempt to hide the body from screen readers
-                return;
-            }
-            return originalSetAttribute.apply(this, [name, value]);
-        };
-
-        // 2. Initial Cleanup
+        // 1. Initial Cleanup
         if (document.body.getAttribute('aria-hidden') === 'true') {
             document.body.removeAttribute('aria-hidden');
         }
 
-        // 3. MutationObserver as a secondary safeguard
+        // 2. MutationObserver safeguard
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 if (
@@ -41,8 +30,6 @@ export function AriaHiddenCleanup() {
         observer.observe(document.body, { attributes: true });
 
         return () => {
-            // Restore original setAttribute behavior on unmount
-            document.body.setAttribute = originalSetAttribute;
             observer.disconnect();
         };
     }, []);
