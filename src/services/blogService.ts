@@ -53,6 +53,8 @@ const extractImageUrls = (content: string): string[] => {
     return Array.from(new Set(urls)); // Remove duplicates
 };
 
+import { unstable_cache } from 'next/cache';
+
 export const getPosts = async (category: Category = 'ALL', locale: string = 'ko'): Promise<Post[]> => {
     try {
         let q = query(
@@ -87,6 +89,18 @@ export const getPosts = async (category: Category = 'ALL', locale: string = 'ko'
         return [];
     }
 };
+
+/**
+ * Cached version of getPosts for improved performance
+ * Caches for 5 minutes (300 seconds)
+ */
+export const getCachedPosts = unstable_cache(
+    async (category: Category = 'ALL', locale: string = 'ko') => {
+        return getPosts(category, locale);
+    },
+    ['posts-list'],
+    { revalidate: 300, tags: ['posts'] }
+);
 
 // Real-time subscription for public posts
 export const subscribeToPosts = (category: Category, locale: string = 'ko', callback: (posts: Post[]) => void) => {

@@ -1,7 +1,9 @@
+import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { PostList } from '@/components/blog/PostList';
 import { Metadata } from 'next';
-import { getPosts, serializePost } from '@/services/blogService';
+import { getCachedPosts, serializePost } from '@/services/blogService';
+import { PostListSkeleton } from '@/components/blog/PostListSkeleton';
 
 interface HomePageProps {
     params: Promise<{ locale: string }>;
@@ -25,13 +27,17 @@ export async function generateMetadata({ params }: HomePageProps): Promise<Metad
     };
 }
 
+async function PostListSection({ locale }: { locale: string }) {
+    // Pre-fetch posts on the server with caching
+    const rawPosts = await getCachedPosts('ALL', locale);
+    const initialPosts = rawPosts.map(serializePost);
+
+    return <PostList initialData={initialPosts} />;
+}
+
 export default async function HomePage({ params }: HomePageProps) {
     const { locale } = await params;
     const t = await getTranslations('HomePage');
-
-    // Pre-fetch posts on the server
-    const rawPosts = await getPosts('ALL', locale);
-    const initialPosts = rawPosts.map(serializePost);
 
     return (
         <main className="min-h-screen bg-background">
@@ -47,7 +53,9 @@ export default async function HomePage({ params }: HomePageProps) {
                     </div>
                 </header>
 
-                <PostList initialData={initialPosts} />
+                <Suspense fallback={<PostListSkeleton />}>
+                    <PostListSection locale={locale} />
+                </Suspense>
             </div>
         </main>
     );

@@ -53,18 +53,6 @@ export default async function LocaleLayout({
             </head>
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
                 <LogVisit userAgent={userAgent} ip={ip} />
-                {/* 
-                    Standard script tag is used for AdSense instead of next/script 
-                    to prevent the "data-nscript" attribute which AdSense flags as a warning/error 
-                    when placed in the head or during specific vignette states.
-                    Placed here in body to avoid React Hydration Error #418.
-                */}
-                <script
-                    async
-                    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7171708184619536"
-                    crossOrigin="anonymous"
-                ></script>
-                <AriaHiddenCleanup />
                 {/* Google Analytics */}
 
                 <Script
@@ -91,6 +79,34 @@ export default async function LocaleLayout({
                         </div>
                     </Providers>
                 </NextIntlClientProvider>
+
+                {/* 
+                    Standard script tag is used for AdSense instead of next/script 
+                    to prevent the "data-nscript" attribute which AdSense flags as a warning/error 
+                    when placed in the head or during specific vignette states.
+                    Placed here at the bottom to avoid blocking content rendering.
+                */}
+                <script
+                    async
+                    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7171708184619536"
+                    crossOrigin="anonymous"
+                ></script>
+                <AriaHiddenCleanup />
+
+                {/* Google Analytics */}
+                <Script
+                    src="https://www.googletagmanager.com/gtag/js?id=G-PGX6QCE0TP"
+                    strategy="afterInteractive"
+                />
+                <Script id="google-analytics" strategy="afterInteractive">
+                    {`
+                        window.dataLayer = window.dataLayer || [];
+                        function gtag(){dataLayer.push(arguments);}
+                        gtag('js', new Date());
+
+                        gtag('config', 'G-PGX6QCE0TP');
+                    `}
+                </Script>
             </body>
         </html>
     );
