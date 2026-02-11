@@ -5,6 +5,7 @@ const withNextIntl = createNextIntlPlugin();
 
 const nextConfig: NextConfig = {
   /* config options here */
+  compress: false, // Disable Next.js compression to avoid conflicts with Firebase Hosting
   images: {
     remotePatterns: [
       {
