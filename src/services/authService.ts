@@ -174,13 +174,16 @@ export const loginWithGoogle = async (requestedRole: UserRole = 'author') => {
 
 export const handleRedirectResult = async () => {
     try {
+        if (typeof window !== 'undefined') console.log('[authService] handleRedirectResult started');
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
 
         if (session?.user) {
+            if (typeof window !== 'undefined') console.log('[authService] handleRedirectResult: session found for', session.user.id);
             // Check if profile exists, if not create it (standard Supabase pattern)
             let profile = await getUserProfile(session.user.id);
             if (!profile) {
+                if (typeof window !== 'undefined') console.log('[authService] handleRedirectResult: profile not found, creating...');
                 const status: UserStatus = 'approved'; // Default for social
                 profile = {
                     uid: session.user.id,
@@ -194,9 +197,12 @@ export const handleRedirectResult = async () => {
                 };
                 const mappedProfile = mapProfileToDb(profile);
                 await supabase.from(COLLECTION_USERS).insert([mappedProfile]);
+                if (typeof window !== 'undefined') console.log('[authService] handleRedirectResult: profile created');
             }
+            if (typeof window !== 'undefined') console.log('[authService] handleRedirectResult completed with user');
             return session.user;
         }
+        if (typeof window !== 'undefined') console.log('[authService] handleRedirectResult completed (no session)');
     } catch (error) {
         console.error("Redirect result error", error);
     }

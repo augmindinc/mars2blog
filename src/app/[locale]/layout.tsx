@@ -86,11 +86,13 @@ export default async function LocaleLayout({
                     when placed in the head or during specific vignette states.
                     Placed here at the bottom to avoid blocking content rendering.
                 */}
+                {/* Temporarily disabled for diagnostics
                 <script
                     async
                     src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7171708184619536"
                     crossOrigin="anonymous"
                 ></script>
+                */}
                 <AriaHiddenCleanup />
 
                 <AriaHiddenCleanup />
