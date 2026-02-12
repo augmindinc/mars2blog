@@ -525,31 +525,38 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         if (!title || !content) return;
 
         setIsSubmitting(true);
-        console.log("[EditPost] Starting submission protocol...");
+        console.log("%c[EditPost] STARTING_SUBMISSION_PROTOCOL", "color: blue; font-weight: bold;");
 
         try {
-            // 0. Ensure session is fresh (prevents infinite loading after long inactivity)
-            console.log("[EditPost] Refreshing session...");
+            // 0. Ensure session is fresh
+            console.log("[EditPost] 1/5 Refreshing session...");
             const { data: { session }, error: sessionError } = await supabase.auth.getSession();
             if (sessionError) throw sessionError;
             if (!session) throw new Error("Session expired. Please log in again.");
 
-            // 1. Finalize Images (Move from temp to permanent)
-            console.log("[EditPost] Finalizing images...");
+            // 1. Finalize Images
+            console.log("[EditPost] 2/5 Finalizing images (Main Content)...");
             const postDateStr = new Date().toISOString().split('T')[0];
             const permanentBasePath = `posts/${postDateStr}/${slug || id}`;
 
             const [finalContent, finalThumbnailUrl] = await Promise.all([
                 finalizeContentImages(content, `${permanentBasePath}/content`),
                 finalizeSingleImage(thumbnailUrl, `${permanentBasePath}/thumbnail`)
-            ]);
+            ]).catch(err => {
+                console.error("[EditPost] Image finalization FAILED, proceeding with original URLs", err);
+                return [content, thumbnailUrl];
+            });
 
             // Also finalize translations if enabled
-            console.log("[EditPost] Finalizing translation images...");
+            console.log("[EditPost] 3/5 Finalizing images (Translations)...");
             const finalTranslations = { ...translations };
             await Promise.all(Object.entries(finalTranslations).map(async ([lang, data]) => {
                 if (data.enabled && data.content) {
-                    data.content = await finalizeContentImages(data.content, `${permanentBasePath}/content/${lang}`);
+                    try {
+                        data.content = await finalizeContentImages(data.content, `${permanentBasePath}/content/${lang}`);
+                    } catch (err) {
+                        console.error(`[EditPost] Failed to finalize images for ${lang}`, err);
+                    }
                 }
             }));
 
@@ -582,14 +589,14 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                 linkedLandingPageId: selectedLandingId === 'none' ? null : selectedLandingId
             };
 
-            console.log("[EditPost] Updating main post...");
+            console.log("[EditPost] 4/5 Updating main post...");
             await updatePost(id, updateData);
 
             // Handle translations
-            console.log("[EditPost] Updating translations...");
+            console.log("[EditPost] 5/5 Processing translations...");
             await Promise.all(Object.entries(finalTranslations).map(async ([lang, data]) => {
                 if (data.enabled && data.title && data.content) {
-                    console.log(`[EditPost] Processing translation: ${lang}...`);
+                    console.log(`[EditPost] Saving translation: ${lang}...`);
                     const transDoc: Omit<Post, 'id'> = {
                         groupId: currentGroupId,
                         locale: lang,
@@ -627,21 +634,29 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                         linkedLandingPageId: selectedLandingId === 'none' ? null : selectedLandingId
                     };
 
-                    if (data.id) {
-                        await updatePost(data.id, transDoc as any);
-                    } else {
-                        await createPost(transDoc);
+                    try {
+                        if (data.id) {
+                            await updatePost(data.id, transDoc as any);
+                        } else {
+                            await createPost(transDoc);
+                        }
+                        console.log(`[EditPost] SUCCESS: ${lang} saved.`);
+                    } catch (err: any) {
+                        console.error(`[EditPost] ERROR_SAVING_TRANSLATION (${lang}):`, err);
+                        // Don't throw here to allow main post to finish successfully
+                        alert(`Translation (${lang}) failed: ${err.message}`);
                     }
                 }
             }));
 
-            console.log("[EditPost] Submission complete!");
+            console.log("%c[EditPost] SUCCESS_ALL_TASKS_COMPLETE", "color: green; font-weight: bold;");
             alert('Post and translations updated successfully');
             router.push(`/${locale}/admin`);
         } catch (error: any) {
-            console.error('Error updating document: ', error);
+            console.error('[EditPost] CRITICAL_REJECTION:', error);
             alert(`Failed to update post: ${error.message || 'Unknown error'}`);
         } finally {
+            console.log("[EditPost] Finalizing UI State.");
             setIsSubmitting(false);
         }
     };
