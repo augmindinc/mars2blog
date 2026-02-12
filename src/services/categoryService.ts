@@ -5,6 +5,7 @@ const TABLE_NAME = 'categories';
 
 export const getCategories = async (): Promise<CategoryMeta[]> => {
     try {
+        if (typeof window !== 'undefined') console.log('[categoryService] Fetching categories...');
         const { data, error } = await supabase
             .from(TABLE_NAME)
             .select('*')

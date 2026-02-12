@@ -95,6 +95,12 @@ export const getPosts = async (category: Category = 'ALL', locale: string = 'ko'
     }
 };
 
+export const getCachedPosts = async (category: Category = 'ALL', locale: string = 'ko') => {
+    // Temporarily bypassing cache for diagnostics
+    console.log(`[blogService] Fetching posts for ${category} in ${locale}`);
+    return getPosts(category, locale);
+};
+/*
 export const getCachedPosts = unstable_cache(
     async (category: Category = 'ALL', locale: string = 'ko') => {
         return getPosts(category, locale);
@@ -102,6 +108,7 @@ export const getCachedPosts = unstable_cache(
     ['posts-list'],
     { revalidate: 300, tags: ['posts'] }
 );
+*/
 
 // Supabase Real-time subscription
 export const subscribeToPosts = (category: Category, locale: string = 'ko', callback: (posts: Post[]) => void) => {
