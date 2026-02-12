@@ -17,7 +17,7 @@ export const getContentPlans = async (sourcePostId?: string): Promise<ContentPla
         const { data, error } = await query;
 
         if (error) throw error;
-        return (data || []).map(d => ({
+        return (data || []).map((d: any) => ({
             ...d,
             sourcePostId: d.source_post_id,
             createdAt: d.created_at

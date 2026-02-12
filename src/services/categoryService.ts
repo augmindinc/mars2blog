@@ -20,7 +20,7 @@ export const getCategories = async (): Promise<CategoryMeta[]> => {
             console.log(`[categoryService] getCategories success: count=${data?.length || 0} (Status: ${status})`);
         }
 
-        return (data || []).map(d => ({
+        return (data || []).map((d: any) => ({
             ...d,
             createdAt: d.created_at
         })) as CategoryMeta[];

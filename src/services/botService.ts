@@ -62,7 +62,7 @@ export const getBotLogs = async (max: number = 100): Promise<BotLog[]> => {
             .limit(max);
 
         if (error) throw error;
-        return (data || []).map(d => ({
+        return (data || []).map((d: any) => ({
             ...d,
             botName: d.bot_name,
             botCompany: d.bot_company,
