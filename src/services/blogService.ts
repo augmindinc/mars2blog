@@ -272,10 +272,10 @@ export const getPostByShortCode = async (shortCode: string): Promise<Post | null
             .from(TABLE_NAME)
             .select('*')
             .eq('short_code', shortCode)
-            .single();
+            .limit(1);
 
         if (error) throw error;
-        return data ? mapPostFromDb(data) : null;
+        return data && data.length > 0 ? mapPostFromDb(data[0]) : null;
     } catch (error) {
         console.error("Error fetching post by short code:", error);
         return null;

@@ -623,7 +623,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                         publishedAt: publishTimestamp,
                         status,
                         viewCount: 0,
-                        shortCode: null,
+                        shortCode: shortCode || null,
                         linkedLandingPageId: selectedLandingId === 'none' ? null : selectedLandingId
                     };
 

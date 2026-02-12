@@ -432,7 +432,7 @@ export default function WritePage() {
                                 headline: data.seoTitle,
                             }
                         },
-                        shortCode: null
+                        shortCode: shortCode || null
                     });
                 }
             });
