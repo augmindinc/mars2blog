@@ -5,10 +5,10 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 const intlMiddleware = createIntlMiddleware(routing);
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     let response = intlMiddleware(request);
 
-    // Create a Supabase client for the middleware
+    // Create a Supabase client for the proxy
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

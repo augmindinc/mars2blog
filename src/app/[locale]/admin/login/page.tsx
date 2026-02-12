@@ -73,9 +73,15 @@ export default function LoginPage() {
                 res = await registerWithEmail(email, password, displayName, 'admin');
             }
 
-            if (res && 'profile' in res && res.profile?.status === 'pending') {
-                setShowPendingModal(true);
-            } else if (res) {
+            if (res && 'profile' in res) {
+                const profile = (res as any).profile;
+                if (profile?.status === 'pending') {
+                    setShowPendingModal(true);
+                    return;
+                }
+            }
+
+            if (res) {
                 router.push(`/${locale}/admin`);
             }
         } catch (err: any) {

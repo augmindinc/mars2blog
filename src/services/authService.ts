@@ -96,7 +96,7 @@ export const registerWithEmail = async (email: string, password: string, display
 
         if (authError) throw authError;
 
-        return { user: authData.user };
+        return { user: authData.user, profile: null };
     } catch (error) {
         console.error("Registration failed", error);
         throw error;
