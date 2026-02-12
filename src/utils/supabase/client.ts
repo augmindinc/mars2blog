@@ -5,33 +5,36 @@ const customFetch = async (url: string | URL | Request, options?: RequestInit) =
     const urlString = url.toString();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-        if (typeof window !== 'undefined') console.warn(`[Supabase Fetch] TIMEOUT_TRIGGERED: ${urlString}`);
+        if (typeof window !== 'undefined') console.warn(`[Supabase Fetch] TIMEOUT_TRIGGERED (15s): ${urlString}`);
         controller.abort(new Error('Supabase request timed out (15s)'));
     }, 15000);
 
     if (typeof window !== 'undefined') console.log(`[Supabase Fetch] INIT: ${urlString}`);
     const start = Date.now();
     try {
-        // Robust signal merging
+        // Robust signal merging: Use AbortSignal.any if available (Chrome 116+, Node 20+)
         let signal = controller.signal;
         if (options?.signal) {
-            const externalSignal = options.signal;
-            if (externalSignal.aborted) {
-                controller.abort(externalSignal.reason);
+            if ((AbortSignal as any).any) {
+                signal = (AbortSignal as any).any([controller.signal, options.signal]);
             } else {
-                externalSignal.addEventListener('abort', () => {
+                // Manual link if .any is missing
+                const externalSignal = options.signal;
+                if (externalSignal.aborted) {
                     controller.abort(externalSignal.reason);
-                }, { once: true });
+                } else {
+                    externalSignal.addEventListener('abort', () => controller.abort(externalSignal.reason), { once: true });
+                }
+                signal = controller.signal;
             }
         }
 
-        const response = await fetch(url, {
-            ...options,
-            signal
-        });
+        const response = await fetch(url, { ...options, signal });
         clearTimeout(timeoutId);
+
         if (typeof window !== 'undefined') {
-            console.log(`[Supabase Fetch] DONE: ${urlString} (Status: ${response.status}) in ${Date.now() - start}ms`);
+            const duration = Date.now() - start;
+            console.log(`[Supabase Fetch] DONE: ${urlString} (Status: ${response.status}) in ${duration}ms`);
         }
         return response;
     } catch (error: any) {
@@ -39,11 +42,11 @@ const customFetch = async (url: string | URL | Request, options?: RequestInit) =
         const isTimeout = error.name === 'AbortError' && controller.signal.aborted;
         if (typeof window !== 'undefined') {
             if (isTimeout) {
-                console.error(`[Supabase Fetch] TIMEOUT_FINAL (15s): ${urlString}`);
+                console.error(`[Supabase Fetch] TIMEOUT_ABORT: ${urlString}`);
             } else if (error.name === 'AbortError') {
-                console.log(`[Supabase Fetch] CANCELLED: ${urlString}`);
+                console.log(`[Supabase Fetch] USER_CANCELLED: ${urlString}`);
             } else {
-                console.error(`[Supabase Fetch] FAIL: ${urlString} - ${error.message}`);
+                console.error(`[Supabase Fetch] NETWORK_ERROR: ${urlString} - ${error.message}`);
             }
         }
         throw error;
@@ -58,38 +61,35 @@ declare global {
 }
 
 export function createClient() {
-    // Basic env check (non-blocking log)
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        if (typeof window !== 'undefined') console.error("[Supabase Client] CRITICAL: Environment variables missing!");
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+        if (typeof window !== 'undefined') {
+            console.error("[Supabase Client] CRITICAL: Missing ENV vars", { url: !!supabaseUrl, key: !!supabaseKey });
+        }
     }
 
+    // Server-side logic (Always create fresh OR use common cache if needed)
     if (typeof window === 'undefined') {
-        // Server-side: create a fresh one
-        return createBrowserClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                global: {
-                    fetch: customFetch
-                }
-            }
-        );
+        return createBrowserClient(supabaseUrl || '', supabaseKey || '', {
+            global: { fetch: customFetch }
+        });
     }
 
+    // Singleton logic
     if (window.__SUPABASE_CLIENT__) return window.__SUPABASE_CLIENT__;
 
-    if (typeof window !== 'undefined') console.log("[Supabase Client] Creating new browser singleton...");
-    window.__SUPABASE_CLIENT__ = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            global: {
-                fetch: customFetch
-            }
-        }
-    )
+    if (typeof window !== 'undefined') {
+        console.log("[Supabase Client] INTIALIZING_SINGLETON", { url: supabaseUrl?.substring(0, 20) + "..." });
+    }
+
+    window.__SUPABASE_CLIENT__ = createBrowserClient(supabaseUrl || '', supabaseKey || '', {
+        global: { fetch: customFetch }
+    });
+
     return window.__SUPABASE_CLIENT__;
 }
 
-// Export a constant for easy use in non-hook files
+// Export a proxy-like constant that always calls createClient() to ensure environment consistency
 export const supabaseBrowser = createClient();

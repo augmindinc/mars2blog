@@ -35,6 +35,15 @@ export default function AdminDashboardPage() {
     const [targetCategory, setTargetCategory] = useState<string | ''>('');
     const [isUpdating, setIsUpdating] = useState(false);
 
+    useEffect(() => {
+        const supabase = require('@/lib/supabase').supabase;
+        console.log('[Dashboard] Supabase Client Inspection:', {
+            hasClient: !!supabase,
+            hasRest: !!supabase?.rest,
+            storageUrl: supabase?.storage?.url
+        });
+    }, []);
+
     const { data: posts, isLoading, error: queryError, isFetching } = useQuery({
         queryKey: ['admin-posts'],
         queryFn: async () => {
