@@ -1,3 +1,4 @@
+// Deployment trigger: 2026-02-12
 import createNextIntlPlugin from 'next-intl/plugin';
 import type { NextConfig } from "next";
 
