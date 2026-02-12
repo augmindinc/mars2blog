@@ -42,8 +42,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
 
     // If user exists but profile is still loading, wait
-    if (user && !profile && !isLoginPage) {
+    if (user && !profile && !isLoginPage && loading) {
         return <div className="flex h-screen items-center justify-center font-medium">Loading Profile...</div>;
+    }
+
+    // If loading finished but still no profile, we have a problem (fetch failed or timed out)
+    if (user && !profile && !isLoginPage && !loading) {
+        return (
+            <div className="flex h-screen flex-col items-center justify-center font-medium gap-4 p-8 text-center">
+                <p>Profile retrieval failed or timed out.</p>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="text-[10px] font-bold uppercase tracking-widest bg-black text-white px-6 py-3"
+                >
+                    Retry Terminal Access
+                </button>
+            </div>
+        );
     }
 
     // Special case: if on login page and have user but profile is pending, let LoginPage show the modal
