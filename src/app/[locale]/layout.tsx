@@ -90,9 +90,6 @@ export default async function LocaleLayout({
                     src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7171708184619536"
                     crossOrigin="anonymous"
                 ></script>
-                */}
-                <AriaHiddenCleanup />
-
                 <AriaHiddenCleanup />
             </body>
         </html>
