@@ -26,15 +26,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         // 1. Initial Profile Check
         const initAuth = async () => {
+            if (typeof window !== 'undefined') console.log('[AuthContext] initAuth started');
             // Check for redirect result (OAuth)
             await handleRedirectResult();
 
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session }, error } = await supabase.auth.getSession();
+            if (typeof window !== 'undefined') {
+                console.log('[AuthContext] getSession response:', { hasSession: !!session, error });
+            }
+
             const currentUser = session?.user ?? null;
             setUser(currentUser);
 
             if (currentUser) {
+                if (typeof window !== 'undefined') console.log('[AuthContext] Fetching profile for:', currentUser.id);
                 const userProfile = await getUserProfile(currentUser.id);
+                if (typeof window !== 'undefined') console.log('[AuthContext] Profile response:', !!userProfile);
                 setProfile(userProfile);
             }
             setLoading(false);

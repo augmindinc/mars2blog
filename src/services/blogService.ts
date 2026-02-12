@@ -137,10 +137,15 @@ export const subscribeToPosts = (category: Category, locale: string = 'ko', call
 
 export const getAdminPosts = async (): Promise<Post[]> => {
     try {
-        const { data, error } = await supabase
+        if (typeof window !== 'undefined') console.log('[blogService] getAdminPosts started...');
+        const { data, error, status, statusText } = await supabase
             .from(TABLE_NAME)
             .select('*')
             .order('created_at', { ascending: false });
+
+        if (typeof window !== 'undefined') {
+            console.log(`[blogService] getAdminPosts response:`, { status, statusText, error, dataCount: data?.length });
+        }
 
         if (error) throw error;
         return (data || []).map(mapPostFromDb);
