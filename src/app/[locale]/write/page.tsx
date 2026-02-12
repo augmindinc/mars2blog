@@ -431,7 +431,8 @@ export default function WritePage() {
                                 ...originalPost.seo.structuredData,
                                 headline: data.seoTitle,
                             }
-                        }
+                        },
+                        shortCode: null
                     });
                 }
             });
