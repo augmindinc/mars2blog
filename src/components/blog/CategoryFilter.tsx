@@ -15,9 +15,15 @@ export function CategoryFilter({ currentCategory, onSelectCategory }: CategoryFi
 
     if (isLoading) {
         return (
-            <div className="flex flex-wrap gap-2 mb-8 justify-center animate-pulse">
-                {[1, 2, 3, 4, 5].map(i => (
-                    <div key={i} className="h-9 w-20 bg-secondary rounded-none border border-black/10" />
+            <div className="flex flex-wrap gap-2 mb-8 justify-center items-center">
+                <button
+                    disabled
+                    className="px-5 py-2 rounded-none text-sm font-medium border bg-black text-white border-black opacity-50 cursor-not-allowed"
+                >
+                    {locale === 'ko' ? '전체' : 'All'}
+                </button>
+                {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="h-9 w-20 bg-secondary rounded-none border border-black/10 animate-pulse" />
                 ))}
             </div>
         );
