@@ -31,8 +31,8 @@ export function AuthProvider({
     const [profile, setProfile] = useState<UserProfile | null>(initialProfile);
     const [loading, setLoading] = useState(!initialUser && !initialProfile);
 
-    // Create browser client
-    const supabaseClient = useMemo(() => createClient(), []);
+    // Use the unified singleton browser client
+    const supabaseClient = createClient();
 
     // 1. Initial Sync & Hydration (Phase: SSR Transition)
     useEffect(() => {
