@@ -89,37 +89,14 @@ export const registerWithEmail = async (email: string, password: string, display
             options: {
                 data: {
                     display_name: displayName,
+                    role: role // Injected for trigger to use
                 }
             }
         });
 
         if (authError) throw authError;
 
-        if (authData.user) {
-            // Create user profile in 'profiles' table
-            const status: UserStatus = role === 'admin' ? 'pending' : 'approved';
-            const userProfile: UserProfile = {
-                uid: authData.user.id,
-                email,
-                displayName,
-                photoURL: null,
-                role,
-                status,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            };
-
-            const mappedProfile = mapProfileToDb(userProfile);
-
-            const { error: profileError } = await supabase
-                .from(COLLECTION_USERS)
-                .insert([mappedProfile]);
-
-            if (profileError) throw profileError;
-
-            return { user: authData.user, profile: userProfile };
-        }
-        return { user: null, profile: null };
+        return { user: authData.user };
     } catch (error) {
         console.error("Registration failed", error);
         throw error;
@@ -160,8 +137,6 @@ export const loginWithGoogle = async (requestedRole: UserRole = 'author') => {
 
         if (error) throw error;
 
-        // Note: Supabase OAuth handles redirect. 
-        // Profile creation should be handled in a callback or trigger.
         return data;
     } catch (error) {
         console.error("Google login failed", error);
@@ -177,25 +152,8 @@ export const handleRedirectResult = async () => {
 
         if (session?.user) {
             if (typeof window !== 'undefined') console.log('[authService] handleRedirectResult: session found for', session.user.id);
-            // Check if profile exists, if not create it (standard Supabase pattern)
-            let profile = await getUserProfile(session.user.id);
-            if (!profile) {
-                if (typeof window !== 'undefined') console.log('[authService] handleRedirectResult: profile not found, creating...');
-                const status: UserStatus = 'approved'; // Default for social
-                profile = {
-                    uid: session.user.id,
-                    email: session.user.email || '',
-                    displayName: session.user.user_metadata.full_name || 'User',
-                    photoURL: session.user.user_metadata.avatar_url || null,
-                    role: 'author',
-                    status,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                };
-                const mappedProfile = mapProfileToDb(profile);
-                await supabase.from(COLLECTION_USERS).insert([mappedProfile]);
-                if (typeof window !== 'undefined') console.log('[authService] handleRedirectResult: profile created');
-            }
+            // Profile is now created automatically by DB trigger
+            const profile = await getUserProfile(session.user.id);
             if (typeof window !== 'undefined') console.log('[authService] handleRedirectResult completed with user');
             return session.user;
         }
