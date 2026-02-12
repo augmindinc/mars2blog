@@ -84,7 +84,8 @@ export const getPosts = async (category: Category = 'ALL', locale: string = 'ko'
 
         if (category !== 'ALL') {
             // Support both UUID and Slug for backward/forward compatibility
-            query = query.or(`category.eq."${category}",category.eq."${category.toLowerCase()}",category.eq."${category.toUpperCase()}"`);
+            // Remove double quotes as they are interpreted as identifiers
+            query = query.or(`category.eq.${category},category.eq.${category.toLowerCase()},category.eq.${category.toUpperCase()}`);
         }
 
         const { data, error, status, statusText } = await query;
