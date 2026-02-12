@@ -7,7 +7,15 @@ import { ReactNode, useState } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({
+    children,
+    initialUser,
+    initialProfile
+}: {
+    children: ReactNode;
+    initialUser?: any;
+    initialProfile?: any;
+}) {
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {
             queries: {
@@ -24,7 +32,7 @@ export function Providers({ children }: { children: ReactNode }) {
                 enableSystem
                 disableTransitionOnChange
             >
-                <AuthProvider>
+                <AuthProvider initialUser={initialUser} initialProfile={initialProfile}>
                     <LanguageProvider>
                         {children}
                     </LanguageProvider>

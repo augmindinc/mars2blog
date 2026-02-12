@@ -1,10 +1,10 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import { createClient } from '@/utils/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { UserProfile } from '@/types/user';
-import { getUserProfile, handleRedirectResult, mapProfileFromDb } from '@/services/authService';
+import { getUserProfile, mapProfileFromDb } from '@/services/authService';
 
 interface AuthContextType {
     user: User | null;
@@ -18,48 +18,46 @@ const AuthContext = createContext<AuthContextType>({
     loading: true,
 });
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<User | null>(null);
-    const [profile, setProfile] = useState<UserProfile | null>(null);
-    const [loading, setLoading] = useState(true);
+export function AuthProvider({
+    children,
+    initialUser = null,
+    initialProfile = null
+}: {
+    children: React.ReactNode;
+    initialUser?: User | null;
+    initialProfile?: UserProfile | null;
+}) {
+    const [user, setUser] = useState<User | null>(initialUser);
+    const [profile, setProfile] = useState<UserProfile | null>(initialProfile);
+    const [loading, setLoading] = useState(!initialUser && !initialProfile);
 
-    // 1. Initial Load Flow (Phase: Bootstrapping)
+    // Create browser client
+    const supabaseClient = useMemo(() => createClient(), []);
+
+    // 1. Initial Sync & Hydration (Phase: SSR Transition)
     useEffect(() => {
-        const initAuth = async () => {
-            if (typeof window !== 'undefined') console.log('[AuthContext] initAuth started (Phase: Initial)');
-            try {
-                // Add a slightly longer safety timeout (8s) to prevent blocking the UI
-                const sessionPromise = supabase.auth.getSession();
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Supabase session fetch timed out (Safety Timeout)')), 8000)
-                );
+        const syncAuth = async () => {
+            // Even if we had initial data, it's good to check on the client 
+            // once to ensure everything is in sync with local storage
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            const currentUser = session?.user ?? null;
 
-                const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
-                const session = result.data?.session;
-
-                const currentUser = session?.user ?? null;
-                setUser(currentUser);
-
-                if (currentUser) {
-                    const userProfile = await getUserProfile(currentUser.id);
-                    setProfile(userProfile);
-                }
-            } catch (err: any) {
-                // We use warn here because the AuthState listener (Effect #2) often recovers the session independently
-                if (typeof window !== 'undefined') {
-                    console.warn('[AuthContext] initAuth safety timeout reached. Waiting for AuthState listener recovery...');
-                }
-            } finally {
-                setLoading(false);
+            if (currentUser && !profile) {
+                // If we have a user but no profile injected, fetch it
+                const userProfile = await getUserProfile(currentUser.id);
+                setProfile(userProfile);
             }
+
+            setUser(currentUser);
+            setLoading(false);
         };
 
-        initAuth();
-    }, []); // RUN ONCE
+        syncAuth();
+    }, [supabaseClient]);
 
     // 2. Auth State Change Listener
     useEffect(() => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(async (event, session) => {
             const currentUser = session?.user ?? null;
             setUser(currentUser);
 
@@ -75,13 +73,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => {
             subscription.unsubscribe();
         };
-    }, []); // RUN ONCE
+    }, [supabaseClient]);
 
     // 3. Profile Real-time Subscription (Depends on user)
     useEffect(() => {
         if (!user) return;
 
-        const profileChannel = supabase
+        const profileChannel = supabaseClient
             .channel(`public:profiles:${user.id}`)
             .on('postgres_changes', {
                 event: '*',
@@ -96,9 +94,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .subscribe();
 
         return () => {
-            supabase.removeChannel(profileChannel);
+            supabaseClient.removeChannel(profileChannel);
         };
-    }, [user?.id]); // RUN WHEN USER CHANGES
+    }, [user?.id, supabaseClient]);
 
     return (
         <AuthContext.Provider value={{ user, profile, loading }}>

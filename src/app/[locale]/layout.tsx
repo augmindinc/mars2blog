@@ -46,6 +46,31 @@ export default async function LocaleLayout({
     // side is the easiest way to get started
     const messages = await getMessages();
 
+    // Server-side Auth State
+    let initialUser = null;
+    let initialProfile = null;
+    try {
+        const { createClient } = await import('@/utils/supabase/server');
+        const { mapProfileFromDb } = await import('@/services/authService');
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+            initialUser = user;
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .maybeSingle();
+
+            if (profile) {
+                initialProfile = mapProfileFromDb(profile);
+            }
+        }
+    } catch (error) {
+        console.error('[LocaleLayout] SSR Auth fetch failed:', error);
+    }
+
     return (
         <html lang={locale} suppressHydrationWarning>
             <head>
@@ -69,7 +94,7 @@ export default async function LocaleLayout({
                 </Script>
 
                 <NextIntlClientProvider messages={messages}>
-                    <Providers>
+                    <Providers initialUser={initialUser} initialProfile={initialProfile}>
                         <div className="flex flex-col min-h-screen">
                             <Navbar />
                             <div className="flex-grow">
