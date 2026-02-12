@@ -137,20 +137,26 @@ export const subscribeToPosts = (category: Category, locale: string = 'ko', call
 
 export const getAdminPosts = async (): Promise<Post[]> => {
     try {
-        if (typeof window !== 'undefined') console.log('[blogService] getAdminPosts started...');
-        const { data, error, status, statusText } = await supabase
+        const start = Date.now();
+        if (typeof window !== 'undefined') console.log('[blogService] getAdminPosts: START_DATABASE_QUERY');
+
+        const query = supabase
             .from(TABLE_NAME)
             .select('*')
             .order('created_at', { ascending: false });
 
+        if (typeof window !== 'undefined') console.log('[blogService] getAdminPosts: AWAITING_QUERY_PROMISE...');
+        const { data, error, status, statusText } = await query;
+
         if (typeof window !== 'undefined') {
-            console.log(`[blogService] getAdminPosts response:`, { status, statusText, error, dataCount: data?.length });
+            const duration = Date.now() - start;
+            console.log(`[blogService] getAdminPosts: QUERY_RETURNED in ${duration}ms`, { status, statusText, dataCount: data?.length });
         }
 
         if (error) throw error;
         return (data || []).map(mapPostFromDb);
     } catch (error) {
-        console.error("Error fetching admin posts:", error);
+        console.error("[blogService] getAdminPosts: CRITICAL_ERROR", error);
         return [];
     }
 };

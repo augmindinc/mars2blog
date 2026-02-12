@@ -5,19 +5,25 @@ const TABLE_NAME = 'categories';
 
 export const getCategories = async (): Promise<CategoryMeta[]> => {
     try {
-        if (typeof window !== 'undefined') console.log('[categoryService] getCategories started...');
-        const { data, error, status } = await supabase
+        const start = Date.now();
+        if (typeof window !== 'undefined') console.log('[categoryService] getCategories: START_DATABASE_QUERY');
+
+        const query = supabase
             .from(TABLE_NAME)
             .select('*')
             .order('order', { ascending: true });
 
+        if (typeof window !== 'undefined') console.log('[categoryService] getCategories: AWAITING_QUERY_PROMISE...');
+        const { data, error, status } = await query;
+
         if (error) {
-            console.error("[categoryService] Supabase error:", error.message);
+            console.error("[categoryService] getCategories: Supabase error:", error.message);
             throw error;
         }
 
         if (typeof window !== 'undefined') {
-            console.log(`[categoryService] getCategories success: count=${data?.length || 0} (Status: ${status})`);
+            const duration = Date.now() - start;
+            console.log(`[categoryService] getCategories: QUERY_RETURNED in ${duration}ms`, { count: data?.length || 0, status });
         }
 
         return (data || []).map((d: any) => ({
@@ -25,7 +31,7 @@ export const getCategories = async (): Promise<CategoryMeta[]> => {
             createdAt: d.created_at
         })) as CategoryMeta[];
     } catch (error: any) {
-        console.error("[categoryService] Error fetching categories:", error.message || error);
+        console.error("[categoryService] getCategories: CRITICAL_ERROR", error.message || error);
         return [];
     }
 };

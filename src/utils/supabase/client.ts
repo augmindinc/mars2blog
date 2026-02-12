@@ -1,59 +1,55 @@
 import { createBrowserClient } from '@supabase/ssr'
 
-// Custom fetch with logging and relaxed 15s timeout for production stability
+// Custom fetch with granular tracing for production debugging
 const customFetch = async (url: string | URL | Request, options?: RequestInit) => {
+    if (typeof window === 'undefined') return fetch(url, options); // Skip tracing on server for now
+
     const urlString = url.toString();
+    console.log(`[Supabase Trace] 1. fetch_enter: ${urlString}`);
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-        if (typeof window !== 'undefined') console.warn(`[Supabase Fetch] TIMEOUT_TRIGGERED (15s): ${urlString}`);
+        console.warn(`[Supabase Trace] TIMEOUT_SIGNAL_SENDING: ${urlString}`);
         controller.abort(new Error('Supabase request timed out (15s)'));
     }, 15000);
 
-    if (typeof window !== 'undefined') console.log(`[Supabase Fetch] INIT: ${urlString}`);
-    const start = Date.now();
     try {
-        // Robust signal merging: Use AbortSignal.any if available (Chrome 116+, Node 20+)
+        console.log(`[Supabase Trace] 2. preparing_signal: ${urlString}`);
         let signal = controller.signal;
+
+        // Use basic manual linkage if external signal exists
         if (options?.signal) {
-            if ((AbortSignal as any).any) {
-                signal = (AbortSignal as any).any([controller.signal, options.signal]);
+            const external = options.signal;
+            if (external.aborted) {
+                console.warn(`[Supabase Trace] 2b. external_signal_already_aborted: ${urlString}`);
+                controller.abort(external.reason);
             } else {
-                // Manual link if .any is missing
-                const externalSignal = options.signal;
-                if (externalSignal.aborted) {
-                    controller.abort(externalSignal.reason);
-                } else {
-                    externalSignal.addEventListener('abort', () => controller.abort(externalSignal.reason), { once: true });
-                }
-                signal = controller.signal;
+                external.addEventListener('abort', () => {
+                    console.log(`[Supabase Trace] 2c. external_signal_triggered: ${urlString}`);
+                    controller.abort(external.reason);
+                }, { once: true });
             }
         }
 
+        console.log(`[Supabase Trace] 3. calling_native_fetch: ${urlString}`);
         const response = await fetch(url, { ...options, signal });
-        clearTimeout(timeoutId);
 
-        if (typeof window !== 'undefined') {
-            const duration = Date.now() - start;
-            console.log(`[Supabase Fetch] DONE: ${urlString} (Status: ${response.status}) in ${duration}ms`);
-        }
+        clearTimeout(timeoutId);
+        console.log(`[Supabase Trace] 4. fetch_done: ${urlString} (Status: ${response.status})`);
         return response;
     } catch (error: any) {
         clearTimeout(timeoutId);
-        const isTimeout = error.name === 'AbortError' && controller.signal.aborted;
-        if (typeof window !== 'undefined') {
-            if (isTimeout) {
-                console.error(`[Supabase Fetch] TIMEOUT_ABORT: ${urlString}`);
-            } else if (error.name === 'AbortError') {
-                console.log(`[Supabase Fetch] USER_CANCELLED: ${urlString}`);
-            } else {
-                console.error(`[Supabase Fetch] NETWORK_ERROR: ${urlString} - ${error.message}`);
-            }
+        if (error.name === 'AbortError') {
+            const reason = controller.signal.aborted ? 'InternalTimeout' : 'UserCancellation';
+            console.error(`[Supabase Trace] FAIL_ABORT (${reason}): ${urlString}`);
+        } else {
+            console.error(`[Supabase Trace] FAIL_NETWORK: ${urlString} - ${error.message}`);
         }
         throw error;
     }
 };
 
-// Singleton instance stored on window to be absolutely certain across HMR/bundles
+// Singleton storage
 declare global {
     interface Window {
         __SUPABASE_CLIENT__?: any;
@@ -61,35 +57,26 @@ declare global {
 }
 
 export function createClient() {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-    if (!supabaseUrl || !supabaseKey) {
-        if (typeof window !== 'undefined') {
-            console.error("[Supabase Client] CRITICAL: Missing ENV vars", { url: !!supabaseUrl, key: !!supabaseKey });
-        }
-    }
-
-    // Server-side logic (Always create fresh OR use common cache if needed)
     if (typeof window === 'undefined') {
-        return createBrowserClient(supabaseUrl || '', supabaseKey || '', {
-            global: { fetch: customFetch }
-        });
+        return createBrowserClient(url, key);
     }
 
-    // Singleton logic
     if (window.__SUPABASE_CLIENT__) return window.__SUPABASE_CLIENT__;
 
-    if (typeof window !== 'undefined') {
-        console.log("[Supabase Client] INTIALIZING_SINGLETON", { url: supabaseUrl?.substring(0, 20) + "..." });
-    }
+    console.log("[Supabase Client] INIT_NEW_INSTANCE", {
+        urlLength: url.length,
+        hasKey: !!key,
+        env: process.env.NODE_ENV
+    });
 
-    window.__SUPABASE_CLIENT__ = createBrowserClient(supabaseUrl || '', supabaseKey || '', {
+    window.__SUPABASE_CLIENT__ = createBrowserClient(url, key, {
         global: { fetch: customFetch }
     });
 
     return window.__SUPABASE_CLIENT__;
 }
 
-// Export a proxy-like constant that always calls createClient() to ensure environment consistency
 export const supabaseBrowser = createClient();
