@@ -36,20 +36,34 @@ export default function AdminDashboardPage() {
     const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
-        const supabase = require('@/lib/supabase').supabase;
-        console.log('[Dashboard] Supabase Client Inspection:', {
-            hasClient: !!supabase,
-            hasRest: !!supabase?.rest,
-            storageUrl: supabase?.storage?.url
-        });
+        // Saturation & Connection Pool Test
+        console.warn('[SaturationTest] Page Mounted. Waiting 10s for connection pool to clear...');
+        const timer = setTimeout(async () => {
+            console.warn('[SaturationTest] 10s ELAPSED. Attempting native fetch to root...');
+            try {
+                const res = await fetch('/');
+                console.warn('[SaturationTest] Native fetch SUCCESS:', res.status);
+            } catch (e: any) {
+                console.error('[SaturationTest] Native fetch FAILED:', e.message);
+            }
+
+            console.warn('[SaturationTest] Attempting direct Supabase query now...');
+            try {
+                const { data } = await require('@/lib/supabase').supabase.from('categories').select('id').limit(1);
+                console.warn('[SaturationTest] Direct Supabase query DONE:', data);
+            } catch (e: any) {
+                console.error('[SaturationTest] Direct Supabase query FAILED:', e.message);
+            }
+        }, 10000);
+
+        return () => clearTimeout(timer);
     }, []);
 
     const { data: posts, isLoading, error: queryError, isFetching } = useQuery({
         queryKey: ['admin-posts'],
         queryFn: async () => {
-            console.log('[Dashboard] Executing getAdminPosts queryFn...');
+            console.warn('[Dashboard] Executing getAdminPosts queryFn...');
             const result = await getAdminPosts();
-            console.log(`[Dashboard] getAdminPosts returned ${result?.length} items`);
             return result;
         },
     });
