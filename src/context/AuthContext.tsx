@@ -1,6 +1,4 @@
-'use client';
-
-import { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { User } from '@supabase/supabase-js';
 import { UserProfile } from '@/types/user';
@@ -57,7 +55,7 @@ export function AuthProvider({
 
     // 2. Auth State Change Listener
     useEffect(() => {
-        const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(async (event: string, session: any) => {
             const currentUser = session?.user ?? null;
             setUser(currentUser);
 
@@ -86,7 +84,7 @@ export function AuthProvider({
                 schema: 'public',
                 table: 'profiles',
                 filter: `id=eq.${user.id}`
-            }, (payload) => {
+            }, (payload: any) => {
                 if (payload.new) {
                     setProfile(mapProfileFromDb(payload.new));
                 }
