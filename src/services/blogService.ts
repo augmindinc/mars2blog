@@ -51,7 +51,7 @@ const extractImageUrls = (content: string): string[] => {
     const mdImgRegex = /!\[.*?\]\((.*?)\)/g;
     let mdMatch;
     while ((mdMatch = mdImgRegex.exec(content)) !== null) {
-        if (mdMatch[1].includes('firebasestorage.googleapis.com') || mdMatch[1].includes('firebasestorage.app') || mdMatch[1].includes('supabase.co')) {
+        if (mdMatch[1].includes('supabase.co')) {
             urls.push(mdMatch[1]);
         }
     }
@@ -60,7 +60,7 @@ const extractImageUrls = (content: string): string[] => {
     const imgRegex = /<img[^>]+src="([^">]+)"/g;
     let htmlMatch;
     while ((htmlMatch = imgRegex.exec(content)) !== null) {
-        if (htmlMatch[1].includes('firebasestorage.googleapis.com') || htmlMatch[1].includes('firebasestorage.app') || htmlMatch[1].includes('supabase.co')) {
+        if (htmlMatch[1].includes('supabase.co')) {
             urls.push(htmlMatch[1]);
         }
     }
