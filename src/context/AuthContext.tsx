@@ -27,28 +27,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // 1. Initial Profile Check
         const initAuth = async () => {
             if (typeof window !== 'undefined') console.log('[AuthContext] initAuth started');
-            // Check for redirect result (OAuth)
-            await handleRedirectResult();
 
-            const { data: { session }, error } = await supabase.auth.getSession();
-            if (typeof window !== 'undefined') {
-                console.log('[AuthContext] getSession response:', { hasSession: !!session, error });
-            }
+            try {
+                // 1. Get initial session
+                if (typeof window !== 'undefined') console.log('[AuthContext] Fetching session...');
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-            const currentUser = session?.user ?? null;
-            setUser(currentUser);
-
-            if (currentUser) {
-                if (typeof window !== 'undefined') console.log('[AuthContext] Fetching profile for:', currentUser.id);
-                const userProfile = await getUserProfile(currentUser.id);
                 if (typeof window !== 'undefined') {
-                    console.log(`[AuthContext] Profile load result: exists=${!!userProfile}, role=${userProfile?.role}, status=${userProfile?.status}`);
+                    console.log(`[AuthContext] Session result: hasSession=${!!session}, user=${session?.user?.id || 'none'}, error=${sessionError?.message || 'none'}`);
                 }
-                setProfile(userProfile);
-            } else {
-                if (typeof window !== 'undefined') console.log('[AuthContext] No user session found');
+
+                if (sessionError) throw sessionError;
+
+                const currentUser = session?.user ?? null;
+                setUser(currentUser);
+
+                // 2. If session exists, fetch profile
+                if (currentUser) {
+                    if (typeof window !== 'undefined') console.log('[AuthContext] Fetching profile for:', currentUser.id);
+                    const userProfile = await getUserProfile(currentUser.id);
+                    if (typeof window !== 'undefined') {
+                        console.log(`[AuthContext] Profile result: exists=${!!userProfile}, role=${userProfile?.role}, status=${userProfile?.status}`);
+                    }
+                    setProfile(userProfile);
+                } else {
+                    if (typeof window !== 'undefined') console.log('[AuthContext] No active session found');
+                }
+            } catch (err: any) {
+                console.error('[AuthContext] initAuth encountered error:', err.message || err);
+            } finally {
+                setLoading(false);
+                if (typeof window !== 'undefined') console.log('[AuthContext] initAuth sequence completed');
             }
-            setLoading(false);
         };
 
         initAuth().catch(err => {
