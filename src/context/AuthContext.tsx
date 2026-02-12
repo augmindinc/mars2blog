@@ -38,12 +38,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const currentUser = session?.user ?? null;
             setUser(currentUser);
 
-            if (typeof window !== 'undefined') console.log('[AuthContext] Fetching profile for:', currentUser.id);
-            const userProfile = await getUserProfile(currentUser.id);
-            if (typeof window !== 'undefined') {
-                console.log(`[AuthContext] Profile load result: exists=${!!userProfile}, role=${userProfile?.role}, status=${userProfile?.status}`);
+            if (currentUser) {
+                if (typeof window !== 'undefined') console.log('[AuthContext] Fetching profile for:', currentUser.id);
+                const userProfile = await getUserProfile(currentUser.id);
+                if (typeof window !== 'undefined') {
+                    console.log(`[AuthContext] Profile load result: exists=${!!userProfile}, role=${userProfile?.role}, status=${userProfile?.status}`);
+                }
+                setProfile(userProfile);
+            } else {
+                if (typeof window !== 'undefined') console.log('[AuthContext] No user session found');
             }
-            setProfile(userProfile);
             setLoading(false);
         };
 
