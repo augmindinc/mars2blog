@@ -51,7 +51,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(false);
         };
 
-        initAuth();
+        initAuth().catch(err => {
+            console.error('[AuthContext] initAuth uncaught error:', err);
+            setLoading(false);
+        });
 
         // 2. Auth State Change Listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
