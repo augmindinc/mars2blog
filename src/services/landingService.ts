@@ -157,7 +157,7 @@ export const getLandingPageBySlug = async (slug: string, locale?: string): Promi
 
         // 2. Prioritize precise slug + locale match
         if (locale) {
-            const preciseMatch = initialDocs.find(d => d.locale === locale);
+            const preciseMatch = initialDocs.find((d: any) => d.locale === locale);
             if (preciseMatch) return preciseMatch as LandingPage;
         }
 
@@ -171,15 +171,15 @@ export const getLandingPageBySlug = async (slug: string, locale?: string): Promi
 
             if (groupError) throw groupError;
             if (groupDocs && groupDocs.length > 0) {
-                const groupMatch = groupDocs.find(d => d.locale === locale);
+                const groupMatch = groupDocs.find((d: any) => d.locale === locale);
                 if (groupMatch) return groupMatch as LandingPage;
 
-                const groupFallback = groupDocs.find(d => d.locale === 'ko' || !d.locale) || groupDocs[0];
+                const groupFallback = groupDocs.find((d: any) => d.locale === 'ko' || !d.locale) || groupDocs[0];
                 return groupFallback as LandingPage;
             }
         }
 
-        const finalFallback = initialDocs.find(d => d.locale === 'ko' || !d.locale) || initialDocs[0];
+        const finalFallback = initialDocs.find((d: any) => d.locale === 'ko' || !d.locale) || initialDocs[0];
         return mapLandingPageFromDb(finalFallback);
     } catch (error) {
         console.error("Error fetching landing page by slug:", error);
