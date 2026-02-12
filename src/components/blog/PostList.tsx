@@ -12,9 +12,10 @@ import { Input } from '@/components/ui/input';
 
 interface PostListProps {
     initialData?: Post[];
+    initialCategories?: any[];
 }
 
-export function PostList({ initialData }: PostListProps) {
+export function PostList({ initialData, initialCategories }: PostListProps) {
     const [category, setCategory] = useState<Category>('ALL');
     const [searchTerm, setSearchTerm] = useState('');
     const locale = useLocale();
@@ -51,7 +52,11 @@ export function PostList({ initialData }: PostListProps) {
     return (
         <div className="w-full max-w-7xl mx-auto px-4 py-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-                <CategoryFilter currentCategory={category} onSelectCategory={setCategory} />
+                <CategoryFilter
+                    currentCategory={category}
+                    onSelectCategory={setCategory}
+                    initialData={initialCategories}
+                />
 
                 <div className="relative w-full md:w-80">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

@@ -28,11 +28,15 @@ export async function generateMetadata({ params }: HomePageProps): Promise<Metad
 }
 
 async function PostListSection({ locale }: { locale: string }) {
-    // Pre-fetch posts on the server with caching
-    const rawPosts = await getCachedPosts('ALL', locale);
+    // Pre-fetch posts and categories on the server to reduce client-side requests
+    const [rawPosts, categories] = await Promise.all([
+        getCachedPosts('ALL', locale),
+        import('@/services/categoryService').then(m => m.getCategories())
+    ]);
+
     const initialPosts = rawPosts.map(serializePost);
 
-    return <PostList initialData={initialPosts} />;
+    return <PostList initialData={initialPosts} initialCategories={categories} />;
 }
 
 export default async function HomePage({ params }: HomePageProps) {

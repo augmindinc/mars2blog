@@ -7,13 +7,18 @@ import { useLocale } from 'next-intl';
 interface CategoryFilterProps {
     currentCategory: string;
     onSelectCategory: (category: string) => void;
+    initialData?: any[];
 }
 
-export function CategoryFilter({ currentCategory, onSelectCategory }: CategoryFilterProps) {
+export function CategoryFilter({ currentCategory, onSelectCategory, initialData }: CategoryFilterProps) {
     const locale = useLocale() as 'en' | 'ko';
     const { data: categories, isLoading } = useCategories();
 
-    if (isLoading) {
+    // Use initialData if available and query is loading
+    const displayCategories = (isLoading && initialData) ? initialData : (categories || []);
+    const showingSkeleton = isLoading && !initialData;
+
+    if (showingSkeleton) {
         return (
             <div className="flex flex-wrap gap-2 mb-8 justify-center items-center">
                 <button
@@ -32,7 +37,7 @@ export function CategoryFilter({ currentCategory, onSelectCategory }: CategoryFi
     // Combine "ALL" with dynamic categories
     const allCategories = [
         { id: 'ALL', name: { ko: '전체', en: 'All', ja: 'すべて', zh: '全部' } },
-        ...(categories || [])
+        ...displayCategories
     ];
 
     return (

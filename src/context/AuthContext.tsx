@@ -28,21 +28,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const initAuth = async () => {
             if (typeof window !== 'undefined') console.log('[AuthContext] initAuth started (Phase: Initial)');
             try {
-                // Add a timeout to prevent infinite hang in production
+                // Add a shorter timeout for the main entry point to prevent blocking
                 const sessionPromise = supabase.auth.getSession();
                 const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Supabase session fetch timed out')), 7000)
+                    setTimeout(() => reject(new Error('Supabase session fetch timed out')), 5000)
                 );
 
                 const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
                 const session = result.data?.session;
-                const sessionError = result.error;
+                // const sessionError = result.error; // This line was removed in the instruction, but it's not explicitly stated.
+                // The instruction only shows the new code block.
+                // Based on the instruction, the `sessionError` variable is no longer used.
 
                 if (typeof window !== 'undefined') {
-                    console.log(`[AuthContext] Session result: hasSession=${!!session}, user=${session?.user?.id || 'none'}`);
+                    console.log(`[AuthContext] Session result (Fast Init): hasSession=${!!session}, user=${session?.user?.id || 'none'}`);
                 }
 
-                if (sessionError) throw sessionError;
+                // if (sessionError) throw sessionError; // This line was removed in the instruction, but it's not explicitly stated.
 
                 const currentUser = session?.user ?? null;
                 setUser(currentUser);
@@ -52,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setProfile(userProfile);
                 }
             } catch (err: any) {
-                console.error('[AuthContext] initAuth failed:', err.message || err);
+                console.error('[AuthContext] initAuth failed (non-blocking):', err.message || err);
             } finally {
                 setLoading(false);
                 if (typeof window !== 'undefined') console.log('[AuthContext] initAuth finished');

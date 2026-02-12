@@ -6,22 +6,26 @@ const TABLE_NAME = 'categories';
 export const getCategories = async (): Promise<CategoryMeta[]> => {
     try {
         if (typeof window !== 'undefined') console.log('[categoryService] getCategories started...');
-        const { data, error, status, statusText } = await supabase
+        const { data, error, status } = await supabase
             .from(TABLE_NAME)
             .select('*')
             .order('order', { ascending: true });
 
-        if (typeof window !== 'undefined') {
-            console.log(`[categoryService] getCategories response: status=${status} (${statusText}), error=${error?.message || 'none'}, count=${data?.length || 0}`);
+        if (error) {
+            console.error("[categoryService] Supabase error:", error.message);
+            throw error;
         }
 
-        if (error) throw error;
+        if (typeof window !== 'undefined') {
+            console.log(`[categoryService] getCategories success: count=${data?.length || 0} (Status: ${status})`);
+        }
+
         return (data || []).map(d => ({
             ...d,
             createdAt: d.created_at
         })) as CategoryMeta[];
-    } catch (error) {
-        console.error("Error fetching categories:", error);
+    } catch (error: any) {
+        console.error("[categoryService] Error fetching categories:", error.message || error);
         return [];
     }
 };
