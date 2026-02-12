@@ -93,6 +93,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []); // RUN ONCE
 
     // 3. Profile Real-time Subscription (Depends on user)
+    // Temporarily disabled for diagnostic to see if it's blocking requests
+    /*
     useEffect(() => {
         if (!user) return;
 
@@ -110,13 +112,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setProfile(mapProfileFromDb(payload.new));
                 }
             })
-            .subscribe();
+            .subscribe((status) => {
+                if (typeof window !== 'undefined') console.log('[AuthContext] Profile subscription status:', status);
+            });
 
         return () => {
             if (typeof window !== 'undefined') console.log('[AuthContext] Cleaning up Profile subscription');
             supabase.removeChannel(profileChannel);
         };
     }, [user?.id]); // RUN WHEN USER CHANGES
+    */
 
     return (
         <AuthContext.Provider value={{ user, profile, loading }}>
