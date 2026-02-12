@@ -72,6 +72,7 @@ import { unstable_cache } from 'next/cache';
 
 export const getPosts = async (category: Category = 'ALL', locale: string = 'ko'): Promise<Post[]> => {
     try {
+        if (typeof window !== 'undefined') console.log(`[blogService] getPosts started (cat: ${category}, locale: ${locale})`);
         let query = supabase
             .from(TABLE_NAME)
             .select('*')
@@ -85,7 +86,10 @@ export const getPosts = async (category: Category = 'ALL', locale: string = 'ko'
             query = query.eq('category', category);
         }
 
-        const { data, error } = await query;
+        const { data, error, status, statusText } = await query;
+        if (typeof window !== 'undefined') {
+            console.log(`[blogService] getPosts response:`, { status, statusText, error, dataCount: data?.length });
+        }
 
         if (error) throw error;
         return (data || []).map(mapPostFromDb);

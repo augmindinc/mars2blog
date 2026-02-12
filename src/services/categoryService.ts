@@ -5,11 +5,15 @@ const TABLE_NAME = 'categories';
 
 export const getCategories = async (): Promise<CategoryMeta[]> => {
     try {
-        if (typeof window !== 'undefined') console.log('[categoryService] Fetching categories...');
-        const { data, error } = await supabase
+        if (typeof window !== 'undefined') console.log('[categoryService] getCategories started...');
+        const { data, error, status, statusText } = await supabase
             .from(TABLE_NAME)
             .select('*')
             .order('order', { ascending: true });
+
+        if (typeof window !== 'undefined') {
+            console.log(`[categoryService] getCategories response:`, { status, statusText, error, dataCount: data?.length });
+        }
 
         if (error) throw error;
         return (data || []).map(d => ({
