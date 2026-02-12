@@ -29,29 +29,18 @@ export const mapProfileToDb = (profile: Partial<UserProfile>): any => {
 
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
     try {
-        if (typeof window !== 'undefined') console.log('[authService] getUserProfile started for:', uid);
-
-        const fetchPromise = supabase
+        const { data, error } = await supabase
             .from(COLLECTION_USERS)
             .select('*')
             .eq('id', uid)
-            .limit(1); // Simpler than maybeSingle() for diagnostic
-
-        const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('getUserProfile fetch timed out')), 10000)
-        );
-
-        const result = await Promise.race([fetchPromise, timeoutPromise]) as any;
-        const { data, error } = result;
+            .maybeSingle();
 
         if (error) {
             console.error("Supabase error fetching user profile:", error.message);
             throw error;
         }
 
-        const profileData = data && data.length > 0 ? data[0] : null;
-        if (typeof window !== 'undefined') console.log('[authService] getUserProfile success:', !!profileData);
-        return profileData ? mapProfileFromDb(profileData) : null;
+        return data ? mapProfileFromDb(data) : null;
     } catch (error: any) {
         console.error("Error in getUserProfile:", error.message || error);
         return null;

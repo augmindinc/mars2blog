@@ -53,7 +53,7 @@ export default async function LocaleLayout({
             </head>
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
                 <LogVisit userAgent={userAgent} ip={ip} />
-                {/* Google Analytics - Temporarily disabled for diagnostics
+                {/* Google Analytics */}
                 <Script
                     src="https://www.googletagmanager.com/gtag/js?id=G-PGX6QCE0TP"
                     strategy="afterInteractive"
@@ -67,7 +67,6 @@ export default async function LocaleLayout({
                         gtag('config', 'G-PGX6QCE0TP');
                     `}
                 </Script>
-                */}
 
                 <NextIntlClientProvider messages={messages}>
                     <Providers>
@@ -86,7 +85,6 @@ export default async function LocaleLayout({
                     when placed in the head or during specific vignette states.
                     Placed here at the bottom to avoid blocking content rendering.
                 */}
-                {/* Temporarily disabled for diagnostics
                 <script
                     async
                     src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7171708184619536"

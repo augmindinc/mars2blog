@@ -26,24 +26,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 1. Initial Load Flow (Phase: Bootstrapping)
     useEffect(() => {
         const initAuth = async () => {
-            if (typeof window !== 'undefined') console.log('[AuthContext] initAuth started (Phase: Initial)');
-
             try {
-                if (typeof window !== 'undefined') console.log('[AuthContext] Fetching session with timeout protection...');
-
-                // Add a timeout to prevent infinite hang in production
-                const sessionPromise = supabase.auth.getSession();
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Supabase session fetch timed out')), 10000)
-                );
-
-                const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
-                const session = result.data?.session;
-                const sessionError = result.error;
-
-                if (typeof window !== 'undefined') {
-                    console.log(`[AuthContext] Session result: hasSession=${!!session}, user=${session?.user?.id || 'none'}, error=${sessionError?.message || 'none'}`);
-                }
+                // Get initial session
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
                 if (sessionError) throw sessionError;
 
@@ -51,18 +36,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(currentUser);
 
                 if (currentUser) {
-                    if (typeof window !== 'undefined') console.log('[AuthContext] Fetching profile for:', currentUser.id);
                     const userProfile = await getUserProfile(currentUser.id);
-                    if (typeof window !== 'undefined') {
-                        console.log(`[AuthContext] Profile result: exists=${!!userProfile}, role=${userProfile?.role}`);
-                    }
                     setProfile(userProfile);
                 }
             } catch (err: any) {
                 console.error('[AuthContext] initAuth failed:', err.message || err);
             } finally {
                 setLoading(false);
-                if (typeof window !== 'undefined') console.log('[AuthContext] initAuth sequence finished');
             }
         };
 
@@ -71,9 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 2. Auth State Change Listener
     useEffect(() => {
-        if (typeof window !== 'undefined') console.log('[AuthContext] Setting up AuthState listener');
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (typeof window !== 'undefined') console.log('[AuthContext] Auth state changed:', event);
             const currentUser = session?.user ?? null;
             setUser(currentUser);
 
@@ -87,18 +65,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         return () => {
-            if (typeof window !== 'undefined') console.log('[AuthContext] Cleaning up AuthState listener');
             subscription.unsubscribe();
         };
     }, []); // RUN ONCE
 
     // 3. Profile Real-time Subscription (Depends on user)
-    // Temporarily disabled for diagnostic to see if it's blocking requests
-    /*
     useEffect(() => {
         if (!user) return;
 
-        if (typeof window !== 'undefined') console.log('[AuthContext] Setting up Profile subscription for:', user.id);
         const profileChannel = supabase
             .channel(`public:profiles:${user.id}`)
             .on('postgres_changes', {
@@ -108,20 +82,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 filter: `id=eq.${user.id}`
             }, (payload) => {
                 if (payload.new) {
-                    if (typeof window !== 'undefined') console.log('[AuthContext] Profile updated via real-time');
                     setProfile(mapProfileFromDb(payload.new));
                 }
             })
-            .subscribe((status) => {
-                if (typeof window !== 'undefined') console.log('[AuthContext] Profile subscription status:', status);
-            });
+            .subscribe();
 
         return () => {
-            if (typeof window !== 'undefined') console.log('[AuthContext] Cleaning up Profile subscription');
             supabase.removeChannel(profileChannel);
         };
     }, [user?.id]); // RUN WHEN USER CHANGES
-    */
 
     return (
         <AuthContext.Provider value={{ user, profile, loading }}>
