@@ -12,7 +12,7 @@ export const getCategories = async (): Promise<CategoryMeta[]> => {
             .order('order', { ascending: true });
 
         if (typeof window !== 'undefined') {
-            console.log(`[categoryService] getCategories response:`, { status, statusText, error, dataCount: data?.length });
+            console.log(`[categoryService] getCategories response: status=${status} (${statusText}), error=${error?.message || 'none'}, count=${data?.length || 0}`);
         }
 
         if (error) throw error;

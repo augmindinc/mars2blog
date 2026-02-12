@@ -88,7 +88,7 @@ export const getPosts = async (category: Category = 'ALL', locale: string = 'ko'
 
         const { data, error, status, statusText } = await query;
         if (typeof window !== 'undefined') {
-            console.log(`[blogService] getPosts response:`, { status, statusText, error, dataCount: data?.length });
+            console.log(`[blogService] getPosts response: status=${status} (${statusText}), error=${error?.message || 'none'}, count=${data?.length || 0}`);
         }
 
         if (error) throw error;
