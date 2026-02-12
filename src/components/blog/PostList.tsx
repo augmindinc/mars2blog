@@ -9,6 +9,7 @@ import { PostCard } from './PostCard';
 import { useLocale, useTranslations } from 'next-intl';
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { useCategories } from '@/hooks/useCategories';
 
 interface PostListProps {
     initialData?: Post[];
@@ -22,9 +23,18 @@ export function PostList({ initialData, initialCategories }: PostListProps) {
     const queryClient = useQueryClient();
     const t = useTranslations('PostList');
 
+    const { data: categories } = useCategories();
+
+    // Find the UUID for the current category slug (which might be used in older posts)
+    const categoryIds = useMemo(() => {
+        if (category === 'ALL' || !categories) return [];
+        const cat = categories.find(c => c.slug.toUpperCase() === category || c.id === category);
+        return cat ? [cat.id, cat.slug] : [];
+    }, [category, categories]);
+
     const { data: posts, isLoading, isError } = useQuery({
-        queryKey: ['posts', category, locale],
-        queryFn: () => getPosts(category, locale),
+        queryKey: ['posts', category, locale, categoryIds],
+        queryFn: () => getPosts(category, locale, categoryIds),
         initialData: category === 'ALL' ? initialData : undefined,
     });
 

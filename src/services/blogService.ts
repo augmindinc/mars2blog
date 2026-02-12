@@ -70,9 +70,9 @@ const extractImageUrls = (content: string): string[] => {
 
 import { unstable_cache } from 'next/cache';
 
-export const getPosts = async (category: Category = 'ALL', locale: string = 'ko'): Promise<Post[]> => {
+export const getPosts = async (category: string = 'ALL', locale: string = 'ko', alternateIds: string[] = []): Promise<Post[]> => {
     try {
-        if (typeof window !== 'undefined') console.log(`[blogService] getPosts started (cat: ${category}, locale: ${locale})`);
+        if (typeof window !== 'undefined') console.log(`[blogService] getPosts started (cat: ${category}, locale: ${locale}, alternates: ${alternateIds.length})`);
         let query = supabase
             .from(TABLE_NAME)
             .select('*')
@@ -84,8 +84,20 @@ export const getPosts = async (category: Category = 'ALL', locale: string = 'ko'
 
         if (category !== 'ALL') {
             // Support both UUID and Slug for backward/forward compatibility
-            // Remove double quotes as they are interpreted as identifiers
-            query = query.or(`category.eq.${category},category.eq.${category.toLowerCase()},category.eq.${category.toUpperCase()}`);
+            const filters = [
+                `category.eq.${category}`,
+                `category.eq.${category.toLowerCase()}`,
+                `category.eq.${category.toUpperCase()}`
+            ];
+
+            // Add any alternate IDs (like the original UUID if we're sending a slug)
+            alternateIds.forEach(id => {
+                if (id && id !== category) {
+                    filters.push(`category.eq.${id}`);
+                }
+            });
+
+            query = query.or(filters.join(','));
         }
 
         const { data, error, status, statusText } = await query;
@@ -177,13 +189,14 @@ export const getRecommendedPosts = async (currentPost: Post, limitNum: number = 
     try {
         if (!currentPost.embedding || currentPost.embedding.length === 0) {
             // Fallback to basic category search
+            const cat = currentPost.category;
             const { data, error } = await supabase
                 .from(TABLE_NAME)
                 .select('*')
                 .in('status', ['published', 'scheduled'])
                 .lte('published_at', new Date().toISOString())
                 .eq('locale', currentPost.locale)
-                .eq('category', currentPost.category)
+                .or(`category.eq.${cat},category.eq.${cat.toLowerCase()},category.eq.${cat.toUpperCase()}`)
                 .neq('id', currentPost.id)
                 .limit(limitNum);
 
