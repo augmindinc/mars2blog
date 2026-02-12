@@ -303,11 +303,40 @@ export const deletePost = async (id: string) => {
     }
 }
 
+export const createPost = async (post: Omit<Post, 'id'>) => {
+    try {
+        const mappedData = mapPostToDb(post);
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .insert([mappedData])
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data ? mapPostFromDb(data) : null;
+    } catch (error) {
+        console.error("Error creating post:", error);
+        throw error;
+    }
+}
+
+export const bulkInsertPosts = async (posts: Omit<Post, 'id'>[]) => {
+    try {
+        const mappedPosts = posts.map(p => mapPostToDb(p));
+        const { error } = await supabase
+            .from(TABLE_NAME)
+            .insert(mappedPosts);
+
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error("Error bulk inserting posts:", error);
+        throw error;
+    }
+}
+
 export const updatePost = async (id: string, data: Partial<Post>) => {
     try {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { id: _id, createdAt, ...updateData } = data;
-
         const mappedData = mapPostToDb(data);
 
         const { error } = await supabase

@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { Category, CATEGORY_LABELS, Post } from '@/types/blog';
-import { getPost, updatePost } from '@/services/blogService';
+import { getPost, updatePost, createPost } from '@/services/blogService';
 import { supabase } from '@/lib/supabase';
 import { MarkdownEditor } from '@/components/editor/MarkdownEditor';
 import { Button } from '@/components/ui/button';
@@ -600,7 +600,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                         category,
                         tags: [],
                         author: {
-                            id: 'anonymous', // Should ideally fetch from original post if needed, but let's keep it simple
+                            id: 'anonymous',
                             name: 'Admin',
                             photoUrl: null
                         },
@@ -630,7 +630,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                     if (data.id) {
                         await updatePost(data.id, transDoc as any);
                     } else {
-                        await supabase.from('posts').insert([transDoc]);
+                        await createPost(transDoc);
                     }
                 }
             }));

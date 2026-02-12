@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Category, CATEGORY_LABELS, Post } from '@/types/blog';
 import { useCategories } from '@/hooks/useCategories';
+import { bulkInsertPosts } from '@/services/blogService';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { compressImage } from '@/lib/imageCompression';
@@ -437,8 +438,7 @@ export default function WritePage() {
 
             // 3. Save all to Supabase
             console.log("[WritePost] Saving to Supabase...");
-            const { error: saveError } = await supabase.from('posts').insert(postsToSave);
-            if (saveError) throw saveError;
+            await bulkInsertPosts(postsToSave);
 
             console.log("[WritePost] Submission complete!");
             router.push(`/${locale}`);
