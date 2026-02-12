@@ -28,23 +28,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const initAuth = async () => {
             if (typeof window !== 'undefined') console.log('[AuthContext] initAuth started (Phase: Initial)');
             try {
-                // Add a shorter timeout for the main entry point to prevent blocking
+                // Add a slightly longer safety timeout (8s) to prevent blocking the UI
                 const sessionPromise = supabase.auth.getSession();
                 const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Supabase session fetch timed out')), 5000)
+                    setTimeout(() => reject(new Error('Supabase session fetch timed out (Safety Timeout)')), 8000)
                 );
 
                 const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
                 const session = result.data?.session;
-                // const sessionError = result.error; // This line was removed in the instruction, but it's not explicitly stated.
-                // The instruction only shows the new code block.
-                // Based on the instruction, the `sessionError` variable is no longer used.
-
-                if (typeof window !== 'undefined') {
-                    console.log(`[AuthContext] Session result (Fast Init): hasSession=${!!session}, user=${session?.user?.id || 'none'}`);
-                }
-
-                // if (sessionError) throw sessionError; // This line was removed in the instruction, but it's not explicitly stated.
 
                 const currentUser = session?.user ?? null;
                 setUser(currentUser);
@@ -54,10 +45,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     setProfile(userProfile);
                 }
             } catch (err: any) {
-                console.error('[AuthContext] initAuth failed (non-blocking):', err.message || err);
+                // We use warn here because the AuthState listener (Effect #2) often recovers the session independently
+                if (typeof window !== 'undefined') {
+                    console.warn('[AuthContext] initAuth safety timeout reached. Waiting for AuthState listener recovery...');
+                }
             } finally {
                 setLoading(false);
-                if (typeof window !== 'undefined') console.log('[AuthContext] initAuth finished');
             }
         };
 
