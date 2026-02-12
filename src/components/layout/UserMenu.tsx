@@ -45,8 +45,8 @@ export function UserMenu() {
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-none border border-black/10 bg-background overflow-hidden hover:bg-black/[0.05]">
-                    {user.photoURL ? (
-                        <img src={user.photoURL} alt={user.displayName || 'User'} className="h-full w-full object-cover grayscale" />
+                    {profile?.photoURL ? (
+                        <img src={profile.photoURL} alt={profile.displayName || 'User'} className="h-full w-full object-cover grayscale" />
                     ) : (
                         <div className="flex h-full w-full items-center justify-center bg-black/[0.02] text-black/40">
                             <User className="h-4 w-4" />
@@ -57,7 +57,7 @@ export function UserMenu() {
             <DropdownMenuContent align="end" className="w-56 rounded-none border-black/10 p-0 overflow-hidden shadow-2xl">
                 <DropdownMenuLabel className="font-normal p-4 bg-black/[0.02] border-b border-black/5">
                     <div className="flex flex-col space-y-1">
-                        <p className="text-[10px] font-bold uppercase tracking-widest leading-none text-black">{user.displayName || 'User'}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest leading-none text-black">{profile?.displayName || 'User'}</p>
                         <p className="text-[9px] font-bold uppercase tracking-tight leading-none text-muted-foreground mt-1">{user.email}</p>
                     </div>
                 </DropdownMenuLabel>
