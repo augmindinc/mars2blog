@@ -525,17 +525,17 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         if (!title || !content) return;
 
         setIsSubmitting(true);
-        console.log("%c[EditPost] STARTING_SUBMISSION_PROTOCOL", "color: blue; font-weight: bold;");
+        console.log("[EditPost] Starting post update process...");
 
         try {
             // 0. Ensure session is fresh
-            console.log("[EditPost] 1/5 Refreshing session...");
+            console.log("[EditPost] Checking authentication...");
             const { data: { session }, error: sessionError } = await supabase.auth.getSession();
             if (sessionError) throw sessionError;
             if (!session) throw new Error("Session expired. Please log in again.");
 
             // 1. Finalize Images
-            console.log("[EditPost] 2/5 Finalizing images (Main Content)...");
+            console.log("[EditPost] Finalizing main content images...");
             const postDateStr = new Date().toISOString().split('T')[0];
             const permanentBasePath = `posts/${postDateStr}/${slug || id}`;
 
@@ -543,12 +543,12 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                 finalizeContentImages(content, `${permanentBasePath}/content`),
                 finalizeSingleImage(thumbnailUrl, `${permanentBasePath}/thumbnail`)
             ]).catch(err => {
-                console.error("[EditPost] Image finalization FAILED, proceeding with original URLs", err);
+                console.error("[EditPost] Image finalization failed, proceeding with original URLs", err);
                 return [content, thumbnailUrl];
             });
 
             // Also finalize translations if enabled
-            console.log("[EditPost] 3/5 Finalizing images (Translations)...");
+            console.log("[EditPost] Finalizing translation images...");
             const finalTranslations = { ...translations };
             await Promise.all(Object.entries(finalTranslations).map(async ([lang, data]) => {
                 if (data.enabled && data.content) {
@@ -589,11 +589,11 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                 linkedLandingPageId: selectedLandingId === 'none' ? null : selectedLandingId
             };
 
-            console.log("[EditPost] 4/5 Updating main post...");
+            console.log("[EditPost] Updating main post structure...");
             await updatePost(id, updateData);
 
             // Handle translations
-            console.log("[EditPost] 5/5 Processing translations...");
+            console.log("[EditPost] Processing translation updates...");
             await Promise.all(Object.entries(finalTranslations).map(async ([lang, data]) => {
                 if (data.enabled && data.title && data.content) {
                     console.log(`[EditPost] Saving translation: ${lang}...`);
@@ -640,16 +640,16 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                         } else {
                             await createPost(transDoc);
                         }
-                        console.log(`[EditPost] SUCCESS: ${lang} saved.`);
+                        console.log(`[EditPost] Success: ${lang} update complete.`);
                     } catch (err: any) {
-                        console.error(`[EditPost] ERROR_SAVING_TRANSLATION (${lang}):`, err);
+                        console.error(`[EditPost] Error saving translation (${lang}):`, err);
                         // Don't throw here to allow main post to finish successfully
                         alert(`Translation (${lang}) failed: ${err.message}`);
                     }
                 }
             }));
 
-            console.log("%c[EditPost] SUCCESS_ALL_TASKS_COMPLETE", "color: green; font-weight: bold;");
+            console.log("[EditPost] All tasks completed successfully.");
             router.push(`/${locale}/admin`);
         } catch (error: any) {
             console.error('[EditPost] CRITICAL_REJECTION:', error);
