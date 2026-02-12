@@ -76,4 +76,4 @@ export function createClient() {
 }
 
 // Export a constant for easy use in non-hook files
-export const supabaseBrowser = typeof window !== 'undefined' ? createClient() : null;
+export const supabaseBrowser = createClient();
