@@ -43,9 +43,9 @@ export function CategoryFilter({ currentCategory, onSelectCategory, initialData 
     return (
         <div className="flex flex-wrap gap-2 mb-8 justify-center">
             {allCategories.map((cat) => {
-                const id = cat.id === 'ALL' ? 'ALL' : cat.id; // Or use slug
+                const id = cat.id === 'ALL' ? 'ALL' : cat.id;
                 const label = cat.name[locale] || cat.name['ko'] || id;
-                const value = cat.id === 'ALL' ? 'ALL' : cat.id;
+                const value = cat.id === 'ALL' ? 'ALL' : cat.slug.toUpperCase();
 
                 return (
                     <button

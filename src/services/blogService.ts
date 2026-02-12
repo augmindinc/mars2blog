@@ -83,7 +83,8 @@ export const getPosts = async (category: Category = 'ALL', locale: string = 'ko'
             .limit(100);
 
         if (category !== 'ALL') {
-            query = query.eq('category', category);
+            // Support both UUID and Slug for backward/forward compatibility
+            query = query.or(`category.eq."${category}",category.eq."${category.toLowerCase()}",category.eq."${category.toUpperCase()}"`);
         }
 
         const { data, error, status, statusText } = await query;
@@ -122,8 +123,9 @@ export const subscribeToPosts = (category: Category, locale: string = 'ko', call
             event: '*',
             schema: 'public',
             table: TABLE_NAME,
-            filter: `status=eq.published&locale=eq.${locale}${category !== 'ALL' ? `&category=eq.${category}` : ''}`
-        }, async () => {
+            filter: `locale=eq.${locale}`
+        }, async (payload: any) => {
+            console.log(`[blogService] Realtime update received for locale: ${locale}`, payload.eventType);
             // Re-fetch data on change
             const posts = await getPosts(category, locale);
             callback(posts);
@@ -273,6 +275,7 @@ export const getPostByShortCode = async (shortCode: string): Promise<Post | null
             .from(TABLE_NAME)
             .select('*')
             .eq('short_code', shortCode)
+            .in('status', ['published', 'scheduled'])
             .limit(1);
 
         if (error) throw error;
