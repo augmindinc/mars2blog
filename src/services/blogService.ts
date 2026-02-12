@@ -76,7 +76,7 @@ export const getPosts = async (category: Category = 'ALL', locale: string = 'ko'
         let query = supabase
             .from(TABLE_NAME)
             .select('*')
-            .eq('status', 'published')
+            .in('status', ['published', 'scheduled'])
             .eq('locale', locale)
             .lte('published_at', new Date().toISOString())
             .order('published_at', { ascending: false })
@@ -155,7 +155,7 @@ export const getAllPublishedPosts = async (): Promise<Post[]> => {
         const { data, error } = await supabase
             .from(TABLE_NAME)
             .select('*')
-            .eq('status', 'published')
+            .in('status', ['published', 'scheduled'])
             .lte('published_at', new Date().toISOString())
             .order('published_at', { ascending: false });
 
@@ -177,7 +177,8 @@ export const getRecommendedPosts = async (currentPost: Post, limitNum: number = 
             const { data, error } = await supabase
                 .from(TABLE_NAME)
                 .select('*')
-                .eq('status', 'published')
+                .in('status', ['published', 'scheduled'])
+                .lte('published_at', new Date().toISOString())
                 .eq('locale', currentPost.locale)
                 .eq('category', currentPost.category)
                 .neq('id', currentPost.id)
