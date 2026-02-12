@@ -93,20 +93,7 @@ export default async function LocaleLayout({
                 ></script>
                 <AriaHiddenCleanup />
 
-                {/* Google Analytics */}
-                <Script
-                    src="https://www.googletagmanager.com/gtag/js?id=G-PGX6QCE0TP"
-                    strategy="afterInteractive"
-                />
-                <Script id="google-analytics" strategy="afterInteractive">
-                    {`
-                        window.dataLayer = window.dataLayer || [];
-                        function gtag(){dataLayer.push(arguments);}
-                        gtag('js', new Date());
-
-                        gtag('config', 'G-PGX6QCE0TP');
-                    `}
-                </Script>
+                <AriaHiddenCleanup />
             </body>
         </html>
     );
