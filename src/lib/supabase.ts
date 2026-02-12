@@ -3,24 +3,38 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-if (typeof window !== 'undefined') {
-    console.log('[Supabase] Initializing...');
-    console.log('[Supabase] URL prefix:', supabaseUrl ? supabaseUrl.substring(0, 10) + '...' : 'MISSING');
-    console.log('[Supabase] Key length:', supabaseAnonKey ? supabaseAnonKey.length : 'MISSING');
-    console.log('[Supabase] Environment:', process.env.NODE_ENV);
-
-    // Connectivity test with proper header
-    if (supabaseUrl && supabaseAnonKey) {
-        fetch(`${supabaseUrl}/auth/v1/health`, {
-            headers: { 'apikey': supabaseAnonKey }
-        })
-            .then(res => console.log('[Supabase] Connectivity test (health):', res.status))
-            .catch(err => console.error('[Supabase] Connectivity test failed:', err.message));
+if (!supabaseUrl || !supabaseAnonKey) {
+    if (typeof window !== 'undefined') {
+        console.warn('Supabase credentials are missing. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel env settings.');
     }
 }
 
-if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Supabase credentials are missing. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel env settings.');
-}
+// Custom fetch with logging to debug production hangs
+const customFetch = async (url: string | URL | Request, options?: RequestInit) => {
+    const urlString = url.toString();
+    if (typeof window !== 'undefined') console.log(`[Supabase Fetch] INIT: ${urlString}`);
+    const start = Date.now();
+    try {
+        const response = await fetch(url, options);
+        if (typeof window !== 'undefined') {
+            console.log(`[Supabase Fetch] DONE: ${urlString} (Status: ${response.status}) in ${Date.now() - start}ms`);
+        }
+        return response;
+    } catch (error: any) {
+        if (typeof window !== 'undefined') {
+            console.error(`[Supabase Fetch] FAIL: ${urlString} - Error: ${error.message}`);
+        }
+        throw error;
+    }
+};
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+        fetch: customFetch
+    },
+    auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+    }
+});

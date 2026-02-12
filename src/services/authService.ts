@@ -35,7 +35,7 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
             .from(COLLECTION_USERS)
             .select('*')
             .eq('id', uid)
-            .maybeSingle();
+            .limit(1); // Simpler than maybeSingle() for diagnostic
 
         const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('getUserProfile fetch timed out')), 10000)
@@ -45,15 +45,13 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
         const { data, error } = result;
 
         if (error) {
-            console.error("Supabase error fetching user profile:", {
-                message: error.message,
-                code: error.code
-            });
+            console.error("Supabase error fetching user profile:", error.message);
             throw error;
         }
 
-        if (typeof window !== 'undefined') console.log('[authService] getUserProfile success:', !!data);
-        return data ? mapProfileFromDb(data) : null;
+        const profileData = data && data.length > 0 ? data[0] : null;
+        if (typeof window !== 'undefined') console.log('[authService] getUserProfile success:', !!profileData);
+        return profileData ? mapProfileFromDb(profileData) : null;
     } catch (error: any) {
         console.error("Error in getUserProfile:", error.message || error);
         return null;
