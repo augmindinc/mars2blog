@@ -11,6 +11,7 @@ import { ViewCounter } from '@/components/blog/ViewCounter';
 import { RelatedPosts } from '@/components/blog/RelatedPosts';
 import { AiLandingCallout } from '@/components/blog/AiLandingCallout';
 import { ArticleContent } from '@/components/blog/ArticleContent';
+import { HydrationStabilizer } from '@/components/blog/HydrationStabilizer';
 
 const getPost = cache(async (slug: string, locale: string) => {
     return await getPostBySlug(slug, locale);
@@ -124,54 +125,56 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
-            <div className="mb-12 text-center">
-                <div className="flex justify-center gap-2 mb-6">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-white px-3 py-1 bg-black">
-                        {categoryLabel}
-                    </span>
+            <HydrationStabilizer>
+                <div className="mb-12 text-center">
+                    <div className="flex justify-center gap-2 mb-6">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white px-3 py-1 bg-black">
+                            {categoryLabel}
+                        </span>
+                    </div>
+                    <h1 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">{serializedPost.title}</h1>
+                    <div className="text-muted-foreground text-sm flex justify-center items-center gap-4">
+                        {serializedPost.author.photoUrl && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={serializedPost.author.photoUrl} alt={serializedPost.author.name} className="w-6 h-6 rounded-none border border-black/10" />
+                        )}
+                        <span>{serializedPost.author.name}</span>
+                        <span>•</span>
+                        <span suppressHydrationWarning>
+                            {serializedPost.createdAt
+                                ? format(new Date(typeof serializedPost.createdAt === 'string' ? serializedPost.createdAt : (serializedPost.createdAt?.seconds ? serializedPost.createdAt.seconds * 1000 : new Date())), 'yyyy.MM.dd')
+                                : ''}
+                        </span>
+                    </div>
                 </div>
-                <h1 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">{serializedPost.title}</h1>
-                <div className="text-muted-foreground text-sm flex justify-center items-center gap-4">
-                    {serializedPost.author.photoUrl && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={serializedPost.author.photoUrl} alt={serializedPost.author.name} className="w-6 h-6 rounded-none border border-black/10" />
-                    )}
-                    <span>{serializedPost.author.name}</span>
-                    <span>•</span>
-                    <span>
-                        {serializedPost.createdAt
-                            ? format(new Date(serializedPost.createdAt?.seconds ? serializedPost.createdAt.seconds * 1000 : serializedPost.createdAt), 'yyyy.MM.dd')
-                            : format(new Date(), 'yyyy.MM.dd')}
-                    </span>
-                </div>
-            </div>
 
-            {serializedPost.thumbnail.url && (
-                <div className="relative w-full aspect-video mb-16 rounded-none overflow-hidden border border-black">
-                    <Image
-                        src={serializedPost.thumbnail.url}
-                        alt={serializedPost.thumbnail.alt || serializedPost.title}
-                        fill
-                        className="object-cover"
-                        priority
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 75vw, 60vw"
-                        unoptimized
-                    />
-                </div>
-            )}
+                {serializedPost.thumbnail.url && (
+                    <div className="relative w-full aspect-video mb-16 rounded-none overflow-hidden border border-black">
+                        <Image
+                            src={serializedPost.thumbnail.url}
+                            alt={serializedPost.thumbnail.alt || serializedPost.title}
+                            fill
+                            className="object-cover"
+                            priority
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 75vw, 60vw"
+                            unoptimized
+                        />
+                    </div>
+                )}
 
-            {serializedPost.excerpt && (
-                <div className="mb-16 p-8 bg-black/[0.02] border border-black/10">
-                    <h2 className="text-sm font-semibold mb-4 text-black border-b border-black/5 pb-2 inline-block">Key Highlights</h2>
-                    <p className="text-muted-foreground leading-relaxed italic text-lg">
-                        {serializedPost.excerpt}
-                    </p>
-                </div>
-            )}
+                {serializedPost.excerpt && (
+                    <div className="mb-16 p-8 bg-black/[0.02] border border-black/10">
+                        <h2 className="text-sm font-semibold mb-4 text-black border-b border-black/5 pb-2 inline-block">Key Highlights</h2>
+                        <p className="text-muted-foreground leading-relaxed italic text-lg">
+                            {serializedPost.excerpt}
+                        </p>
+                    </div>
+                )}
 
-            <ArticleContent serializedPost={serializedPost} />
+                <ArticleContent serializedPost={serializedPost} />
 
-            <RelatedPosts currentPost={serializedPost} />
+                <RelatedPosts currentPost={serializedPost} />
+            </HydrationStabilizer>
         </article>
     );
 }
