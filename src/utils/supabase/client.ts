@@ -4,19 +4,25 @@ import { createBrowserClient } from '@supabase/ssr'
 const customFetch = async (url: string | URL | Request, options?: RequestInit) => {
     const urlString = url.toString();
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(new Error('Supabase request timed out (15s)')), 15000);
+    const timeoutId = setTimeout(() => {
+        if (typeof window !== 'undefined') console.warn(`[Supabase Fetch] TIMEOUT_TRIGGERED: ${urlString}`);
+        controller.abort(new Error('Supabase request timed out (15s)'));
+    }, 15000);
 
     if (typeof window !== 'undefined') console.log(`[Supabase Fetch] INIT: ${urlString}`);
     const start = Date.now();
     try {
-        // Merge signals: either our timeout OR the one passed in (e.g. from TanStack Query)
+        // Robust signal merging
         let signal = controller.signal;
-        if (options?.signal && (AbortSignal as any).any) {
-            signal = (AbortSignal as any).any([controller.signal, options.signal]);
-        } else if (options?.signal) {
-            // Fallback if AbortSignal.any is not supported (unlikely in 2026)
-            // We prioritize the incoming signal but our timeout will still trigger via the controller
-            signal = options.signal;
+        if (options?.signal) {
+            const externalSignal = options.signal;
+            if (externalSignal.aborted) {
+                controller.abort(externalSignal.reason);
+            } else {
+                externalSignal.addEventListener('abort', () => {
+                    controller.abort(externalSignal.reason);
+                }, { once: true });
+            }
         }
 
         const response = await fetch(url, {
@@ -33,9 +39,8 @@ const customFetch = async (url: string | URL | Request, options?: RequestInit) =
         const isTimeout = error.name === 'AbortError' && controller.signal.aborted;
         if (typeof window !== 'undefined') {
             if (isTimeout) {
-                console.warn(`[Supabase Fetch] TIMEOUT (15s): ${urlString}`);
+                console.error(`[Supabase Fetch] TIMEOUT_FINAL (15s): ${urlString}`);
             } else if (error.name === 'AbortError') {
-                // If it's an AbortError but NOT our timeout, it's an intentional cancellation (e.g. unmount)
                 console.log(`[Supabase Fetch] CANCELLED: ${urlString}`);
             } else {
                 console.error(`[Supabase Fetch] FAIL: ${urlString} - ${error.message}`);
@@ -53,16 +58,27 @@ declare global {
 }
 
 export function createClient() {
+    // Basic env check (non-blocking log)
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        if (typeof window !== 'undefined') console.error("[Supabase Client] CRITICAL: Environment variables missing!");
+    }
+
     if (typeof window === 'undefined') {
-        // Server-side: create a new one every time (or use useMemo if needed)
+        // Server-side: create a fresh one
         return createBrowserClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                global: {
+                    fetch: customFetch
+                }
+            }
         );
     }
 
     if (window.__SUPABASE_CLIENT__) return window.__SUPABASE_CLIENT__;
 
+    if (typeof window !== 'undefined') console.log("[Supabase Client] Creating new browser singleton...");
     window.__SUPABASE_CLIENT__ = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

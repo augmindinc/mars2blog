@@ -35,10 +35,23 @@ export default function AdminDashboardPage() {
     const [targetCategory, setTargetCategory] = useState<string | ''>('');
     const [isUpdating, setIsUpdating] = useState(false);
 
-    const { data: posts, isLoading } = useQuery({
+    const { data: posts, isLoading, error: queryError, isFetching } = useQuery({
         queryKey: ['admin-posts'],
-        queryFn: getAdminPosts,
+        queryFn: async () => {
+            console.log('[Dashboard] Executing getAdminPosts queryFn...');
+            const result = await getAdminPosts();
+            console.log(`[Dashboard] getAdminPosts returned ${result?.length} items`);
+            return result;
+        },
     });
+
+    useEffect(() => {
+        console.log('[Dashboard] STATE CHANGE:', { isLoading, isFetching, hasPosts: !!posts, categoriesCount: categories?.length });
+    }, [isLoading, isFetching, posts, categories]);
+
+    useEffect(() => {
+        if (queryError) console.error('[Dashboard] QUERY ERROR:', queryError);
+    }, [queryError]);
 
     const filteredPosts = posts?.filter(post => {
         const dynamicCat = categories?.find(c => c.id === post.category || c.slug.toUpperCase() === post.category);
