@@ -1,4 +1,5 @@
-import { Timestamp } from 'firebase/firestore';
+// Firebase dependency removed. Using string (ISO) for Timestamps in Supabase.
+export type Timestamp = string | any;
 
 export type Category = string;
 

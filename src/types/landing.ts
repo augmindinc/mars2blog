@@ -1,4 +1,5 @@
-import { Timestamp } from 'firebase/firestore';
+// Firebase dependency removed.
+export type Timestamp = string | any;
 
 export type LandingPageType = 'consulting' | 'app_install' | 'lead_magnet' | 'product_sale';
 

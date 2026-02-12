@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { incrementViewCount } from '@/services/blogService';
 import { logInflow } from '@/services/inflowService';
-import { Timestamp } from 'firebase/firestore';
+// Firebase dependency removed.
 
 interface ViewCounterProps {
     postId: string;
@@ -52,7 +52,7 @@ export function ViewCounter({ postId, postTitle }: ViewCounterProps) {
                     referrerDomain: domain,
                     searchKeyword: keyword,
                     userAgent: navigator.userAgent,
-                    createdAt: Timestamp.now(),
+                    createdAt: new Date().toISOString(),
                 });
 
                 viewedArray.push(postId);

@@ -1,33 +1,47 @@
-import { storage } from './firebase';
-import { ref, uploadBytes, getDownloadURL, deleteObject, getBlob } from 'firebase/storage';
+import { supabase } from './supabase';
 
 /**
- * Moves a file from one Storage location to another.
- * Since Firebase Client SDK doesn't support 'move', we download and re-upload.
+ * Moves a file from one Storage location to another in Supabase.
+ * Unlike Firebase Client SDK, Supabase supports 'copy' directly.
  */
 async function moveFile(sourceUrl: string, targetPath: string): Promise<string> {
-    if (!sourceUrl.includes('firebasestorage.googleapis.com') && !sourceUrl.includes('firebasestorage.app')) {
-        return sourceUrl; // Not a Firebase Storage URL
+    if (!sourceUrl.includes('supabase.co')) {
+        return sourceUrl; // Not a Supabase Storage URL
     }
 
     try {
-        const sourceRef = ref(storage, sourceUrl);
+        // Extract bucket and path from URL
+        // Example: https://[project-id].supabase.co/storage/v1/object/public/[bucket]/[path]
+        const urlObj = new URL(sourceUrl);
+        const pathParts = urlObj.pathname.split('/public/')[1]?.split('/');
+        if (!pathParts) return sourceUrl;
 
-        // 1. Download
-        const blob = await getBlob(sourceRef);
+        const bucket = pathParts[0];
+        const sourcePath = pathParts.slice(1).join('/');
 
-        // 2. Upload to new path
-        const targetRef = ref(storage, targetPath);
-        await uploadBytes(targetRef, blob);
+        // 1. Copy
+        const { error: copyError } = await supabase.storage
+            .from(bucket)
+            .copy(sourcePath, targetPath);
 
-        // 3. Get new URL
-        const newUrl = await getDownloadURL(targetRef);
+        if (copyError) throw copyError;
 
-        // 4. Delete old file
-        await deleteObject(sourceRef);
+        // 2. Get new URL
+        const { data: { publicUrl } } = supabase.storage
+            .from(bucket)
+            .getPublicUrl(targetPath);
+
+        // 3. Delete old file
+        const { error: deleteError } = await supabase.storage
+            .from(bucket)
+            .remove([sourcePath]);
+
+        if (deleteError) {
+            console.warn("[StorageFinalizer] Error deleting source file after copy:", deleteError);
+        }
 
         console.log(`[StorageFinalizer] Moved file to: ${targetPath}`);
-        return newUrl;
+        return publicUrl;
     } catch (error) {
         console.error("[StorageFinalizer] Error moving file:", error);
         return sourceUrl; // Fallback to original if move fails
@@ -41,8 +55,7 @@ export async function finalizeContentImages(content: string, postPath: string): 
     let updatedContent = content;
 
     // Regex to find images in temp/
-    // Matches ![alt](url) and <img src="url">
-    const tempUrlRegex = /(https?:\/\/(firebasestorage\.googleapis\.com|firebasestorage\.app)\/v0\/b\/[^?#]+\/o\/temp%2F[^?#]+(?:\?[^#]*)?)/g;
+    const tempUrlRegex = /(https?:\/\/[^/]+\.supabase\.co\/storage\/v1\/object\/public\/[^/]+\/temp\/[^?#\s"]+)/g;
 
     const matches = Array.from(content.matchAll(tempUrlRegex));
     if (matches.length === 0) return content;
@@ -51,9 +64,9 @@ export async function finalizeContentImages(content: string, postPath: string): 
 
     for (const match of matches) {
         const tempUrl = match[0];
-        // Extract filename from URL (it's encoded between %2F and ?)
-        const filenameMatch = tempUrl.match(/%2F([^?]+)\?/);
-        const filename = filenameMatch ? decodeURIComponent(filenameMatch[1]) : `image-${Date.now()}.png`;
+        // Extract filename from URL
+        const urlParts = tempUrl.split('/');
+        const filename = urlParts[urlParts.length - 1];
 
         const permanentPath = `${postPath}/${filename}`;
         const permanentUrl = await moveFile(tempUrl, permanentPath);
@@ -68,10 +81,10 @@ export async function finalizeContentImages(content: string, postPath: string): 
  * Finalizes a single image URL (e.g., thumbnail) if it's in temp/.
  */
 export async function finalizeSingleImage(url: string | undefined, targetPath: string): Promise<string | undefined> {
-    if (!url || !url.includes('/temp%2F')) return url;
+    if (!url || !url.includes('/temp/')) return url;
 
-    const filenameMatch = url.match(/%2F([^?]+)\?/);
-    const filename = filenameMatch ? decodeURIComponent(filenameMatch[1]) : `thumb-${Date.now()}.png`;
+    const urlParts = url.split('/');
+    const filename = urlParts[urlParts.length - 1];
 
     return await moveFile(url, `${targetPath}/${filename}`);
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getPosts } from '@/services/blogService';
+import { getPosts, mapPostToDb } from '@/services/blogService';
 import { getContentPlans, createContentPlan, updateContentPlan, deleteContentPlan } from '@/services/planService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -24,10 +24,10 @@ import {
     PenLine
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
-import { ContentPlan } from '@/types/blog';
+import { supabase } from '@/lib/supabase';
+import { ContentPlan, CATEGORY_LABELS } from '@/types/blog';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useCategories } from '@/hooks/useCategories';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -38,7 +38,7 @@ import { format } from 'date-fns';
 import { Post } from '@/types/blog';
 
 export default function PlanningPage() {
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const queryClient = useQueryClient();
     const [selectedPost, setSelectedPost] = useState<Post | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -53,6 +53,8 @@ export default function PlanningPage() {
         contentType: '정보형'
     });
     const [isExperienceGenerating, setIsExperienceGenerating] = useState(false);
+
+    const { data: categories } = useCategories();
 
     // 1. Fetch original Korean posts
     const { data: sourcePosts, isLoading: isLoadingPosts } = useQuery({
@@ -91,8 +93,8 @@ export default function PlanningPage() {
                     contentType: item.contentType || 'informational',
                     sourcePostId: post.id,
                     completed: false,
-                    createdAt: Timestamp.now(),
-                    authorId: user?.uid || 'anonymous'
+                    createdAt: new Date().toISOString(),
+                    authorId: profile?.uid || 'anonymous'
                 });
             }
             queryClient.invalidateQueries({ queryKey: ['content-plans', post.id] });
@@ -130,60 +132,24 @@ export default function PlanningPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    type: 'full-post-generation',
-                    sourcePost: selectedPost,
-                    plan: plan
+                    type: 'experience-to-post',
+                    experience: plan.description,
+                    context: selectedPost.title,
+                    contentType: plan.contentType === 'trend' ? '이슈형' : '정보형',
+                    author: {
+                        id: profile?.uid || 'anonymous',
+                        name: profile?.displayName || 'Anonymous',
+                        photoUrl: profile?.photoURL ?? null
+                    }
                 }),
             });
 
             if (!response.ok) throw new Error("AI generation failed");
             const data = await response.json();
 
-            // Create new post document
-            const shortCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-            const groupId = `group-${Date.now()}`;
-
-            const newPost: any = {
-                groupId,
-                locale: 'ko',
-                title: data.title,
-                content: data.content,
-                excerpt: data.seoDescription?.substring(0, 160) || '',
-                slug: data.slug || `post-${Date.now()}`,
-                category: selectedPost.category,
-                tags: [],
-                author: {
-                    id: user?.uid || 'anonymous',
-                    name: user?.displayName || 'Anonymous',
-                    photoUrl: user?.photoURL ?? null
-                },
-                thumbnail: {
-                    url: '',
-                    alt: data.title
-                },
-                seo: {
-                    metaTitle: data.seoTitle || data.title,
-                    metaDesc: data.seoDescription || '',
-                    structuredData: {
-                        "@context": "https://schema.org",
-                        "@type": "BlogPosting",
-                        "headline": data.seoTitle || data.title,
-                        "datePublished": new Date().toISOString(),
-                        "author": {
-                            "@type": "Person",
-                            "name": user?.displayName || 'Anonymous'
-                        }
-                    }
-                },
-                createdAt: Timestamp.now(),
-                updatedAt: Timestamp.now(),
-                publishedAt: Timestamp.now(),
-                status: 'draft',
-                viewCount: 0,
-                shortCode: shortCode
-            };
-
-            await addDoc(collection(db, 'posts'), newPost);
+            if (data.dbStatus === 'failed') {
+                throw new Error(`AI 생성은 성공했으나 저장에 실패했습니다: ${data.dbError}`);
+            }
 
             // Mark plan as completed
             await updateContentPlan(plan.id, { completed: true });
@@ -198,6 +164,7 @@ export default function PlanningPage() {
             setGeneratingPosts(prev => ({ ...prev, [plan.id]: false }));
         }
     };
+
     const handleExperienceSubmit = async () => {
         if (!experienceData.experience.trim()) {
             alert("최근 겪은 경험이나 생각을 입력해주세요.");
@@ -206,76 +173,42 @@ export default function PlanningPage() {
 
         setIsExperienceGenerating(true);
         try {
+            console.log("[AI Partner] Starting generation with data:", experienceData);
             const response = await fetch('/api/ai/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     type: 'experience-to-post',
-                    ...experienceData
+                    ...experienceData,
+                    author: {
+                        id: profile?.uid || 'anonymous',
+                        name: profile?.displayName || 'Anonymous',
+                        photoUrl: profile?.photoURL ?? null
+                    }
                 }),
             });
 
-            if (!response.ok) throw new Error("AI generation failed");
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error("[AI Partner] API Error:", response.status, errorData);
+                throw new Error(errorData.details || "AI generation failed");
+            }
             const data = await response.json();
 
-            // Create new post document
-            const shortCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-            const groupId = `group-${Date.now()}`;
+            if (data.dbStatus === 'failed') {
+                console.error("[AI Partner] Server-side DB Insert Failed:", data.dbError);
+                throw new Error(`AI 생성은 성공했으나 저장에 실패했습니다: ${data.dbError}`);
+            }
 
-            // Map contentType to System Category
-            const categoryMap: Record<string, string> = {
-                '정보형': 'PLANNING',
-                '커머스형': 'SHOPPING',
-                '이슈형': 'ISSUE'
-            };
-
-            const newPost: any = {
-                groupId,
-                locale: 'ko',
-                title: data.title,
-                content: data.content,
-                excerpt: data.seoDescription?.substring(0, 160) || '',
-                slug: data.slug || `post-${Date.now()}`,
-                category: categoryMap[experienceData.contentType] || 'PLANNING',
-                tags: ['AI-Partner', '에세이톤', experienceData.contentType],
-                author: {
-                    id: user?.uid || 'anonymous',
-                    name: user?.displayName || 'Anonymous',
-                    photoUrl: user?.photoURL ?? null
-                },
-                thumbnail: { url: '', alt: data.title },
-                seo: {
-                    metaTitle: data.seoTitle || data.title,
-                    metaDesc: data.seoDescription || '',
-                    structuredData: {
-                        "@context": "https://schema.org",
-                        "@type": "BlogPosting",
-                        "headline": data.seoTitle || data.title,
-                        "datePublished": new Date().toISOString(),
-                        "author": {
-                            "@type": "Person",
-                            "name": user?.displayName || 'Anonymous'
-                        }
-                    }
-                },
-                createdAt: Timestamp.now(),
-                updatedAt: Timestamp.now(),
-                publishedAt: Timestamp.now(),
-                status: 'draft',
-                viewCount: 0,
-                shortCode: shortCode
-            };
-
-            await addDoc(collection(db, 'posts'), newPost);
-
+            console.log("[AI Partner] Generation and Server-side Saving Successful!");
             alert("에세이 초안이 성공적으로 생성되었습니다. 'Posts' 메뉴에서 확인하실 수 있습니다.");
             setIsExperienceModalOpen(false);
             setExperienceData({ experience: '', context: '', contentType: '정보형' });
             queryClient.invalidateQueries({ queryKey: ['admin-source-posts'] });
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error generating experience post:", error);
-            alert("글 생성 중 오류가 발생했습니다.");
+            alert(`글 생성 중 오류가 발생했습니다: ${error.message}`);
         } finally {
             setIsExperienceGenerating(false);
         }
@@ -417,11 +350,16 @@ export default function PlanningPage() {
                                             </h4>
                                             <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold text-muted-foreground uppercase tracking-tight">
                                                 <Badge variant="outline" className="px-2 py-0 h-5 font-bold rounded-none border-black/10 uppercase tracking-tight text-[9px]">
-                                                    {post.category}
+                                                    {(() => {
+                                                        const dynamicCat = categories?.find(c => c.id === post.category || c.slug.toUpperCase() === post.category);
+                                                        return dynamicCat
+                                                            ? (dynamicCat.name['ko'] || dynamicCat.name['en'])
+                                                            : (CATEGORY_LABELS[post.category]?.['ko'] || post.category);
+                                                    })()}
                                                 </Badge>
                                                 <span className="flex items-center gap-1">
                                                     <Calendar className="w-3 h-3" />
-                                                    {format(new Date(post.publishedAt?.seconds * 1000), 'yyyy.MM.dd')}
+                                                    {post.publishedAt ? format(new Date(post.publishedAt as any), 'yyyy.MM.dd') : '-'}
                                                 </span>
                                                 <span className="flex items-center gap-1">
                                                     <User className="w-3 h-3" />
@@ -548,7 +486,7 @@ export default function PlanningPage() {
 
                                                             <div className="flex items-center justify-between pt-3 border-t border-black/5">
                                                                 <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">
-                                                                    {format(new Date(plan.createdAt?.seconds * 1000), 'yyyy.MM.dd')}
+                                                                    {plan.createdAt ? format(new Date(plan.createdAt as any), 'yyyy.MM.dd') : '-'}
                                                                 </span>
                                                                 <div className="flex items-center gap-2">
                                                                     {!plan.completed && (

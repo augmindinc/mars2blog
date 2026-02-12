@@ -5,9 +5,13 @@ const withNextIntl = createNextIntlPlugin();
 
 const nextConfig: NextConfig = {
   /* config options here */
-  compress: false, // Disable Next.js compression to avoid conflicts with Firebase Hosting
   images: {
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'ofpcpcngrrxkarihjvhu.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
       {
         protocol: 'https',
         hostname: 'firebasestorage.googleapis.com',
@@ -18,16 +22,8 @@ const nextConfig: NextConfig = {
         hostname: '*.firebasestorage.googleapis.com',
         pathname: '/**',
       },
-      {
-        protocol: 'https',
-        hostname: 'firebasestorage.app',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.firebasestorage.app',
-        pathname: '/**',
-      },
+      { protocol: 'https', hostname: 'firebasestorage.app', pathname: '/**' },
+      { protocol: 'https', hostname: '*.firebasestorage.app', pathname: '/**' },
     ],
   },
 };

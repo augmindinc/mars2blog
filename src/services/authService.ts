@@ -1,52 +1,128 @@
-import { auth, db } from '@/lib/firebase';
-import {
-    GoogleAuthProvider,
-    signInWithPopup,
-    signInWithRedirect,
-    getRedirectResult,
-    signOut,
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
-    updateProfile,
-    User
-} from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase';
 import { UserRole, UserProfile, UserStatus } from '@/types/user';
 
-const COLLECTION_USERS = 'users';
+const COLLECTION_USERS = 'profiles'; // Renamed to 'profiles' to match standard Supabase patterns
+
+// Helper to convert database snake_case to TypeScript camelCase
+export const mapProfileFromDb = (data: any): UserProfile => {
+    return {
+        ...data,
+        uid: data.id,
+        displayName: data.display_name,
+        photoURL: data.photo_url || null,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+    };
+};
+
+// Helper to convert TypeScript camelCase to database snake_case
+export const mapProfileToDb = (profile: Partial<UserProfile>): any => {
+    const { uid, displayName, photoURL, createdAt, updatedAt, ...rest } = profile;
+    const mapped: any = { ...rest };
+    if (uid !== undefined) mapped.id = uid;
+    if (displayName !== undefined) mapped.display_name = displayName;
+    if (photoURL !== undefined) mapped.photo_url = photoURL;
+    if (createdAt !== undefined) mapped.created_at = createdAt;
+    if (updatedAt !== undefined) mapped.updated_at = updatedAt;
+    return mapped;
+};
 
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
-    const docRef = doc(db, COLLECTION_USERS, uid);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-        return docSnap.data() as UserProfile;
+    try {
+        const { data, error } = await supabase
+            .from(COLLECTION_USERS)
+            .select('*')
+            .eq('id', uid)
+            .maybeSingle();
+
+        if (error) {
+            console.error("Supabase error fetching user profile:", {
+                message: error.message,
+                code: error.code,
+                details: error.details
+            });
+            throw error;
+        }
+        return data ? mapProfileFromDb(data) : null;
+    } catch (error) {
+        console.error("Error in getUserProfile:", error);
+        return null;
     }
-    return null;
+};
+
+export const getUsers = async (): Promise<UserProfile[]> => {
+    try {
+        const { data, error } = await supabase
+            .from(COLLECTION_USERS)
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return (data || []).map(mapProfileFromDb);
+    } catch (error) {
+        console.error("Error in getUsers:", error);
+        return [];
+    }
+};
+
+export const updateProfile = async (uid: string, updates: Partial<UserProfile>) => {
+    try {
+        const mappedUpdates = mapProfileToDb(updates);
+        const { error } = await supabase
+            .from(COLLECTION_USERS)
+            .update({
+                ...mappedUpdates,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', uid);
+
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error("Error in updateProfile:", error);
+        throw error;
+    }
 };
 
 export const registerWithEmail = async (email: string, password: string, displayName: string, role: UserRole = 'author') => {
     try {
-        const result = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(result.user, { displayName });
-
-        // Create user profile in Firestore
-        const status: UserStatus = role === 'admin' ? 'pending' : 'approved';
-        const userProfile: UserProfile = {
-            uid: result.user.uid,
+        const { data: authData, error: authError } = await supabase.auth.signUp({
             email,
-            displayName,
-            photoURL: result.user.photoURL ?? null,
-            role,
-            status,
-            createdAt: Timestamp.now(),
-            updatedAt: Timestamp.now(),
-        };
+            password,
+            options: {
+                data: {
+                    display_name: displayName,
+                }
+            }
+        });
 
-        await setDoc(doc(db, COLLECTION_USERS, result.user.uid), userProfile);
+        if (authError) throw authError;
 
-        await setDoc(doc(db, COLLECTION_USERS, result.user.uid), userProfile);
+        if (authData.user) {
+            // Create user profile in 'profiles' table
+            const status: UserStatus = role === 'admin' ? 'pending' : 'approved';
+            const userProfile: UserProfile = {
+                uid: authData.user.id,
+                email,
+                displayName,
+                photoURL: null,
+                role,
+                status,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            };
 
-        return { user: result.user, profile: userProfile };
+            const mappedProfile = mapProfileToDb(userProfile);
+
+            const { error: profileError } = await supabase
+                .from(COLLECTION_USERS)
+                .insert([mappedProfile]);
+
+            if (profileError) throw profileError;
+
+            return { user: authData.user, profile: userProfile };
+        }
+        return { user: null, profile: null };
     } catch (error) {
         console.error("Registration failed", error);
         throw error;
@@ -55,10 +131,18 @@ export const registerWithEmail = async (email: string, password: string, display
 
 export const loginWithEmail = async (email: string, password: string) => {
     try {
-        const result = await signInWithEmailAndPassword(auth, email, password);
-        const profile = await getUserProfile(result.user.uid);
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
 
-        return { user: result.user, profile };
+        if (error) throw error;
+
+        if (data.user) {
+            const profile = await getUserProfile(data.user.id);
+            return { user: data.user, profile };
+        }
+        return { user: null, profile: null };
     } catch (error) {
         console.error("Email login failed", error);
         throw error;
@@ -66,42 +150,22 @@ export const loginWithEmail = async (email: string, password: string) => {
 };
 
 export const loginWithGoogle = async (requestedRole: UserRole = 'author') => {
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
-
     try {
-        let result;
-        try {
-            result = await signInWithPopup(auth, provider);
-        } catch (popupError: any) {
-            // Fallback to redirect if popup is blocked or fails due to COOP
-            if (popupError.code === 'auth/popup-blocked' || popupError.code === 'auth/popup-closed-by-user' || popupError.code === 'auth/cancelled-popup-request') {
-                return await signInWithRedirect(auth, provider);
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+                queryParams: {
+                    prompt: 'select_account',
+                }
             }
-            throw popupError;
-        }
+        });
 
-        if (!result) return null;
+        if (error) throw error;
 
-        let profile = await getUserProfile(result.user.uid);
-
-        if (!profile) {
-            // New user via Google
-            const status: UserStatus = requestedRole === 'admin' ? 'pending' : 'approved';
-            profile = {
-                uid: result.user.uid,
-                email: result.user.email || '',
-                displayName: result.user.displayName || 'User',
-                photoURL: result.user.photoURL ?? null,
-                role: requestedRole,
-                status,
-                createdAt: Timestamp.now(),
-                updatedAt: Timestamp.now(),
-            };
-            await setDoc(doc(db, COLLECTION_USERS, result.user.uid), profile);
-        }
-
-        return { user: result.user, profile };
+        // Note: Supabase OAuth handles redirect. 
+        // Profile creation should be handled in a callback or trigger.
+        return data;
     } catch (error) {
         console.error("Google login failed", error);
         throw error;
@@ -110,9 +174,28 @@ export const loginWithGoogle = async (requestedRole: UserRole = 'author') => {
 
 export const handleRedirectResult = async () => {
     try {
-        const result = await getRedirectResult(auth);
-        if (result) {
-            return result.user;
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+
+        if (session?.user) {
+            // Check if profile exists, if not create it (standard Supabase pattern)
+            let profile = await getUserProfile(session.user.id);
+            if (!profile) {
+                const status: UserStatus = 'approved'; // Default for social
+                profile = {
+                    uid: session.user.id,
+                    email: session.user.email || '',
+                    displayName: session.user.user_metadata.full_name || 'User',
+                    photoURL: session.user.user_metadata.avatar_url || null,
+                    role: 'author',
+                    status,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                };
+                const mappedProfile = mapProfileToDb(profile);
+                await supabase.from(COLLECTION_USERS).insert([mappedProfile]);
+            }
+            return session.user;
         }
     } catch (error) {
         console.error("Redirect result error", error);
@@ -122,7 +205,8 @@ export const handleRedirectResult = async () => {
 
 export const logout = async () => {
     try {
-        await signOut(auth);
+        const { error } = await supabase.auth.signOut();
+        if (error) throw error;
     } catch (error) {
         console.error("Logout failed", error);
         throw error;

@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { getLandingPageBySlug, createSubmission, incrementPageView } from '@/services/landingService';
 import { LandingPage } from '@/types/landing';
-import { Timestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CheckCircle2, X } from 'lucide-react';
@@ -77,7 +76,7 @@ export default function LandingViewPage() {
             await createSubmission({
                 pageId: page.id,
                 data: formData,
-                createdAt: Timestamp.now()
+                createdAt: new Date().toISOString()
             });
 
             setIsSubmitted(true);

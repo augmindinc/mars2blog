@@ -1,34 +1,49 @@
-import { db, storage } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { Post, Category } from '@/types/blog';
-import { collection, getDocs, query, where, orderBy, limit, Timestamp, doc, deleteDoc, updateDoc, getDoc, onSnapshot, increment } from 'firebase/firestore';
-import { ref, deleteObject } from 'firebase/storage';
 import { deleteContentPlansBySourceId } from './planService';
-import { cosineSimilarity } from '@/lib/utils';
 
-const COLLECTION_NAME = 'posts';
+const TABLE_NAME = 'posts';
 
-// Helper to convert Firestore Timestamps to plain objects for Server -> Client component props
-export const serializePost = (post: Post): Post => {
-    return JSON.parse(JSON.stringify(post));
-};
+// Identity function for backward compatibility
+export const serializePost = (post: Post): Post => post;
 
-// Helper to delete an image from storage using its URL
-const deleteStorageImage = async (url: string | undefined) => {
-    if (!url || (!url.includes('firebasestorage.googleapis.com') && !url.includes('firebasestorage.app'))) return;
-    try {
-        const imageRef = ref(storage, url);
-        await deleteObject(imageRef);
-    } catch (error: any) {
-        // Ignore "object not found" errors to prevent service failure
-        if (error.code === 'storage/object-not-found') {
-            console.warn("Storage object already deleted or not found:", url);
-            return;
+// Helper to convert database snake_case to TypeScript camelCase
+export const mapPostFromDb = (data: any): Post => {
+    return {
+        ...data,
+        groupId: data.group_id,
+        viewCount: data.view_count,
+        shortCode: data.short_code,
+        publishedAt: data.published_at,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        linkedLandingPageId: data.linked_landing_page_id,
+        thumbnail: {
+            url: data.thumbnail_url || '',
+            alt: data.thumbnail_alt || ''
         }
-        console.error("Error deleting image from storage:", error);
-    }
+    };
 };
 
-// Helper to extract image URLs from content (supports both Markdown and HTML)
+// Helper to convert TypeScript camelCase to database snake_case
+export const mapPostToDb = (post: Partial<Post>): any => {
+    const { groupId, viewCount, shortCode, publishedAt, createdAt, updatedAt, thumbnail, linkedLandingPageId, ...rest } = post;
+    const mapped: any = { ...rest };
+    if (groupId !== undefined) mapped.group_id = groupId;
+    if (viewCount !== undefined) mapped.view_count = viewCount;
+    if (shortCode !== undefined) mapped.short_code = shortCode;
+    if (publishedAt !== undefined) mapped.published_at = publishedAt;
+    if (createdAt !== undefined) mapped.created_at = createdAt;
+    if (updatedAt !== undefined) mapped.updated_at = updatedAt;
+    if (linkedLandingPageId !== undefined) mapped.linked_landing_page_id = linkedLandingPageId;
+    if (thumbnail !== undefined) {
+        mapped.thumbnail_url = thumbnail.url;
+        mapped.thumbnail_alt = thumbnail.alt;
+    }
+    return mapped;
+};
+
+// Helper to extract image URLs from content (remains the same as before)
 const extractImageUrls = (content: string): string[] => {
     const urls: string[] = [];
 
@@ -36,7 +51,7 @@ const extractImageUrls = (content: string): string[] => {
     const mdImgRegex = /!\[.*?\]\((.*?)\)/g;
     let mdMatch;
     while ((mdMatch = mdImgRegex.exec(content)) !== null) {
-        if (mdMatch[1].includes('firebasestorage.googleapis.com') || mdMatch[1].includes('firebasestorage.app')) {
+        if (mdMatch[1].includes('firebasestorage.googleapis.com') || mdMatch[1].includes('firebasestorage.app') || mdMatch[1].includes('supabase.co')) {
             urls.push(mdMatch[1]);
         }
     }
@@ -45,55 +60,41 @@ const extractImageUrls = (content: string): string[] => {
     const imgRegex = /<img[^>]+src="([^">]+)"/g;
     let htmlMatch;
     while ((htmlMatch = imgRegex.exec(content)) !== null) {
-        if (htmlMatch[1].includes('firebasestorage.googleapis.com') || htmlMatch[1].includes('firebasestorage.app')) {
+        if (htmlMatch[1].includes('firebasestorage.googleapis.com') || htmlMatch[1].includes('firebasestorage.app') || htmlMatch[1].includes('supabase.co')) {
             urls.push(htmlMatch[1]);
         }
     }
 
-    return Array.from(new Set(urls)); // Remove duplicates
+    return Array.from(new Set(urls));
 };
 
 import { unstable_cache } from 'next/cache';
 
 export const getPosts = async (category: Category = 'ALL', locale: string = 'ko'): Promise<Post[]> => {
     try {
-        let q = query(
-            collection(db, COLLECTION_NAME),
-            where('status', '==', 'published'),
-            where('locale', '==', locale),
-            where('publishedAt', '<=', Timestamp.now()),
-            orderBy('publishedAt', 'desc'),
-            limit(100)
-        );
+        let query = supabase
+            .from(TABLE_NAME)
+            .select('*')
+            .eq('status', 'published')
+            .eq('locale', locale)
+            .lte('published_at', new Date().toISOString())
+            .order('published_at', { ascending: false })
+            .limit(100);
 
         if (category !== 'ALL') {
-            q = query(
-                collection(db, COLLECTION_NAME),
-                where('status', '==', 'published'),
-                where('category', '==', category),
-                where('locale', '==', locale),
-                where('publishedAt', '<=', Timestamp.now()),
-                orderBy('publishedAt', 'desc'),
-                limit(100)
-            );
+            query = query.eq('category', category);
         }
 
-        const snapshot = await getDocs(q);
+        const { data, error } = await query;
 
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as Post));
+        if (error) throw error;
+        return (data || []).map(mapPostFromDb);
     } catch (error) {
         console.error("Error fetching posts:", error);
         return [];
     }
 };
 
-/**
- * Cached version of getPosts for improved performance
- * Caches for 5 minutes (300 seconds)
- */
 export const getCachedPosts = unstable_cache(
     async (category: Category = 'ALL', locale: string = 'ko') => {
         return getPosts(category, locale);
@@ -102,50 +103,36 @@ export const getCachedPosts = unstable_cache(
     { revalidate: 300, tags: ['posts'] }
 );
 
-// Real-time subscription for public posts
+// Supabase Real-time subscription
 export const subscribeToPosts = (category: Category, locale: string = 'ko', callback: (posts: Post[]) => void) => {
-    let q = query(
-        collection(db, COLLECTION_NAME),
-        where('status', '==', 'published'),
-        where('locale', '==', locale),
-        orderBy('publishedAt', 'desc'),
-        limit(100)
-    );
+    const channel = supabase
+        .channel('public:posts')
+        .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: TABLE_NAME,
+            filter: `status=eq.published&locale=eq.${locale}${category !== 'ALL' ? `&category=eq.${category}` : ''}`
+        }, async () => {
+            // Re-fetch data on change
+            const posts = await getPosts(category, locale);
+            callback(posts);
+        })
+        .subscribe();
 
-    if (category !== 'ALL') {
-        q = query(
-            collection(db, COLLECTION_NAME),
-            where('status', '==', 'published'),
-            where('category', '==', category),
-            where('locale', '==', locale),
-            orderBy('publishedAt', 'desc'),
-            limit(100)
-        );
-    }
-
-    return onSnapshot(q, (snapshot) => {
-        const posts = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as Post));
-        callback(posts);
-    }, (error) => {
-        console.error("Error subscribing to posts:", error);
-    });
+    return () => {
+        supabase.removeChannel(channel);
+    };
 };
 
 export const getAdminPosts = async (): Promise<Post[]> => {
     try {
-        const q = query(
-            collection(db, COLLECTION_NAME),
-            orderBy('createdAt', 'desc')
-        );
-        const snapshot = await getDocs(q);
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .select('*')
+            .order('created_at', { ascending: false });
 
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as Post));
+        if (error) throw error;
+        return (data || []).map(mapPostFromDb);
     } catch (error) {
         console.error("Error fetching admin posts:", error);
         return [];
@@ -154,96 +141,82 @@ export const getAdminPosts = async (): Promise<Post[]> => {
 
 export const getAllPublishedPosts = async (): Promise<Post[]> => {
     try {
-        const q = query(
-            collection(db, COLLECTION_NAME),
-            where('status', '==', 'published'),
-            where('publishedAt', '<=', Timestamp.now()),
-            orderBy('publishedAt', 'desc')
-        );
-        const snapshot = await getDocs(q);
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .select('*')
+            .eq('status', 'published')
+            .lte('published_at', new Date().toISOString())
+            .order('published_at', { ascending: false });
 
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as Post));
+        if (error) throw error;
+        return (data || []).map(mapPostFromDb);
     } catch (error) {
         console.error("Error fetching all published posts:", error);
         return [];
     }
 };
 
+/**
+ * Super fast vector search using Supabase pgvector!
+ */
 export const getRecommendedPosts = async (currentPost: Post, limitNum: number = 3): Promise<Post[]> => {
     try {
-        // 1. Fetch posts from the same locale, excluding the current post
-        const q = query(
-            collection(db, COLLECTION_NAME),
-            where('status', '==', 'published'),
-            where('locale', '==', currentPost.locale),
-            where('publishedAt', '<=', Timestamp.now()),
-            orderBy('publishedAt', 'desc')
-        );
-        const snapshot = await getDocs(q);
-        const allPosts = snapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() } as Post))
-            .filter(post => post.id !== currentPost.id);
+        if (!currentPost.embedding || currentPost.embedding.length === 0) {
+            // Fallback to basic category search
+            const { data, error } = await supabase
+                .from(TABLE_NAME)
+                .select('*')
+                .eq('status', 'published')
+                .eq('locale', currentPost.locale)
+                .eq('category', currentPost.category)
+                .neq('id', currentPost.id)
+                .limit(limitNum);
 
-        if (allPosts.length === 0) return [];
-
-        // 2. If current post has embedding, use semantic similarity
-        if (currentPost.embedding && currentPost.embedding.length > 0) {
-            const withSimilarity = allPosts.map(post => ({
-                post,
-                similarity: post.embedding ? cosineSimilarity(currentPost.embedding!, post.embedding) : -1
-            }));
-
-            // Sort by similarity descending
-            return withSimilarity
-                .sort((a, b) => b.similarity - a.similarity)
-                .slice(0, limitNum)
-                .map(item => item.post);
+            if (error) throw error;
+            return (data || []).map(mapPostFromDb);
         }
 
-        // 3. Fallback: Same category, then most recent
-        const sameCategory = allPosts.filter(p => p.category === currentPost.category);
-        if (sameCategory.length > 0) {
-            return sameCategory.slice(0, limitNum);
-        }
+        // Call RPC function for vector similarity
+        const { data, error } = await supabase.rpc('match_posts', {
+            query_embedding: currentPost.embedding,
+            match_threshold: 0.5,
+            match_count: limitNum,
+            current_post_id: currentPost.id,
+            current_locale: currentPost.locale
+        });
 
-        return allPosts.slice(0, limitNum);
+        if (error) throw error;
+        return (data || []).map(mapPostFromDb);
     } catch (error) {
         console.error("Error fetching recommended posts:", error);
         return [];
     }
 };
 
-// Real-time subscription for admin posts
 export const subscribeToAdminPosts = (callback: (posts: Post[]) => void) => {
-    const q = query(
-        collection(db, COLLECTION_NAME),
-        orderBy('createdAt', 'desc')
-    );
+    const channel = supabase
+        .channel('admin:posts')
+        .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, async () => {
+            const posts = await getAdminPosts();
+            callback(posts);
+        })
+        .subscribe();
 
-    return onSnapshot(q, (snapshot) => {
-        const posts = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as Post));
-        callback(posts);
-    }, (error) => {
-        console.error("Error subscribing to admin posts:", error);
-    });
+    return () => {
+        supabase.removeChannel(channel);
+    };
 };
 
 export const getPost = async (id: string): Promise<Post | null> => {
     try {
-        const docRef = doc(db, COLLECTION_NAME, id);
-        const docSnap = await getDoc(docRef);
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .select('*')
+            .eq('id', id)
+            .single();
 
-        if (docSnap.exists()) {
-            return { id: docSnap.id, ...docSnap.data() } as Post;
-        } else {
-            return null;
-        }
+        if (error) throw error;
+        return data ? mapPostFromDb(data) : null;
     } catch (error) {
         console.error("Error fetching post:", error);
         return null;
@@ -252,33 +225,30 @@ export const getPost = async (id: string): Promise<Post | null> => {
 
 export const getPostBySlug = async (slug: string, locale: string = 'ko'): Promise<Post | null> => {
     try {
-        const q = query(
-            collection(db, COLLECTION_NAME),
-            where('slug', '==', slug),
-            where('locale', '==', locale),
-            limit(1)
-        );
-        const snapshot = await getDocs(q);
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .select('*')
+            .eq('slug', slug)
+            .eq('locale', locale)
+            .single();
 
-        if (!snapshot.empty) {
-            const doc = snapshot.docs[0];
-            return { id: doc.id, ...doc.data() } as Post;
-        } else {
-            return null;
-        }
+        if (error) throw error;
+        return data ? mapPostFromDb(data) : null;
     } catch (error) {
         console.error("Error fetching post by slug:", error);
         return null;
     }
 }
+
 export const getPostTranslations = async (groupId: string): Promise<Post[]> => {
     try {
-        const q = query(
-            collection(db, COLLECTION_NAME),
-            where('groupId', '==', groupId)
-        );
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .select('*')
+            .eq('group_id', groupId);
+
+        if (error) throw error;
+        return (data || []).map(mapPostFromDb);
     } catch (error) {
         console.error("Error fetching post translations:", error);
         return [];
@@ -287,47 +257,34 @@ export const getPostTranslations = async (groupId: string): Promise<Post[]> => {
 
 export const getPostByShortCode = async (shortCode: string): Promise<Post | null> => {
     try {
-        const q = query(
-            collection(db, COLLECTION_NAME),
-            where('shortCode', '==', shortCode),
-            limit(1)
-        );
-        const snapshot = await getDocs(q);
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .select('*')
+            .eq('short_code', shortCode)
+            .single();
 
-        if (!snapshot.empty) {
-            const doc = snapshot.docs[0];
-            return { id: doc.id, ...doc.data() } as Post;
-        } else {
-            return null;
-        }
+        if (error) throw error;
+        return data ? mapPostFromDb(data) : null;
     } catch (error) {
         console.error("Error fetching post by short code:", error);
         return null;
     }
 }
 
-
-
 export const deletePost = async (id: string) => {
     try {
-        // 1. Get post data to find images
-        const post = await getPost(id);
-        if (post) {
-            // 2. Delete thumbnail from storage
-            if (post.thumbnail.url) {
-                await deleteStorageImage(post.thumbnail.url);
-            }
+        // In Supabase, image deletion can be handled by Storage methods
+        // but for now we focus on the database record.
+        // Associated plans deletion can be handled by DB Foreign Key ON DELETE CASCADE
+        // or we can call the service.
+        await deleteContentPlansBySourceId(id);
 
-            // 3. Delete content images from storage
-            const contentImages = extractImageUrls(post.content);
-            await Promise.all(contentImages.map(url => deleteStorageImage(url)));
+        const { error } = await supabase
+            .from(TABLE_NAME)
+            .delete()
+            .eq('id', id);
 
-            // 4. Delete associated content plans
-            await deleteContentPlansBySourceId(id);
-        }
-
-        // 5. Delete document from Firestore
-        await deleteDoc(doc(db, COLLECTION_NAME, id));
+        if (error) throw error;
         return true;
     } catch (error) {
         console.error("Error deleting post:", error);
@@ -337,27 +294,20 @@ export const deletePost = async (id: string) => {
 
 export const updatePost = async (id: string, data: Partial<Post>) => {
     try {
-        // 1. If thumbnail is being updated, delete the old one
-        if (data.thumbnail?.url !== undefined) {
-            const oldPost = await getPost(id);
-            if (oldPost && oldPost.thumbnail?.url && oldPost.thumbnail.url !== data.thumbnail.url) {
-                await deleteStorageImage(oldPost.thumbnail.url);
-            }
-        }
-
-        // 2. Update Firestore document
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { id: _id, createdAt, ...updateData } = data;
 
-        // Filter out undefined values to avoid Firebase error
-        const cleanUpdateData = Object.fromEntries(
-            Object.entries(updateData).filter(([_, v]) => v !== undefined)
-        );
+        const mappedData = mapPostToDb(data);
 
-        await updateDoc(doc(db, COLLECTION_NAME, id), {
-            ...cleanUpdateData,
-            updatedAt: Timestamp.now()
-        });
+        const { error } = await supabase
+            .from(TABLE_NAME)
+            .update({
+                ...mappedData,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id);
+
+        if (error) throw error;
         return true;
     } catch (error) {
         console.error("Error updating post:", error);
@@ -367,10 +317,17 @@ export const updatePost = async (id: string, data: Partial<Post>) => {
 
 export const incrementViewCount = async (id: string) => {
     try {
-        const docRef = doc(db, COLLECTION_NAME, id);
-        await updateDoc(docRef, {
-            viewCount: increment(1)
-        });
+        // Supabase atomic increment using rpc or update with math
+        // Best practice is to use rpc or just a raw update if concurrency is low
+        const { error } = await supabase.rpc('increment_view_count', { post_id: id });
+
+        if (error) {
+            // Fallback if RPC not defined yet
+            const { data: post } = await supabase.from(TABLE_NAME).select('view_count').eq('id', id).single();
+            if (post) {
+                await supabase.from(TABLE_NAME).update({ view_count: (post.view_count || 0) + 1 }).eq('id', id);
+            }
+        }
     } catch (error) {
         console.error("Error incrementing view count:", error);
     }
@@ -378,14 +335,15 @@ export const incrementViewCount = async (id: string) => {
 
 export const bulkUpdateCategory = async (ids: string[], category: Category) => {
     try {
-        const batch = ids.map(id => {
-            const docRef = doc(db, COLLECTION_NAME, id);
-            return updateDoc(docRef, {
+        const { error } = await supabase
+            .from(TABLE_NAME)
+            .update({
                 category,
-                updatedAt: Timestamp.now()
-            });
-        });
-        await Promise.all(batch);
+                updated_at: new Date().toISOString()
+            })
+            .in('id', ids);
+
+        if (error) throw error;
         return true;
     } catch (error) {
         console.error("Error bulk updating categories:", error);

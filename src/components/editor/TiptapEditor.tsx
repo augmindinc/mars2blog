@@ -19,8 +19,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from '@/components/ui/label';
-import { storage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { supabase } from '@/lib/supabase';
 
 interface TiptapEditorProps {
     content: string;
@@ -85,10 +84,19 @@ export function TiptapEditor({ content, onChange }: TiptapEditorProps) {
         try {
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
-                const storageRef = ref(storage, `posts/images/${Date.now()}-${file.name}`);
-                await uploadBytes(storageRef, file);
-                const url = await getDownloadURL(storageRef);
-                editor?.chain().focus().setImage({ src: url }).run();
+                const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                const fileName = `${Date.now()}-${sanitizedName}`;
+                const { data, error } = await supabase.storage
+                    .from('posts')
+                    .upload(`images/${fileName}`, file);
+
+                if (error) throw error;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('posts')
+                    .getPublicUrl(`images/${fileName}`);
+
+                editor?.chain().focus().setImage({ src: publicUrl }).run();
             }
         } catch (error) {
             console.error("Upload failed", error);

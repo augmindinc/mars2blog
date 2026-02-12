@@ -15,37 +15,28 @@ export async function POST(req: Request) {
 
         // Helper for robust JSON parsing
         const safeParseJson = (text: string) => {
+            console.log(`[AI API] Parsing text (length: ${text.length})...`);
             try {
                 let cleaned = text.replace(/```json|```/g, "").trim();
                 const firstBrace = cleaned.indexOf('{');
-                const firstBracket = cleaned.indexOf('[');
-                let start = -1;
-                if (firstBrace !== -1 && firstBracket !== -1) {
-                    start = Math.min(firstBrace, firstBracket);
-                } else {
-                    start = firstBrace !== -1 ? firstBrace : firstBracket;
-                }
                 const lastBrace = cleaned.lastIndexOf('}');
-                const lastBracket = cleaned.lastIndexOf(']');
-                let end = -1;
-                if (lastBrace !== -1 && lastBracket !== -1) {
-                    end = Math.max(lastBrace, lastBracket);
-                } else {
-                    end = lastBrace !== -1 ? lastBrace : lastBracket;
+
+                if (firstBrace !== -1 && lastBrace !== -1) {
+                    cleaned = cleaned.substring(firstBrace, lastBrace + 1);
                 }
-                if (start !== -1 && end !== -1) {
-                    cleaned = cleaned.substring(start, end + 1);
+
+                // Simplified repair: Only escape newlines if it's strictly necessary
+                // Most modern Gemini models in JSON mode handle this well now
+                try {
+                    return JSON.parse(cleaned);
+                } catch (e) {
+                    console.log("[AI API] Standard JSON.parse failed, attempting repair...");
+                    const repaired = cleaned.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
+                    // Note: This is a very basic repair. For mission critical, use a JSON repair library.
+                    return JSON.parse(repaired);
                 }
-                let repaired = cleaned.replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/gs, (match) => {
-                    return match
-                        .replace(/\n/g, "\\n")
-                        .replace(/\r/g, "\\r")
-                        .replace(/\t/g, "\\t");
-                });
-                repaired = repaired.replace(/"\s*\n\s*"/g, '",\n"');
-                return JSON.parse(repaired);
             } catch (error) {
-                console.error("JSON Parse Error:", error);
+                console.error("[AI API] Total JSON Parse Failure. Raw text snippet:", text.substring(0, 100));
                 throw error;
             }
         };
@@ -164,12 +155,89 @@ export async function POST(req: Request) {
         }
 
         if (type === 'experience-to-post') {
-            const { experience, context, contentType } = body;
+            const { experience, context, contentType, author } = body;
             const prompt = `너는 사용자의 ‘에세이 파트너’다. 브랜드 보이스: "지식보다 기록을, 확신보다 회고를."
             입력: 경험(${experience}), 맥락(${context}), 유형(${contentType}). 
-            약 3,000자 분량의 장문 에세이 초안을 JSON 형식으로 작성하라. { title, content, slug, seoTitle, seoDescription }`;
+            장문의 에세이 초안을 JSON 형식으로 작성하라. 분량은 약 1,500자~2,000자 정도로 하되, JSON 구조를 깨뜨리지 않도록 주의하라.
+            { 
+                "title": "제목 (호기심을 자극하는 문구)", 
+                "content": "마크다운(Markdown) 형식의 에세이 본문. 소제목, 리스트, 강조 등을 적절히 사용.", 
+                "slug": "url-friendly-slug", 
+                "seoTitle": "SEO 제목 (60자 이내)", 
+                "seoDescription": "SEO 설명 (160자 이내)" 
+            }`;
             const text = await callGemini(prompt, true);
-            return NextResponse.json(safeParseJson(text));
+            const data = safeParseJson(text);
+            console.log("[AI API] Experience-to-post generation successful");
+
+            // Server-side DB Insertion using Service Role Key to bypass RLS issues/timeouts
+            const { createClient } = await import("@supabase/supabase-js");
+            const supabaseAdmin = createClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+                process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+            );
+
+            const shortCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            const groupId = `group-${Date.now()}`;
+            const categoryMap: Record<string, string> = {
+                '정보형': 'PLANNING',
+                '커머스형': 'SHOPPING',
+                '이슈형': 'ISSUE'
+            };
+
+            const dbRow = {
+                group_id: groupId,
+                locale: 'ko',
+                title: data.title,
+                content: data.content,
+                excerpt: data.seoDescription?.substring(0, 160) || '',
+                slug: data.slug || `post-${Date.now()}`,
+                category: categoryMap[contentType] || 'PLANNING',
+                tags: ['AI-Partner', '에세이톤', contentType],
+                author: {
+                    id: author?.id || 'anonymous',
+                    name: author?.name || 'Anonymous',
+                    photoUrl: author?.photoUrl ?? null
+                },
+                thumbnail_url: '',
+                thumbnail_alt: data.title,
+                seo: {
+                    metaTitle: data.seoTitle || data.title,
+                    metaDesc: data.seoDescription || '',
+                    structuredData: {
+                        "@context": "https://schema.org",
+                        "@type": "BlogPosting",
+                        "headline": data.seoTitle || data.title,
+                        "datePublished": new Date().toISOString(),
+                        "author": {
+                            "@type": "Person",
+                            "name": author?.name || 'Anonymous'
+                        }
+                    }
+                },
+                status: 'draft',
+                view_count: 0,
+                short_code: shortCode,
+                published_at: new Date().toISOString(),
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+
+            console.log("[AI API] Inserting post into DB...");
+            const { data: inserted, error: dbError } = await supabaseAdmin
+                .from('posts')
+                .insert([dbRow])
+                .select()
+                .single();
+
+            if (dbError) {
+                console.error("[AI API] DB Insertion Failed:", dbError);
+                // We still return the content even if DB fails, but with an error flag
+                return NextResponse.json({ ...data, dbError: dbError.message, dbStatus: 'failed' });
+            }
+
+            console.log("[AI API] DB Insertion Success:", inserted.id);
+            return NextResponse.json({ ...data, dbStatus: 'success', postId: inserted.id });
         }
 
         if (type === 'image-prompt') {

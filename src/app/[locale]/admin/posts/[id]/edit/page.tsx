@@ -4,7 +4,7 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { Category, CATEGORY_LABELS, Post } from '@/types/blog';
 import { getPost, updatePost } from '@/services/blogService';
-import { Timestamp } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase';
 import { MarkdownEditor } from '@/components/editor/MarkdownEditor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,9 +15,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLocale } from 'next-intl';
 import { useRef } from 'react';
-import { storage } from '@/lib/firebase';
-import { useCategories } from '@/hooks/useCategories';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { compressImage } from '@/lib/imageCompression';
 import { removeImageBackground } from '@/lib/bgRemoval';
 import { enhanceImage } from '@/lib/imageEnhance';
@@ -28,8 +25,7 @@ import { SocialPreview } from '@/components/admin/SocialPreview';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { getPostTranslations } from '@/services/blogService';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useCategories } from '@/hooks/useCategories';
 import { getLandingPages } from '@/services/landingService';
 import { LandingPage } from '@/types/landing';
 
@@ -120,7 +116,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                 setGroupId(post.groupId || '');
 
                 if (post.publishedAt) {
-                    const date = new Date(post.publishedAt.seconds * 1000);
+                    const date = new Date(post.publishedAt);
                     const formattedDate = date.toISOString().slice(0, 16);
                     setPublishedAt(formattedDate);
                 }
@@ -182,24 +178,40 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         try {
             const compressedFile = await compressImage(file);
             const dateStr = new Date().toISOString().split('T')[0];
-            const storageRef = ref(storage, `temp/${dateStr}/thumb-${Date.now()}-${file.name}`);
-            await uploadBytes(storageRef, compressedFile);
-            const url = await getDownloadURL(storageRef);
-            setThumbnailUrl(url);
+            const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+            const fileName = `thumb-${Date.now()}-${sanitizedName}`;
+            const fullPath = `temp/${dateStr}/${fileName}`;
 
-            // Automatically generate alt text when thumbnail is uploaded
-            const altResponse = await fetch('/api/ai/generate', {
+            const { data, error: uploadError } = await supabase.storage
+                .from('posts')
+                .upload(fullPath, compressedFile);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('posts')
+                .getPublicUrl(fullPath);
+
+            const url = publicUrl;
+            console.log("Thumbnail uploaded successfully (Edit). URL:", url);
+            setThumbnailUrl(url);
+            setIsUploadingThumbnail(false); // Stop loading early
+
+            // Automatically generate alt text when thumbnail is uploaded (Non-blocking)
+            fetch('/api/ai/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ type: 'alt-text', content: title, imageUrl: url }),
-            });
-            const altData = await altResponse.json();
-            if (altData.result) setThumbnailAlt(altData.result);
+            })
+                .then(res => res.json())
+                .then(altData => {
+                    if (altData.result) setThumbnailAlt(altData.result);
+                })
+                .catch(err => console.error("Auto alt-text generation failed:", err));
 
         } catch (error) {
             console.error("Thumbnail upload failed", error);
             alert("Thumbnail upload failed");
-        } finally {
             setIsUploadingThumbnail(false);
         }
     };
@@ -240,9 +252,20 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                     const file = new File([blob], 'nano-thumbnail.png', { type: imageData.mimeType || 'image/png' });
                     const compressedFile = await compressImage(file);
 
-                    const storageRef = ref(storage, `thumbnails/${Date.now()}-nano-banana.png`);
-                    await uploadBytes(storageRef, compressedFile);
-                    const url = await getDownloadURL(storageRef);
+                    const fileName = `nano-thumbnail.png`;
+                    const fullPath = `thumbnails/${Date.now()}-nano-banana.png`;
+
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('posts')
+                        .upload(fullPath, compressedFile);
+
+                    if (uploadError) throw uploadError;
+
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('posts')
+                        .getPublicUrl(fullPath);
+
+                    const url = publicUrl;
 
                     setThumbnailUrl(url);
                     setThumbnailAlt(title);
@@ -329,9 +352,20 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                         const file = new File([blob], 'para-image.png', { type: imageData.mimeType || 'image/png' });
                         const compressedFile = await compressImage(file);
 
-                        const storageRef = ref(storage, `content-images/${Date.now()}-para.png`);
-                        await uploadBytes(storageRef, compressedFile);
-                        const url = await getDownloadURL(storageRef);
+                        const fileName = `para-image.png`;
+                        const fullPath = `content-images/${Date.now()}-para.png`;
+
+                        const { data: uploadData, error: uploadError } = await supabase.storage
+                            .from('posts')
+                            .upload(fullPath, compressedFile);
+
+                        if (uploadError) throw uploadError;
+
+                        const { data: { publicUrl } } = supabase.storage
+                            .from('posts')
+                            .getPublicUrl(fullPath);
+
+                        const url = publicUrl;
 
                         const imageMarkdown = `\n\n![${para.substring(0, 30)}...](${url})\n\n`;
                         newContent = newContent.replace(para, `${para}${imageMarkdown}`);
@@ -379,12 +413,23 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                 const processedFile = new File([processedBlob], `trial-${Date.now()}-${i}.png`, { type: trialMode === 'bg-remove' ? 'image/png' : 'image/jpeg' });
                 const compressedFile = await compressImage(processedFile);
 
-                // 3. Upload to Firebase
-                setTrialProgress({ current: i + 1, total: files.length, status: `Uploading: ${file.name}` });
+                // 3. Upload to Supabase
                 const dateStr = new Date().toISOString().split('T')[0];
-                const storageRef = ref(storage, `temp/${dateStr}/trial-${Date.now()}-${i}.png`);
-                await uploadBytes(storageRef, compressedFile);
-                const url = await getDownloadURL(storageRef);
+                const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                const fileName = `trial-${Date.now()}-${i}-${sanitizedName}`;
+                const fullPath = `temp/${dateStr}/${fileName}`;
+
+                const { data, error: uploadError } = await supabase.storage
+                    .from('posts')
+                    .upload(fullPath, compressedFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('posts')
+                    .getPublicUrl(fullPath);
+
+                const url = publicUrl;
 
                 // 4. Add to Markdown (using img tag for better control in grid)
                 injectedMarkdown += `  <img src="${url}" alt="${file.name}" style="width: 100%; aspect-ratio: 1; object-fit: contain; background: #f9f9f9; border: 1px solid #eee;" />\n`;
@@ -480,8 +525,17 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
         if (!title || !content) return;
 
         setIsSubmitting(true);
+        console.log("[EditPost] Starting submission protocol...");
+
         try {
-            // 0. Finalize Images (Move from temp to permanent)
+            // 0. Ensure session is fresh (prevents infinite loading after long inactivity)
+            console.log("[EditPost] Refreshing session...");
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError) throw sessionError;
+            if (!session) throw new Error("Session expired. Please log in again.");
+
+            // 1. Finalize Images (Move from temp to permanent)
+            console.log("[EditPost] Finalizing images...");
             const postDateStr = new Date().toISOString().split('T')[0];
             const permanentBasePath = `posts/${postDateStr}/${slug || id}`;
 
@@ -491,6 +545,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
             ]);
 
             // Also finalize translations if enabled
+            console.log("[EditPost] Finalizing translation images...");
             const finalTranslations = { ...translations };
             await Promise.all(Object.entries(finalTranslations).map(async ([lang, data]) => {
                 if (data.enabled && data.content) {
@@ -499,7 +554,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
             }));
 
             const currentGroupId = groupId || `group-${Date.now()}`;
-            const publishTimestamp = publishedAt ? Timestamp.fromDate(new Date(publishedAt)) : Timestamp.now();
+            const publishTimestamp = publishedAt ? new Date(publishedAt).toISOString() : new Date().toISOString();
 
             const updateData: Partial<Post> = {
                 groupId: currentGroupId,
@@ -519,7 +574,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                         "@context": "https://schema.org",
                         "@type": "BlogPosting",
                         "headline": seoTitle || title,
-                        "datePublished": publishTimestamp.toDate().toISOString()
+                        "datePublished": publishTimestamp
                     }
                 },
                 shortCode: shortCode || null,
@@ -527,11 +582,14 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                 linkedLandingPageId: selectedLandingId === 'none' ? null : selectedLandingId
             };
 
+            console.log("[EditPost] Updating main post...");
             await updatePost(id, updateData);
 
             // Handle translations
+            console.log("[EditPost] Updating translations...");
             await Promise.all(Object.entries(finalTranslations).map(async ([lang, data]) => {
                 if (data.enabled && data.title && data.content) {
+                    console.log(`[EditPost] Processing translation: ${lang}...`);
                     const transDoc: Omit<Post, 'id'> = {
                         groupId: currentGroupId,
                         locale: lang,
@@ -557,11 +615,11 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                                 "@context": "https://schema.org",
                                 "@type": "BlogPosting",
                                 "headline": data.seoTitle,
-                                "datePublished": publishTimestamp.toDate().toISOString()
+                                "datePublished": publishTimestamp
                             }
                         },
-                        createdAt: Timestamp.now(),
-                        updatedAt: Timestamp.now(),
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
                         publishedAt: publishTimestamp,
                         status,
                         viewCount: 0,
@@ -572,16 +630,17 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                     if (data.id) {
                         await updatePost(data.id, transDoc as any);
                     } else {
-                        await addDoc(collection(db, 'posts'), transDoc);
+                        await supabase.from('posts').insert([transDoc]);
                     }
                 }
             }));
 
+            console.log("[EditPost] Submission complete!");
             alert('Post and translations updated successfully');
             router.push(`/${locale}/admin`);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating document: ', error);
-            alert('Failed to update post');
+            alert(`Failed to update post: ${error.message || 'Unknown error'}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -812,7 +871,7 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
                                                 <SelectItem value="loading" disabled>Loading categories...</SelectItem>
                                             ) : (
                                                 categories?.map((cat) => (
-                                                    <SelectItem key={cat.id} value={cat.id}>
+                                                    <SelectItem key={cat.id} value={cat.slug.toUpperCase()}>
                                                         {cat.name[locale] || cat.name['ko'] || cat.id}
                                                     </SelectItem>
                                                 ))

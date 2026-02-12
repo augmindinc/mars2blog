@@ -5,13 +5,11 @@ import { getAllPublishedPosts } from '@/services/blogService';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { ExternalLink, Search, Globe } from 'lucide-react';
+import { ExternalLink, Search, Globe, Loader2, Send } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Send } from 'lucide-react';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 
 interface SitemapEntry {
     url: string;
@@ -44,7 +42,7 @@ export default function AdminSitemapPage() {
         priority: 0.7,
         frequency: 'weekly',
         type: 'Post',
-        lastModified: post.updatedAt?.toDate(),
+        lastModified: post.updatedAt ? new Date(post.updatedAt) : undefined,
         title: post.title
     })) || [];
 
@@ -60,12 +58,8 @@ export default function AdminSitemapPage() {
     const handleRequestIndex = async (url: string) => {
         setIndexingUrls(prev => new Set(prev).add(url));
         try {
-            const indexUrllCallable = httpsCallable(functions, 'manualIndexUrl');
-            const result = await indexUrllCallable({ url });
-
-            if (result.data) {
-                alert(`Indexing requested for: ${url}`);
-            }
+            // Simplified for migration: Supabase indexing should be handled via Edge Functions or API
+            alert(`Indexing feature needs to be updated for Supabase. Requested: ${url}`);
         } catch (error: any) {
             console.error("Indexing request failed", error);
             alert(`Failed: ${error.message || 'Unknown error'}`);

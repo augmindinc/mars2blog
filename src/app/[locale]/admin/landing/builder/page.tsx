@@ -7,14 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { LandingPage, LandingPageSection, LandingPageType } from '@/types/landing';
-import {
-    ChevronUp, ChevronDown, Trash2, Plus, Play, Save, Monitor, Smartphone,
-    ArrowLeft, Type, Image as ImageIcon, FormInput as FormIcon, Layout as LayoutIcon,
-    Layers, Settings, Eye, EyeOff, CheckCircle2, Sparkles, X, RefreshCw,
-    Languages, Loader2, Wand2, Camera, Palette, Scissors
-} from 'lucide-react';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,9 +18,12 @@ import { Link } from '@/i18n/routing';
 import { useLocale } from 'next-intl';
 import { compressImage } from '@/lib/imageCompression';
 import { createLandingPage, updateLandingPage, getLandingPage, getLandingPageTranslations } from '@/services/landingService';
-import { Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { addDoc, collection } from 'firebase/firestore';
+import {
+    ChevronUp, ChevronDown, Trash2, Plus, Play, Save, Monitor, Smartphone,
+    ArrowLeft, Type, Image as ImageIcon, FormInput as FormIcon, Layout as LayoutIcon,
+    Layers, Settings, Eye, EyeOff, CheckCircle2, Sparkles, X, RefreshCw,
+    Languages, Loader2, Wand2, Camera, Palette, Scissors
+} from 'lucide-react';
 
 interface LandingTranslationData {
     id?: string;
@@ -320,9 +316,18 @@ function BuilderContent() {
                     const file = new File([blob], 'nano-landing.png', { type: imageData.mimeType || 'image/png' });
                     const compressedFile = await compressImage(file);
 
-                    const storageRef = ref(storage, `landing/${Date.now()}-nano.png`);
-                    await uploadBytes(storageRef, compressedFile);
-                    const url = await getDownloadURL(storageRef);
+                    const fileName = `${Date.now()}-nano.png`;
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('landing')
+                        .upload(fileName, compressedFile);
+
+                    if (uploadError) throw uploadError;
+
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('landing')
+                        .getPublicUrl(fileName);
+
+                    const url = publicUrl;
 
                     // 4. Update State
                     if (itemIdx !== undefined) {
@@ -457,7 +462,7 @@ function BuilderContent() {
             const dataToSave = cleanData({
                 ...pageConfig,
                 groupId: currentGroupId,
-                updatedAt: Timestamp.now(),
+                updatedAt: new Date().toISOString(),
             });
 
             if (pageId) {
@@ -468,7 +473,7 @@ function BuilderContent() {
                 // CREATE NEW
                 const finalData = cleanData({
                     ...dataToSave,
-                    createdAt: Timestamp.now(),
+                    createdAt: new Date().toISOString(),
                 }) as Omit<LandingPage, 'id'>;
                 await createLandingPage(finalData);
             }
@@ -489,15 +494,15 @@ function BuilderContent() {
                         formConfig: pageConfig.formConfig || null, // Ensure at least null
                         seo: data.seo,
                         stats: { views: 0, conversions: 0 },
-                        createdAt: Timestamp.now(),
-                        updatedAt: Timestamp.now()
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
                     });
 
                     if (data.id) {
                         const { id: _, ...updateData } = transDoc;
                         await updateLandingPage(data.id, updateData);
                     } else {
-                        await addDoc(collection(db, 'landing_pages'), transDoc);
+                        await supabase.from('landing_pages').insert([transDoc]);
                     }
                 }
             }));

@@ -1,29 +1,20 @@
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { CategoryMeta, CATEGORY_LABELS } from '@/types/blog';
-import {
-    collection,
-    getDocs,
-    query,
-    orderBy,
-    addDoc,
-    updateDoc,
-    deleteDoc,
-    doc,
-    Timestamp
-} from 'firebase/firestore';
 
-const COLLECTION_NAME = 'categories';
+const TABLE_NAME = 'categories';
 
 export const getCategories = async (): Promise<CategoryMeta[]> => {
     try {
-        const q = query(collection(db, COLLECTION_NAME), orderBy('order', 'asc'));
-        const snapshot = await getDocs(q);
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .select('*')
+            .order('order', { ascending: true });
 
-        // If collection doesn't exist or is empty, return empty (UI can handle initialization)
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as CategoryMeta));
+        if (error) throw error;
+        return (data || []).map(d => ({
+            ...d,
+            createdAt: d.created_at
+        })) as CategoryMeta[];
     } catch (error) {
         console.error("Error fetching categories:", error);
         return [];
@@ -32,11 +23,17 @@ export const getCategories = async (): Promise<CategoryMeta[]> => {
 
 export const addCategory = async (data: Omit<CategoryMeta, 'id' | 'createdAt'>) => {
     try {
-        const docRef = await addDoc(collection(db, COLLECTION_NAME), {
-            ...data,
-            createdAt: Timestamp.now()
-        });
-        return docRef.id;
+        const { data: newCat, error } = await supabase
+            .from(TABLE_NAME)
+            .insert([{
+                ...data,
+                created_at: new Date().toISOString()
+            }])
+            .select()
+            .single();
+
+        if (error) throw error;
+        return newCat.id;
     } catch (error) {
         console.error("Error adding category:", error);
         throw error;
@@ -45,10 +42,18 @@ export const addCategory = async (data: Omit<CategoryMeta, 'id' | 'createdAt'>) 
 
 export const updateCategory = async (id: string, data: Partial<CategoryMeta>) => {
     try {
-        const docRef = doc(db, COLLECTION_NAME, id);
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { id: _id, ...updateData } = data;
-        await updateDoc(docRef, updateData);
+        const { id: _id, createdAt, ...updateData } = data;
+
+        const { error } = await supabase
+            .from(TABLE_NAME)
+            .update({
+                ...updateData,
+                created_at: createdAt ? (createdAt as string) : undefined
+            })
+            .eq('id', id);
+
+        if (error) throw error;
         return true;
     } catch (error) {
         console.error("Error updating category:", error);
@@ -58,7 +63,12 @@ export const updateCategory = async (id: string, data: Partial<CategoryMeta>) =>
 
 export const deleteCategory = async (id: string) => {
     try {
-        await deleteDoc(doc(db, COLLECTION_NAME, id));
+        const { error } = await supabase
+            .from(TABLE_NAME)
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
         return true;
     } catch (error) {
         console.error("Error deleting category:", error);
@@ -66,9 +76,6 @@ export const deleteCategory = async (id: string) => {
     }
 };
 
-/**
- * Initial seed for categories if empty
- */
 export const seedCategories = async (initialLabels: Record<string, Record<string, string>>) => {
     const existing = await getCategories();
     if (existing.length > 0) return;

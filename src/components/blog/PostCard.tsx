@@ -55,8 +55,8 @@ export function PostCard({ post, priority = false, fromPostTitle }: PostCardProp
                         </span>
                         <span className="text-xs text-muted-foreground" suppressHydrationWarning>
                             {/* Handle Timestamp or Date object robustly */}
-                            {post.createdAt?.seconds
-                                ? format(new Date(post.createdAt.seconds * 1000), 'yyyy.MM.dd')
+                            {post.createdAt
+                                ? format(new Date(post.createdAt as string), 'yyyy.MM.dd')
                                 : format(new Date(), 'yyyy.MM.dd')}
                         </span>
                     </div>

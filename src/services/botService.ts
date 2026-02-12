@@ -1,16 +1,7 @@
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { BotLog } from '@/types/blog';
-import {
-    collection,
-    addDoc,
-    getDocs,
-    query,
-    orderBy,
-    limit,
-    Timestamp,
-} from 'firebase/firestore';
 
-const COLLECTION_NAME = 'bot_logs';
+const TABLE_NAME = 'bot_logs';
 
 const BOT_MAP = [
     { pattern: /googlebot/i, name: 'Googlebot', company: 'Google' },
@@ -42,15 +33,18 @@ export const detectAndLogBot = async (userAgent: string, pagePath: string, ip?: 
 
     if (bot) {
         try {
-            const log: Omit<BotLog, 'id'> = {
-                botName: bot.name,
-                botCompany: bot.company,
-                pagePath,
-                userAgent,
-                ip: ip || 'unknown',
-                createdAt: Timestamp.now(),
-            };
-            await addDoc(collection(db, COLLECTION_NAME), log);
+            const { error } = await supabase
+                .from(TABLE_NAME)
+                .insert([{
+                    bot_name: bot.name,
+                    bot_company: bot.company,
+                    page_path: pagePath,
+                    user_agent: userAgent,
+                    ip: ip || 'unknown',
+                    created_at: new Date().toISOString(),
+                }]);
+
+            if (error) throw error;
             return true;
         } catch (error) {
             console.error("Error logging bot visit:", error);
@@ -61,16 +55,21 @@ export const detectAndLogBot = async (userAgent: string, pagePath: string, ip?: 
 
 export const getBotLogs = async (max: number = 100): Promise<BotLog[]> => {
     try {
-        const q = query(
-            collection(db, COLLECTION_NAME),
-            orderBy('createdAt', 'desc'),
-            limit(max)
-        );
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as BotLog));
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(max);
+
+        if (error) throw error;
+        return (data || []).map(d => ({
+            ...d,
+            botName: d.bot_name,
+            botCompany: d.bot_company,
+            pagePath: d.page_path,
+            userAgent: d.user_agent,
+            createdAt: d.created_at
+        })) as BotLog[];
     } catch (error) {
         console.error("Error fetching bot logs:", error);
         return [];

@@ -1,11 +1,10 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase';
+import { User } from '@supabase/supabase-js';
 import { UserProfile } from '@/types/user';
-import { handleRedirectResult } from '@/services/authService';
+import { getUserProfile, handleRedirectResult, mapProfileFromDb } from '@/services/authService';
 
 interface AuthContextType {
     user: User | null;
@@ -25,36 +24,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        let unsubscribeProfile: (() => void) | undefined;
+        // 1. Initial Profile Check
+        const initAuth = async () => {
+            // Check for redirect result (OAuth)
+            await handleRedirectResult();
 
-        // Check for redirect result on mount
-        handleRedirectResult();
+            const { data: { session } } = await supabase.auth.getSession();
+            const currentUser = session?.user ?? null;
+            setUser(currentUser);
 
-        const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
-            setUser(firebaseUser);
+            if (currentUser) {
+                const userProfile = await getUserProfile(currentUser.id);
+                setProfile(userProfile);
+            }
+            setLoading(false);
+        };
 
-            if (firebaseUser) {
-                // Subscribe to profile changes
-                unsubscribeProfile = onSnapshot(doc(db, 'users', firebaseUser.uid), (docSnap) => {
-                    if (docSnap.exists()) {
-                        setProfile(docSnap.data() as UserProfile);
-                    } else {
-                        setProfile(null);
-                    }
-                    setLoading(false);
-                });
+        initAuth();
+
+        // 2. Auth State Change Listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            const currentUser = session?.user ?? null;
+            setUser(currentUser);
+
+            if (currentUser) {
+                const userProfile = await getUserProfile(currentUser.id);
+                setProfile(userProfile);
             } else {
                 setProfile(null);
-                if (unsubscribeProfile) unsubscribeProfile();
-                setLoading(false);
             }
+            setLoading(false);
         });
 
+        // 3. Profile Subscription
+        let profileChannel: any = null;
+        if (user) {
+            profileChannel = supabase
+                .channel(`public:profiles:${user.id}`)
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'profiles',
+                    filter: `id=eq.${user.id}`
+                }, (payload) => {
+                    if (payload.new) {
+                        setProfile(mapProfileFromDb(payload.new));
+                    }
+                })
+                .subscribe();
+        }
+
         return () => {
-            unsubscribeAuth();
-            if (unsubscribeProfile) unsubscribeProfile();
+            subscription.unsubscribe();
+            if (profileChannel) {
+                supabase.removeChannel(profileChannel);
+            }
         };
-    }, []);
+    }, [user?.id]); // Re-subscribe if user changes
 
     return (
         <AuthContext.Provider value={{ user, profile, loading }}>

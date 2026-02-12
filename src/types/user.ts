@@ -1,4 +1,5 @@
-import { Timestamp } from 'firebase/firestore';
+// Firebase dependency removed.
+export type Timestamp = string | any;
 
 export type UserRole = 'admin' | 'author';
 export type UserStatus = 'pending' | 'approved';

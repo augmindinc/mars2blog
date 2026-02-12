@@ -8,8 +8,7 @@ import {
     List, ListOrdered, Quote, Code, Eye, Edit3, UploadCloud,
     Heading1, Heading2, Heading3
 } from 'lucide-react';
-import { storage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { supabase } from '@/lib/supabase';
 import { compressImage } from '@/lib/imageCompression';
 import { cn } from '@/lib/utils';
 import { ImageLightbox } from '@/components/blog/ImageLightbox';
@@ -91,10 +90,20 @@ export function MarkdownEditor({ content, onChange }: MarkdownEditorProps) {
                 const file = files[i];
                 const compressedFile = await compressImage(file);
                 const dateStr = new Date().toISOString().split('T')[0];
-                const storageRef = ref(storage, `temp/${dateStr}/${Date.now()}-${file.name}`);
-                await uploadBytes(storageRef, compressedFile);
-                const url = await getDownloadURL(storageRef);
-                insertText(`![${file.name}](${url})`, '');
+                const fileName = `${Date.now()}-${file.name}`;
+                const fullPath = `temp/${dateStr}/${fileName}`;
+
+                const { data, error } = await supabase.storage
+                    .from('posts')
+                    .upload(fullPath, compressedFile);
+
+                if (error) throw error;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('posts')
+                    .getPublicUrl(fullPath);
+
+                insertText(`![${file.name}](${publicUrl})`, '');
             }
         } catch (error) {
             console.error("Upload failed", error);

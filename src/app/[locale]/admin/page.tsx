@@ -155,10 +155,19 @@ export default function AdminDashboardPage() {
                             </SelectTrigger>
                             <SelectContent className="rounded-none border-black/10">
                                 {categories?.map((cat) => (
-                                    <SelectItem key={cat.id} value={cat.id} className="text-[10px] font-bold uppercase tracking-widest cursor-pointer">
+                                    <SelectItem key={cat.id} value={cat.slug.toUpperCase()} className="text-[10px] font-bold uppercase tracking-widest cursor-pointer">
                                         {cat.name[locale] || cat.name['ko'] || cat.id}
                                     </SelectItem>
                                 ))}
+                                {(!categories || categories.length === 0) &&
+                                    Object.keys(CATEGORY_LABELS).map((cat) => (
+                                        cat !== 'ALL' && (
+                                            <SelectItem key={cat} value={cat} className="text-[10px] font-bold uppercase tracking-widest cursor-pointer">
+                                                {CATEGORY_LABELS[cat]?.[locale] || cat}
+                                            </SelectItem>
+                                        )
+                                    ))
+                                }
                             </SelectContent>
                         </Select>
                         <Button

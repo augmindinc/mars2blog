@@ -5,9 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Category, CATEGORY_LABELS, Post } from '@/types/blog';
 import { useCategories } from '@/hooks/useCategories';
 import { useAuth } from '@/context/AuthContext';
-import { db, storage } from '@/lib/firebase';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { supabase } from '@/lib/supabase';
 import { compressImage } from '@/lib/imageCompression';
 import { removeImageBackground } from '@/lib/bgRemoval';
 import { enhanceImage } from '@/lib/imageEnhance';
@@ -42,7 +40,7 @@ interface translationData {
 
 export default function WritePage() {
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const locale = useLocale() as 'en' | 'ko';
 
     const { data: categories, isLoading: isCategoriesLoading } = useCategories();
@@ -159,11 +157,22 @@ export default function WritePage() {
                 const processedFile = new File([processedBlob], `trial-${Date.now()}-${i}.png`, { type: trialMode === 'bg-remove' ? 'image/png' : 'image/jpeg' });
                 const compressedFile = await compressImage(processedFile);
 
-                setTrialProgress({ current: i + 1, total: files.length, status: `Uploading: ${file.name}` });
                 const dateStr = new Date().toISOString().split('T')[0];
-                const storageRef = ref(storage, `temp/${dateStr}/trial-${Date.now()}-${i}.png`);
-                await uploadBytes(storageRef, compressedFile);
-                const url = await getDownloadURL(storageRef);
+                const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                const fileName = `trial-${Date.now()}-${i}-${sanitizedName}`;
+                const fullPath = `temp/${dateStr}/${fileName}`;
+
+                const { data, error: uploadError } = await supabase.storage
+                    .from('posts')
+                    .upload(fullPath, compressedFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('posts')
+                    .getPublicUrl(fullPath);
+
+                const url = publicUrl;
 
                 injectedMarkdown += `  <img src="${url}" alt="${file.name}" style="width: 100%; aspect-ratio: 1; object-fit: contain; background: #f9f9f9; border: 1px solid #eee;" />\n`;
             }
@@ -282,24 +291,40 @@ export default function WritePage() {
         try {
             const compressedFile = await compressImage(file);
             const dateStr = new Date().toISOString().split('T')[0];
-            const storageRef = ref(storage, `temp/${dateStr}/thumb-${Date.now()}-${file.name}`);
-            await uploadBytes(storageRef, compressedFile);
-            const url = await getDownloadURL(storageRef);
-            setThumbnailUrl(url);
+            const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+            const fileName = `thumb-${Date.now()}-${sanitizedName}`;
+            const fullPath = `temp/${dateStr}/${fileName}`;
 
-            // Automatically generate alt text when thumbnail is uploaded
-            const altResponse = await fetch('/api/ai/generate', {
+            const { data, error: uploadError } = await supabase.storage
+                .from('posts')
+                .upload(fullPath, compressedFile);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('posts')
+                .getPublicUrl(fullPath);
+
+            const url = publicUrl;
+            console.log("Thumbnail uploaded successfully. URL:", url);
+            setThumbnailUrl(url);
+            setIsUploadingThumbnail(false); // Stop loading early
+
+            // Automatically generate alt text when thumbnail is uploaded (Non-blocking)
+            fetch('/api/ai/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ type: 'alt-text', content: title, imageUrl: url }),
-            });
-            const altData = await altResponse.json();
-            if (altData.result) setThumbnailAlt(altData.result);
+            })
+                .then(res => res.json())
+                .then(altData => {
+                    if (altData.result) setThumbnailAlt(altData.result);
+                })
+                .catch(err => console.error("Auto alt-text generation failed:", err));
 
         } catch (error) {
             console.error("Thumbnail upload failed", error);
             alert("Thumbnail upload failed");
-        } finally {
             setIsUploadingThumbnail(false);
         }
     };
@@ -309,8 +334,17 @@ export default function WritePage() {
         if (!title || !content) return;
 
         setIsSubmitting(true);
+        console.log("[WritePost] Starting submission protocol...");
+
         try {
-            // 0. Finalize Images (Move from temp to permanent)
+            // 0. Ensure session is fresh
+            console.log("[WritePost] Refreshing session...");
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError) throw sessionError;
+            if (!session) throw new Error("Session expired. Please log in again.");
+
+            // 1. Finalize Images (Move from temp to permanent)
+            console.log("[WritePost] Finalizing images...");
             const postDateStr = new Date().toISOString().split('T')[0];
             const permanentBasePath = `posts/${postDateStr}/${slug || Date.now()}`;
 
@@ -328,7 +362,7 @@ export default function WritePage() {
             }));
 
             const groupId = `group-${Date.now()}`;
-            const publishTimestamp = publishedAt ? Timestamp.fromDate(new Date(publishedAt)) : Timestamp.now();
+            const publishTimestamp = publishedAt ? new Date(publishedAt).toISOString() : new Date().toISOString();
             let initialStatus: 'published' | 'scheduled' = 'published';
             if (publishedAt && new Date(publishedAt) > new Date()) {
                 initialStatus = 'scheduled';
@@ -345,9 +379,9 @@ export default function WritePage() {
                 category,
                 tags: [],
                 author: {
-                    id: user?.uid || 'anonymous',
-                    name: user?.displayName || 'Anonymous',
-                    photoUrl: user?.photoURL ?? null
+                    id: profile?.uid || user?.id || 'anonymous',
+                    name: profile?.displayName || 'Anonymous',
+                    photoUrl: profile?.photoURL ?? null
                 },
                 thumbnail: {
                     url: finalThumbnailUrl || '',
@@ -360,15 +394,15 @@ export default function WritePage() {
                         "@context": "https://schema.org",
                         "@type": "BlogPosting",
                         "headline": seoTitle || title,
-                        "datePublished": publishTimestamp.toDate().toISOString(),
+                        "datePublished": publishTimestamp,
                         "author": {
                             "@type": "Person",
-                            "name": user?.displayName || 'Anonymous'
+                            "name": profile?.displayName || 'Anonymous'
                         }
                     }
                 },
-                createdAt: Timestamp.now(),
-                updatedAt: Timestamp.now(),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
                 publishedAt: publishTimestamp,
                 status: initialStatus,
                 viewCount: 0,
@@ -401,12 +435,16 @@ export default function WritePage() {
                 }
             });
 
-            // 3. Save all to Firestore
-            await Promise.all(postsToSave.map(p => addDoc(collection(db, 'posts'), p)));
+            // 3. Save all to Supabase
+            console.log("[WritePost] Saving to Supabase...");
+            const { error: saveError } = await supabase.from('posts').insert(postsToSave);
+            if (saveError) throw saveError;
+
+            console.log("[WritePost] Submission complete!");
             router.push(`/${locale}`);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error adding document: ', error);
-            alert('Failed to save post');
+            alert(`Failed to save post: ${error.message || 'Unknown error'}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -631,7 +669,7 @@ export default function WritePage() {
                                                 <SelectItem value="loading" disabled>Loading categories...</SelectItem>
                                             ) : (
                                                 categories?.map((cat) => (
-                                                    <SelectItem key={cat.id} value={cat.id}>
+                                                    <SelectItem key={cat.id} value={cat.slug.toUpperCase()}>
                                                         {cat.name[locale] || cat.name['ko'] || cat.id}
                                                     </SelectItem>
                                                 ))

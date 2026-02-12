@@ -1,16 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, query, getDocs, doc, updateDoc, orderBy } from 'firebase/firestore';
 import { UserProfile, UserRole, UserStatus } from '@/types/user';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useAuth } from '@/context/AuthContext';
-import { Shield, User, CheckCircle, XCircle, Search } from 'lucide-react';
+import { User, CheckCircle, XCircle, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { getUsers, updateProfile } from '@/services/authService';
 
 export default function MembersPage() {
     const { profile } = useAuth();
@@ -21,10 +20,8 @@ export default function MembersPage() {
     const fetchUsers = async () => {
         setIsLoading(true);
         try {
-            const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
-            const querySnapshot = await getDocs(q);
-            const userData = querySnapshot.docs.map(doc => doc.data() as UserProfile);
-            setUsers(userData);
+            const data = await getUsers();
+            setUsers(data);
         } catch (error) {
             console.error("Error fetching users:", error);
         } finally {
@@ -40,10 +37,7 @@ export default function MembersPage() {
 
     const handleUpdateStatus = async (uid: string, newStatus: UserStatus) => {
         try {
-            await updateDoc(doc(db, 'users', uid), {
-                status: newStatus,
-                updatedAt: new Date()
-            });
+            await updateProfile(uid, { status: newStatus });
             // Update local state
             setUsers(prev => prev.map(u => u.uid === uid ? { ...u, status: newStatus } : u));
         } catch (error) {
@@ -53,10 +47,7 @@ export default function MembersPage() {
 
     const handleUpdateRole = async (uid: string, newRole: UserRole) => {
         try {
-            await updateDoc(doc(db, 'users', uid), {
-                role: newRole,
-                updatedAt: new Date()
-            });
+            await updateProfile(uid, { role: newRole });
             // Update local state
             setUsers(prev => prev.map(u => u.uid === uid ? { ...u, role: newRole } : u));
         } catch (error) {
@@ -155,7 +146,7 @@ export default function MembersPage() {
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-sm text-muted-foreground">
-                                        {user.createdAt ? format(user.createdAt.toDate(), 'yyyy-MM-dd') : '-'}
+                                        {user.createdAt ? format(new Date(user.createdAt as any), 'yyyy-MM-dd') : '-'}
                                     </TableCell>
                                     <TableCell className="text-right">
                                         {user.status === 'pending' ? (

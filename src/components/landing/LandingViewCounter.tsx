@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { incrementPageView } from '@/services/landingService';
 import { logInflow } from '@/services/inflowService';
-import { Timestamp } from 'firebase/firestore';
+// Firebase dependency removed.
 
 interface LandingViewCounterProps {
     pageId: string;
@@ -44,7 +44,7 @@ export function LandingViewCounter({ pageId, pageTitle }: LandingViewCounterProp
                     referrerDomain: domain,
                     searchKeyword: keyword,
                     userAgent: navigator.userAgent,
-                    createdAt: Timestamp.now(),
+                    createdAt: new Date().toISOString(),
                 });
 
                 viewedArray.push(pageId);

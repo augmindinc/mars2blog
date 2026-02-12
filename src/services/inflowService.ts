@@ -1,21 +1,23 @@
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { InflowLog } from '@/types/blog';
-import {
-    collection,
-    addDoc,
-    getDocs,
-    query,
-    orderBy,
-    limit,
-    Timestamp,
-    where
-} from 'firebase/firestore';
 
-const COLLECTION_NAME = 'inflow_logs';
+const TABLE_NAME = 'inflow_logs';
 
 export const logInflow = async (log: Omit<InflowLog, 'id'>) => {
     try {
-        await addDoc(collection(db, COLLECTION_NAME), log);
+        const { error } = await supabase
+            .from(TABLE_NAME)
+            .insert([{
+                post_id: log.postId,
+                post_title: log.postTitle,
+                referrer: log.referrer,
+                referrer_domain: log.referrerDomain,
+                search_keyword: log.searchKeyword,
+                user_agent: log.userAgent,
+                created_at: new Date().toISOString()
+            }]);
+
+        if (error) throw error;
     } catch (error) {
         console.error("Error logging inflow:", error);
     }
@@ -23,35 +25,30 @@ export const logInflow = async (log: Omit<InflowLog, 'id'>) => {
 
 export const getInflowLogs = async (max: number = 100): Promise<InflowLog[]> => {
     try {
-        const q = query(
-            collection(db, COLLECTION_NAME),
-            orderBy('createdAt', 'desc'),
-            limit(max)
-        );
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as InflowLog));
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(max);
+
+        if (error) throw error;
+        return (data || []) as InflowLog[];
     } catch (error) {
         console.error("Error fetching inflow logs:", error);
         return [];
     }
 };
 
-// 특정 게시글의 유입 로그만 가져오기
 export const getInflowLogsByPost = async (postId: string): Promise<InflowLog[]> => {
     try {
-        const q = query(
-            collection(db, COLLECTION_NAME),
-            where('postId', '==', postId),
-            orderBy('createdAt', 'desc')
-        );
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as InflowLog));
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .select('*')
+            .eq('post_id', postId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return (data || []) as InflowLog[];
     } catch (error) {
         console.error("Error fetching inflow logs by post:", error);
         return [];
@@ -62,18 +59,15 @@ export const getInflowLogsByDays = async (days: number): Promise<InflowLog[]> =>
     try {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
-        const startTimestamp = Timestamp.fromDate(startDate);
 
-        const q = query(
-            collection(db, COLLECTION_NAME),
-            where('searchKeyword', '!=', null),
-            where('createdAt', '>=', startTimestamp)
-        );
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as InflowLog));
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .select('*')
+            .not('search_keyword', 'is', null)
+            .gte('created_at', startDate.toISOString());
+
+        if (error) throw error;
+        return (data || []) as InflowLog[];
     } catch (error) {
         console.error("Error fetching inflow logs by days:", error);
         return [];
