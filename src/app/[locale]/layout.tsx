@@ -53,8 +53,7 @@ export default async function LocaleLayout({
             </head>
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
                 <LogVisit userAgent={userAgent} ip={ip} />
-                {/* Google Analytics */}
-
+                {/* Google Analytics - Temporarily disabled for diagnostics
                 <Script
                     src="https://www.googletagmanager.com/gtag/js?id=G-PGX6QCE0TP"
                     strategy="afterInteractive"
@@ -68,6 +67,7 @@ export default async function LocaleLayout({
                         gtag('config', 'G-PGX6QCE0TP');
                     `}
                 </Script>
+                */}
 
                 <NextIntlClientProvider messages={messages}>
                     <Providers>

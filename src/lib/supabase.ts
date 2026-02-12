@@ -9,9 +9,11 @@ if (typeof window !== 'undefined') {
     console.log('[Supabase] Key length:', supabaseAnonKey ? supabaseAnonKey.length : 'MISSING');
     console.log('[Supabase] Environment:', process.env.NODE_ENV);
 
-    // Connectivity test
-    if (supabaseUrl) {
-        fetch(`${supabaseUrl}/auth/v1/health`)
+    // Connectivity test with proper header
+    if (supabaseUrl && supabaseAnonKey) {
+        fetch(`${supabaseUrl}/auth/v1/health`, {
+            headers: { 'apikey': supabaseAnonKey }
+        })
             .then(res => console.log('[Supabase] Connectivity test (health):', res.status))
             .catch(err => console.error('[Supabase] Connectivity test failed:', err.message));
     }

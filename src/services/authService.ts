@@ -29,6 +29,7 @@ export const mapProfileToDb = (profile: Partial<UserProfile>): any => {
 
 export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
     try {
+        if (typeof window !== 'undefined') console.log('[authService] getUserProfile started for:', uid);
         const { data, error } = await supabase
             .from(COLLECTION_USERS)
             .select('*')
@@ -43,6 +44,7 @@ export const getUserProfile = async (uid: string): Promise<UserProfile | null> =
             });
             throw error;
         }
+        if (typeof window !== 'undefined') console.log('[authService] getUserProfile success:', !!data);
         return data ? mapProfileFromDb(data) : null;
     } catch (error) {
         console.error("Error in getUserProfile:", error);
