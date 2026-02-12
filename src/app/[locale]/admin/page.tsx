@@ -35,36 +35,10 @@ export default function AdminDashboardPage() {
     const [targetCategory, setTargetCategory] = useState<string | ''>('');
     const [isUpdating, setIsUpdating] = useState(false);
 
-    useEffect(() => {
-        // Saturation & Connection Pool Test
-        console.warn('[SaturationTest] Page Mounted. Waiting 10s for connection pool to clear...');
-        const timer = setTimeout(async () => {
-            console.warn('[SaturationTest] 10s ELAPSED. Attempting native fetch to root...');
-            try {
-                const res = await fetch('/');
-                console.warn('[SaturationTest] Native fetch SUCCESS:', res.status);
-            } catch (e: any) {
-                console.error('[SaturationTest] Native fetch FAILED:', e.message);
-            }
-
-            console.warn('[SaturationTest] Attempting direct Supabase query now...');
-            try {
-                const { data } = await require('@/lib/supabase').supabase.from('categories').select('id').limit(1);
-                console.warn('[SaturationTest] Direct Supabase query DONE:', data);
-            } catch (e: any) {
-                console.error('[SaturationTest] Direct Supabase query FAILED:', e.message);
-            }
-        }, 10000);
-
-        return () => clearTimeout(timer);
-    }, []);
-
     const { data: posts, isLoading, error: queryError, isFetching, refetch } = useQuery({
         queryKey: ['admin-posts'],
         queryFn: async () => {
-            console.warn('[Dashboard] QueryFn EXECUTING...');
             const result = await getAdminPosts();
-            console.warn(`[Dashboard] QueryFn RESOLVED with ${result?.length} items`);
             return result;
         },
     });
@@ -303,10 +277,10 @@ export default function AdminDashboardPage() {
                                         </span>
                                     </TableCell>
                                     <TableCell className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">
-                                        {post.status === 'scheduled' && post.publishedAt?.seconds
-                                            ? format(new Date(post.publishedAt.seconds * 1000), 'yyyy.MM.dd')
-                                            : post.createdAt?.seconds
-                                                ? format(new Date(post.createdAt.seconds * 1000), 'yyyy.MM.dd')
+                                        {post.status === 'scheduled' && post.publishedAt
+                                            ? format(new Date(post.publishedAt?.seconds ? post.publishedAt.seconds * 1000 : post.publishedAt), 'yyyy.MM.dd')
+                                            : post.createdAt
+                                                ? format(new Date(post.createdAt?.seconds ? post.createdAt.seconds * 1000 : post.createdAt), 'yyyy.MM.dd')
                                                 : '-'}
                                     </TableCell>
                                     <TableCell className="text-right text-[10px] font-black text-black tabular-nums">

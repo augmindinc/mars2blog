@@ -137,26 +137,15 @@ export const subscribeToPosts = (category: Category, locale: string = 'ko', call
 
 export const getAdminPosts = async (): Promise<Post[]> => {
     try {
-        const start = Date.now();
-        if (typeof window !== 'undefined') console.log('[blogService] getAdminPosts: START_DATABASE_QUERY');
-
-        const query = supabase
+        const { data, error } = await supabase
             .from(TABLE_NAME)
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (typeof window !== 'undefined') console.log('[blogService] getAdminPosts: AWAITING_QUERY_PROMISE...');
-        const { data, error, status, statusText } = await query;
-
-        if (typeof window !== 'undefined') {
-            const duration = Date.now() - start;
-            console.log(`[blogService] getAdminPosts: QUERY_RETURNED in ${duration}ms`, { status, statusText, dataCount: data?.length });
-        }
-
         if (error) throw error;
         return (data || []).map(mapPostFromDb);
     } catch (error) {
-        console.error("[blogService] getAdminPosts: CRITICAL_ERROR", error);
+        console.error("[blogService] getAdminPosts: ERROR", error);
         return [];
     }
 };

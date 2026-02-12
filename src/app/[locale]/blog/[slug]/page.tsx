@@ -57,8 +57,8 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
             description: description,
             images: post.thumbnail.url ? [post.thumbnail.url] : [],
             type: 'article',
-            publishedTime: post.publishedAt?.toDate().toISOString(),
-            modifiedTime: post.updatedAt?.toDate().toISOString(),
+            publishedTime: post.publishedAt ? new Date(post.publishedAt?.seconds ? post.publishedAt.seconds * 1000 : post.publishedAt).toISOString() : undefined,
+            modifiedTime: post.updatedAt ? new Date(post.updatedAt?.seconds ? post.updatedAt.seconds * 1000 : post.updatedAt).toISOString() : undefined,
             authors: [post.author.name],
         },
         twitter: {
@@ -88,8 +88,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         headline: post.title,
         description: post.seo.metaDesc || post.excerpt || post.content.replace(/[#*`]/g, '').substring(0, 160),
         image: post.thumbnail.url ? [post.thumbnail.url] : [],
-        datePublished: post.publishedAt?.toDate().toISOString(),
-        dateModified: post.updatedAt?.toDate().toISOString(),
+        datePublished: post.publishedAt ? new Date(post.publishedAt?.seconds ? post.publishedAt.seconds * 1000 : post.publishedAt).toISOString() : undefined,
+        dateModified: post.updatedAt ? new Date(post.updatedAt?.seconds ? post.updatedAt.seconds * 1000 : post.updatedAt).toISOString() : undefined,
         author: {
             '@type': 'Person',
             name: post.author.name,
@@ -139,8 +139,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                     <span>{serializedPost.author.name}</span>
                     <span>•</span>
                     <span>
-                        {serializedPost.createdAt?.seconds
-                            ? format(new Date(serializedPost.createdAt.seconds * 1000), 'yyyy.MM.dd')
+                        {serializedPost.createdAt
+                            ? format(new Date(serializedPost.createdAt?.seconds ? serializedPost.createdAt.seconds * 1000 : serializedPost.createdAt), 'yyyy.MM.dd')
                             : format(new Date(), 'yyyy.MM.dd')}
                     </span>
                 </div>

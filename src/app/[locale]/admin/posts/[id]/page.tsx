@@ -85,8 +85,8 @@ export default function AdminPostDetailPage({ params }: { params: Promise<{ id: 
                         <span className="text-black">{post.author.name}</span>
                         <span className="text-black/10">•</span>
                         <span>
-                            {post.createdAt?.seconds
-                                ? format(new Date(post.createdAt.seconds * 1000), 'yyyy.MM.dd')
+                            {post.createdAt
+                                ? format(new Date(post.createdAt?.seconds ? post.createdAt.seconds * 1000 : post.createdAt), 'yyyy.MM.dd')
                                 : format(new Date(), 'yyyy.MM.dd')}
                         </span>
                         <span className="text-black/10">•</span>

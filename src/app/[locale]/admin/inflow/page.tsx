@@ -133,7 +133,7 @@ export default function InflowPage() {
                                     <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                                         <div className="flex items-center gap-2">
                                             <Clock className="w-3 h-3" />
-                                            {format(new Date(log.createdAt?.seconds * 1000), 'MM.dd HH:mm:ss')}
+                                            {log.createdAt ? format(new Date(log.createdAt), 'MM.dd HH:mm:ss') : '-'}
                                         </div>
                                     </TableCell>
                                     <TableCell>
