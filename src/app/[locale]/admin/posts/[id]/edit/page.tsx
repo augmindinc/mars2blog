@@ -117,8 +117,10 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
 
                 if (post.publishedAt) {
                     const date = new Date(post.publishedAt);
-                    const formattedDate = date.toISOString().slice(0, 16);
-                    setPublishedAt(formattedDate);
+                    // Adjust for timezone offset so .toISOString() returns local time values for slice
+                    const offset = date.getTimezoneOffset() * 60000;
+                    const localISOTime = new Date(date.getTime() - offset).toISOString().slice(0, 16);
+                    setPublishedAt(localISOTime);
                 }
 
                 // Fetch extra translations
