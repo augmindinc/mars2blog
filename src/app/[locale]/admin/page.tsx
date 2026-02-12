@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAdminPosts, deletePost, subscribeToAdminPosts, bulkUpdateCategory } from '@/services/blogService';
 import { Button } from '@/components/ui/button';
@@ -57,24 +57,34 @@ export default function AdminDashboardPage() {
         if (queryError) console.error('[Dashboard] QUERY ERROR:', queryError);
     }, [queryError]);
 
-    const filteredPosts = posts?.filter(post => {
-        const dynamicCat = categories?.find(c => c.id === post.category || c.slug.toUpperCase() === post.category);
-        const catLabel = dynamicCat
-            ? (dynamicCat.name[locale] || dynamicCat.name['ko'])
-            : (CATEGORY_LABELS[post.category]?.[locale] || post.category);
+    const filteredPosts = useMemo(() => {
+        return posts?.filter(post => {
+            const dynamicCat = categories?.find(c => c.id === post.category || c.slug.toUpperCase() === post.category);
+            const catLabel = dynamicCat
+                ? (dynamicCat.name[locale] || dynamicCat.name['ko'])
+                : (CATEGORY_LABELS[post.category]?.[locale] || post.category);
 
-        return (
-            post.title.toLowerCase().includes(search.toLowerCase()) ||
-            post.author.name.toLowerCase().includes(search.toLowerCase()) ||
-            catLabel.toLowerCase().includes(search.toLowerCase())
-        );
-    });
+            return (
+                post.title.toLowerCase().includes(search.toLowerCase()) ||
+                post.author.name.toLowerCase().includes(search.toLowerCase()) ||
+                catLabel.toLowerCase().includes(search.toLowerCase())
+            );
+        });
+    }, [posts, categories, locale, search]);
 
     useEffect(() => {
+        let timeout: NodeJS.Timeout;
         const unsubscribe = subscribeToAdminPosts((newPosts) => {
-            queryClient.setQueryData(['admin-posts'], newPosts);
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                console.log("[Dashboard] Applying realtime update...");
+                queryClient.setQueryData(['admin-posts'], newPosts);
+            }, 300);
         });
-        return () => unsubscribe();
+        return () => {
+            unsubscribe();
+            clearTimeout(timeout);
+        };
     }, [queryClient]);
 
     const deleteMutation = useMutation({

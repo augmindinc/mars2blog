@@ -650,7 +650,6 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
             }));
 
             console.log("%c[EditPost] SUCCESS_ALL_TASKS_COMPLETE", "color: green; font-weight: bold;");
-            alert('Post and translations updated successfully');
             router.push(`/${locale}/admin`);
         } catch (error: any) {
             console.error('[EditPost] CRITICAL_REJECTION:', error);
