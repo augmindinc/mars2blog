@@ -47,12 +47,9 @@ export default function LoginPage() {
         setIsLoading(true);
         setError('');
         try {
-            const result = await loginWithGoogle('admin');
-            if (result?.profile?.status === 'pending') {
-                setShowPendingModal(true);
-            } else if (result) {
-                router.push(`/${locale}/admin`);
-            }
+            // In Supabase, this triggers a redirect, so we don't handle the result/profile here.
+            // The useEffect will handle the "pending" state or redirection after the user returns from Google.
+            await loginWithGoogle('admin');
         } catch (err: any) {
             setError(err.message || 'Google login failed');
         } finally {
@@ -76,9 +73,9 @@ export default function LoginPage() {
                 res = await registerWithEmail(email, password, displayName, 'admin');
             }
 
-            if (res.profile?.status === 'pending') {
+            if (res && 'profile' in res && res.profile?.status === 'pending') {
                 setShowPendingModal(true);
-            } else {
+            } else if (res) {
                 router.push(`/${locale}/admin`);
             }
         } catch (err: any) {

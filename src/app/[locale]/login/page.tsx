@@ -35,7 +35,8 @@ export default function PublicLoginPage() {
         setError('');
         try {
             await loginWithGoogle('author');
-            router.push(`/${locale}`);
+            // Redirect is handled by Supabase OAuth.
+            // Presence of 'user' will trigger the useEffect for local redirection.
         } catch (err: any) {
             setError(err.message || 'Google login failed');
         } finally {
