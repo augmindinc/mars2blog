@@ -17,7 +17,7 @@ import { useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
 export function UserMenu() {
-    const { user, loading } = useAuth();
+    const { user, profile, loading } = useAuth();
     const router = useRouter();
     const locale = useLocale();
 
