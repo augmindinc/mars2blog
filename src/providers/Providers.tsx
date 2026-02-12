@@ -7,6 +7,36 @@ import { ReactNode, useState } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 
+// Static QueryClient to ensure absolute singleton behavior across re-renders
+let browserQueryClient: QueryClient | undefined = undefined;
+
+function getQueryClient() {
+    if (typeof window === 'undefined') {
+        // Server: always create a new one
+        return new QueryClient({
+            defaultOptions: {
+                queries: {
+                    staleTime: 60 * 1000,
+                },
+            },
+        });
+    } else {
+        // Browser: use singleton
+        if (!browserQueryClient) {
+            console.warn('[Providers] Initializing Browser QueryClient Singleton');
+            browserQueryClient = new QueryClient({
+                defaultOptions: {
+                    queries: {
+                        staleTime: 60 * 1000,
+                        retry: 1,
+                    },
+                },
+            });
+        }
+        return browserQueryClient;
+    }
+}
+
 export function Providers({
     children,
     initialUser,
@@ -16,13 +46,7 @@ export function Providers({
     initialUser?: any;
     initialProfile?: any;
 }) {
-    const [queryClient] = useState(() => new QueryClient({
-        defaultOptions: {
-            queries: {
-                staleTime: 60 * 1000,
-            },
-        },
-    }));
+    const queryClient = getQueryClient();
 
     return (
         <QueryClientProvider client={queryClient}>

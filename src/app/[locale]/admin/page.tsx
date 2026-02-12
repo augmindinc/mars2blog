@@ -59,17 +59,24 @@ export default function AdminDashboardPage() {
         return () => clearTimeout(timer);
     }, []);
 
-    const { data: posts, isLoading, error: queryError, isFetching } = useQuery({
+    const { data: posts, isLoading, error: queryError, isFetching, refetch } = useQuery({
         queryKey: ['admin-posts'],
         queryFn: async () => {
-            console.warn('[Dashboard] Executing getAdminPosts queryFn...');
+            console.warn('[Dashboard] QueryFn EXECUTING...');
             const result = await getAdminPosts();
+            console.warn(`[Dashboard] QueryFn RESOLVED with ${result?.length} items`);
             return result;
         },
     });
 
     useEffect(() => {
-        console.log('[Dashboard] STATE CHANGE:', { isLoading, isFetching, hasPosts: !!posts, categoriesCount: categories?.length });
+        console.warn('[Dashboard] STATE_DEBUG:', {
+            isLoading,
+            isFetching,
+            data_exists: !!posts,
+            posts_count: posts?.length,
+            categories_count: categories?.length
+        });
     }, [isLoading, isFetching, posts, categories]);
 
     useEffect(() => {
@@ -147,7 +154,24 @@ export default function AdminDashboardPage() {
         );
     };
 
-    if (isLoading) return <div className="p-8 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground animate-pulse">Initializing Dashboard Data...</div>;
+    // ONLY SHOW LOADING IF DATA IS TRULY MISSING
+    if (isLoading && !posts) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] gap-6">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground animate-pulse">
+                    Initiating Secure Protocol Access...
+                </div>
+                <Button
+                    variant="outline"
+                    onClick={() => refetch()}
+                    className="rounded-none border-black/10 text-[9px] font-bold uppercase tracking-widest px-6 h-10 shadow-none"
+                    disabled={isFetching}
+                >
+                    {isFetching ? 'Synchronizing...' : 'Manual Signal Override'}
+                </Button>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-8">
